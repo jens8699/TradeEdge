@@ -3,6 +3,7 @@ import { getGreeting, getMilestone, getStreak } from '../../lib/utils';
 import { sb } from '../../lib/supabase';
 
 const NAV = [
+  { id: 'dashboard', icon: '⌂', label: 'Dashboard' },
   { id: 'entry',    icon: '✦', label: 'Log Trade' },
   { id: 'stats',    icon: '◈', label: 'Stats' },
   { id: 'history',  icon: '≡', label: 'History' },
