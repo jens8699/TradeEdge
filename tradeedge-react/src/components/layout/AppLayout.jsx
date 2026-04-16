@@ -10,6 +10,7 @@ import MarketBrief from '../views/MarketBrief';
 import Insights from '../views/Insights';
 import Settings from '../views/Settings';
 import Calendar from '../views/Calendar';
+import Social from '../views/Social';
 import { getGreeting } from '../../lib/utils';
 
 export default function AppLayout({ user, profile, showToast }) {
@@ -23,7 +24,7 @@ export default function AppLayout({ user, profile, showToast }) {
         <div className="jm-app">
           <div style={{ gridColumn:'1/-1', display:'flex', alignItems:'center', justifyContent:'center', minHeight:'400px', flexDirection:'column', gap:'12px' }}>
             <div className="jm-spinner" style={{ width:'24px', height:'24px', borderWidth:'2.5px' }} />
-            <p style={{ fontSize:'13px', color:'#6B6862', margin:0 }}>Loading your journal…</p>
+            <p style={{ fontSize:'13px', color:'#6B6862', margin:0 }}>Loading your journalâ¦</p>
           </div>
         </div>
       </div>
