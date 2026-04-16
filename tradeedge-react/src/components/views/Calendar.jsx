@@ -74,12 +74,12 @@ export default function Calendar() {
         <h1 className="jm-page-title">Trading <span>Calendar</span></h1>
       </div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
-        <button onClick={prev} style={{background:'rgba(255,255,255,0.05)',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:'8px',color:'#E8E6E1',fontSize:'18px',width:'36px',height:'36px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>
+        <button onClick={prev} style={{background:'rgba(255,255,255,0.05)',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:'8px',color:'#E8E6E1',fontSize:'18px',width:'36px',height:'36px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>â¹</button>
         <h2 style={{fontSize:'17px',fontWeight:700,color:'#E8E6E1',margin:0}}>{monthLabel}</h2>
-        <button onClick={next} style={{background:'rgba(255,255,255,0.05)',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:'8px',color:'#E8E6E1',fontSize:'18px',width:'36px',height:'36px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>
+        <button onClick={next} style={{background:'rgba(255,255,255,0.05)',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:'8px',color:'#E8E6E1',fontSize:'18px',width:'36px',height:'36px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>âº</button>
       </div>
       {Object.keys(dayMap).length > 0 && (
-        <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:'8px',marginBottom:'16px'}}>
+        <div className="cal-chips-row" style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:'8px',marginBottom:'16px'}}>
           {[
             {label:'Month P/L',val:fmt(summary.totalPnl),color:summary.totalPnl>=0?'#5DCAA5':'#F09595'},
             {label:'Green days',val:summary.green,color:'#5DCAA5'},
@@ -125,7 +125,7 @@ export default function Calendar() {
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
             <div>
               <h2 className="jm-card-title" style={{margin:0}}>{new Date(selected+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</h2>
-              <p style={{fontSize:'12px',color:'#8B8882',marginTop:'3px'}}>{selData.count} trade{selData.count!==1?'s':''} · {selData.wins}W / {selData.count-selData.wins}L</p>
+              <p style={{fontSize:'12px',color:'#8B8882',marginTop:'3px'}}>{selData.count} trade{selData.count!==1?'s':''} Â· {selData.wins}W / {selData.count-selData.wins}L</p>
             </div>
             <p style={{fontSize:'22px',fontWeight:900,color:selData.pnl>=0?'#5DCAA5':'#F09595',margin:0}}>{selData.pnl>=0?'+':''}{fmt(selData.pnl)}</p>
           </div>
