@@ -4,10 +4,11 @@ import { sb } from '../../lib/supabase';
 
 const NAV = [
   { id: 'dashboard', icon: '⌂', label: 'Dashboard' },
-  { id: 'entry',    icon: '✦', label: 'Log Trade' },
-  { id: 'stats',    icon: '◈', label: 'Stats' },
-  { id: 'history',  icon: '≡', label: 'History' },
-  { id: 'payouts',  icon: '$', label: 'Payouts' },
+  { id: 'entry',     icon: '✦', label: 'Log Trade' },
+  { id: 'stats',     icon: '◈', label: 'Stats' },
+  { id: 'history',   icon: '≡', label: 'History' },
+  { id: 'calendar',  icon: '▦', label: 'Calendar' },
+  { id: 'payouts',   icon: '$',      label: 'Payouts' },
 ];
 const NAV2 = [
   { id: 'brief',    icon: '◎', label: 'Market Brief' },
@@ -38,7 +39,6 @@ export default function Sidebar({ user, profile }) {
         </div>
         <div className="tp-user-chip">{name}</div>
       </div>
-
       <nav className="jm-nav">
         <div className="jm-nav-label">Journal</div>
         {NAV.map(n => (
@@ -57,26 +57,17 @@ export default function Sidebar({ user, profile }) {
           </button>
         ))}
       </nav>
-
       <div className="jm-side-foot">
         {streak >= 2 && (
-          <div className="jm-streak">
-            <div className="jm-streak-dot" />
-            🔥 {streak} win streak
-          </div>
+          <div className="jm-streak"><div className="jm-streak-dot" />🔥 {streak} win streak</div>
         )}
         {streak < 2 && (
-          <div className="jm-streak">
-            <div className="jm-streak-dot" />
-            {trades.length} trades logged
-          </div>
+          <div className="jm-streak"><div className="jm-streak-dot" />{trades.length} trades logged</div>
         )}
         {milestone && (
           <div className="jm-milestone">{milestone.emoji} {milestone.label}</div>
         )}
-        <button className="tp-signout-btn" style={{ marginTop:'12px' }} onClick={() => sb.auth.signOut()}>
-          Sign out
-        </button>
+        <button className="tp-signout-btn" style={{ marginTop:'12px' }} onClick={() => sb.auth.signOut()}>Sign out</button>
       </div>
     </aside>
   );
