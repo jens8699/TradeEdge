@@ -6,19 +6,28 @@ import AppLayout from './components/layout/AppLayout';
 import { useToast, ToastContainer } from './hooks/useToast';
 
 export default function App() {
-  const [authState, setAuthState] = useState({ status: 'loading', user: null, profile: null }); // status: loading | authed | guest
+  const [authState, setAuthState] = useState({ status: 'loading', user: null, profile: null });
   const [authPanel,  setAuthPanel]  = useState('login');
   const { toasts, show: showToast } = useToast();
 
   useEffect(() => {
+    // Timeout fallback — if Supabase hangs for 6s, drop to login screen
+    const timeout = setTimeout(() => {
+      setAuthState(prev => prev.status === 'loading' ? { status: 'guest', user: null, profile: null } : prev);
+    }, 6000);
+
     // Initial session check
     sb.auth.getSession().then(async ({ data: { session } }) => {
+      clearTimeout(timeout);
       if (session?.user) {
         const prof = await getProfile(session.user.id);
         setAuthState({ status: 'authed', user: session.user, profile: prof });
       } else {
         setAuthState({ status: 'guest', user: null, profile: null });
       }
+    }).catch(() => {
+      clearTimeout(timeout);
+      setAuthState({ status: 'guest', user: null, profile: null });
     });
 
     // Auth state changes (login, logout, password recovery)
@@ -37,7 +46,7 @@ export default function App() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => { subscription.unsubscribe(); clearTimeout(timeout); };
   }, []);
 
   const { status, user, profile } = authState;
