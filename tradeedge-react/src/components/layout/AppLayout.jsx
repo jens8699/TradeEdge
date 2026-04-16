@@ -1,6 +1,7 @@
 import { useApp } from '../../context/AppContext';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
+import Dashboard from '../views/Dashboard';
 import TradeEntry from '../views/TradeEntry';
 import Stats from '../views/Stats';
 import History from '../views/History';
@@ -34,6 +35,7 @@ export default function AppLayout({ user, profile, showToast }) {
         <Sidebar user={user} profile={profile} />
 
         <main className="jm-main">
+          {activeTab === 'dashboard' && <Dashboard user={user} profile={profile} />}
           {activeTab === 'entry'    && <TradeEntry showToast={showToast} />}
           {activeTab === 'stats'    && <Stats />}
           {activeTab === 'history'  && <History showToast={showToast} />}
