@@ -3,17 +3,18 @@ import { getGreeting, getMilestone, getStreak } from '../../lib/utils';
 import { sb } from '../../lib/supabase';
 
 const NAV = [
-  { id: 'dashboard', icon: '⌂', label: 'Dashboard' },
-  { id: 'entry',     icon: '✦', label: 'Log Trade' },
-  { id: 'stats',     icon: '◈', label: 'Stats' },
-  { id: 'history',   icon: '≡', label: 'History' },
-  { id: 'calendar',  icon: '▦', label: 'Calendar' },
+  { id: 'dashboard', icon: 'â', label: 'Dashboard' },
+  { id: 'entry',     icon: 'â¦', label: 'Log Trade' },
+  { id: 'stats',     icon: 'â', label: 'Stats' },
+  { id: 'history',   icon: 'â¡', label: 'History' },
+  { id: 'calendar',  icon: 'â¦', label: 'Calendar' },
   { id: 'payouts',   icon: '$',      label: 'Payouts' },
 ];
 const NAV2 = [
-  { id: 'brief',    icon: '◎', label: 'Market Brief' },
-  { id: 'insights', icon: '◇', label: 'AI Insights' },
-  { id: 'settings', icon: '⚙', label: 'Settings' },
+  { id: 'social',   icon: '◉', label: 'Social' },
+  { id: 'brief',    icon: 'â', label: 'Market Brief' },
+  { id: 'insights', icon: 'â', label: 'AI Insights' },
+  { id: 'settings', icon: 'â', label: 'Settings' },
 ];
 
 export default function Sidebar({ user, profile }) {
@@ -59,7 +60,7 @@ export default function Sidebar({ user, profile }) {
       </nav>
       <div className="jm-side-foot">
         {streak >= 2 && (
-          <div className="jm-streak"><div className="jm-streak-dot" />🔥 {streak} win streak</div>
+          <div className="jm-streak"><div className="jm-streak-dot" />ð¥ {streak} win streak</div>
         )}
         {streak < 2 && (
           <div className="jm-streak"><div className="jm-streak-dot" />{trades.length} trades logged</div>
