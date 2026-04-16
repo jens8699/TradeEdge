@@ -132,15 +132,15 @@ export default function Stats() {
       <div className="jm-hero" style={s.totalPnl<0?{background:'radial-gradient(ellipse at top right,rgba(226,75,74,0.22) 0%,rgba(226,75,74,0.04) 50%,#1E1C16 100%)',borderColor:'rgba(226,75,74,0.4)'}:{}}>
         <p className="jm-hero-label">Realized P/L</p>
         <p className="jm-hero-val" style={{color:s.totalPnl<0?'#F7C1C1':'#FAECE7'}} ref={heroRef}>$0.00</p>
-        {list.length===0 ? <p className="jm-hero-meta">No trades in this period</p> : <p className="jm-hero-meta">{s.count} trade{s.count!==1?'s':''} · {s.wins}W / {s.losses}L{consistencyInfo?' · ':''}{consistencyInfo&&<span style={{color:consistencyInfo.color,fontWeight:600}}>{consistency} consistency score</span>}</p>}
+        {list.length===0 ? <p className="jm-hero-meta">No trades in this period</p> : <p className="jm-hero-meta">{s.count} trade{s.count!==1?'s':''} Â· {s.wins}W / {s.losses}L{consistencyInfo?' Â· ':''}{consistencyInfo&&<span style={{color:consistencyInfo.color,fontWeight:600}}>{consistency} consistency score</span>}</p>}
       </div>
       {list.length===0 ? (
         <div style={{textAlign:'center',padding:'3rem 0',color:'#5F5C56',fontSize:'13px',lineHeight:1.8}}>No trades logged for this period.<br/>Log some trades to see your stats.</div>
       ) : (<>
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'10px',marginBottom:'10px'}}>
           <MetricRing label="Win Rate" value={s.winRate.toFixed(1)+'%'} pct={s.winRate} color="#E8724A" foot={s.wins+'W / '+s.losses+'L'} />
-          <MetricRing label="Profit Factor" value={isFinite(s.pf)?s.pf.toFixed(2):'∞'} pct={Math.min((isFinite(s.pf)?s.pf:3)/3*100,100)} color="#5DCAA5" foot={s.pf>=1.5?'✓ Good edge':s.pf>=1?'Breakeven zone':'⚠ Below B/E'} />
-          <MetricRing label="Avg R:R" value={s.rr.toFixed(2)} pct={Math.min(s.rr/3*100,100)} color="#85B7EB" foot={s.rr>=1.5?'✓ Healthy R:R':s.rr>=1?'Needs improvement':'⚠ Risk > Reward'} />
+          <MetricRing label="Profit Factor" value={isFinite(s.pf)?s.pf.toFixed(2):'â'} pct={Math.min((isFinite(s.pf)?s.pf:3)/3*100,100)} color="#5DCAA5" foot={s.pf>=1.5?'â Good edge':s.pf>=1?'Breakeven zone':'â  Below B/E'} />
+          <MetricRing label="Avg R:R" value={s.rr.toFixed(2)} pct={Math.min(s.rr/3*100,100)} color="#85B7EB" foot={s.rr>=1.5?'â Healthy R:R':s.rr>=1?'Needs improvement':'â  Risk > Reward'} />
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'10px',marginBottom:'10px'}}>
           <SmallCard label="Avg Win" val={fmt(s.avgWin)} color="#5DCAA5" />
@@ -149,9 +149,9 @@ export default function Stats() {
           <SmallCard label="Worst Trade" val={fmt(s.worst)} color="#F09595" />
         </div>
         <div className="jm-card" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'12px',marginBottom:'10px',padding:'16px 20px'}}>
-          <StreakCol label="Current streak" value={streak.current} type={streak.type} icon={streak.type==='win'?'🔥':streak.type==='loss'?'🧊':'—'} sub={streak.current===0?'Start trading':streak.type==='win'?streak.current+' green in a row':streak.current+' red in a row'} />
-          <StreakCol label="Longest win run" value={streak.longest} type="win" icon="⭐" sub="consecutive wins" />
-          <StreakCol label="Longest loss run" value={streak.longestLoss} type="loss" icon="❄️" sub="consecutive losses" />
+          <StreakCol label="Current streak" value={streak.current} type={streak.type} icon={streak.type==='win'?'ð¥':streak.type==='loss'?'ð§':'â'} sub={streak.current===0?'Start trading':streak.type==='win'?streak.current+' green in a row':streak.current+' red in a row'} />
+          <StreakCol label="Longest win run" value={streak.longest} type="win" icon="â­" sub="consecutive wins" />
+          <StreakCol label="Longest loss run" value={streak.longestLoss} type="loss" icon="âï¸" sub="consecutive losses" />
         </div>
         {setups.length>0&&(
           <div className="jm-card" style={{marginBottom:'10px'}}>
@@ -162,7 +162,7 @@ export default function Stats() {
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
                     <span style={{fontSize:'13px',fontWeight:600,color:'#E8E6E1'}}>{ss.name}</span>
                     <div style={{display:'flex',gap:'12px',alignItems:'center'}}>
-                      <span style={{fontSize:'11px',color:'#8B8882'}}>{ss.count} trades · {ss.wr}% WR</span>
+                      <span style={{fontSize:'11px',color:'#8B8882'}}>{ss.count} trades Â· {ss.wr}% WR</span>
                       <span style={{fontSize:'13px',fontWeight:700,color:ss.pnl>=0?'#5DCAA5':'#F09595'}}>{fmt(ss.pnl)}</span>
                     </div>
                   </div>
@@ -182,20 +182,20 @@ export default function Stats() {
           <div className="jm-card" style={{marginBottom:'10px'}}>
             <h2 className="jm-card-title" style={{marginBottom:'12px'}}>P/L by Day of Week</h2>
             <div style={{position:'relative',height:'180px'}}><canvas ref={dowRef}/></div>
-            {(()=>{const best=[...dowStats].sort((a,b)=>b.pnl-a.pnl)[0];const worst=[...dowStats].sort((a,b)=>a.pnl-b.pnl)[0];return best&&best!==worst?(<p style={{fontSize:'12px',color:'#8B8882',margin:'10px 0 0',lineHeight:1.6}}><span style={{color:'#5DCAA5',fontWeight:600}}>{best.label}</span> is your best day ({fmt(best.pnl)}) · <span style={{color:'#F09595',fontWeight:600}}>{worst.label}</span> is your worst ({fmt(worst.pnl)})</p>):null;})()}
+            {(()=>{const best=[...dowStats].sort((a,b)=>b.pnl-a.pnl)[0];const worst=[...dowStats].sort((a,b)=>a.pnl-b.pnl)[0];return best&&best!==worst?(<p style={{fontSize:'12px',color:'#8B8882',margin:'10px 0 0',lineHeight:1.6}}><span style={{color:'#5DCAA5',fontWeight:600}}>{best.label}</span> is your best day ({fmt(best.pnl)}) Â· <span style={{color:'#F09595',fontWeight:600}}>{worst.label}</span> is your worst ({fmt(worst.pnl)})</p>):null;})()}
           </div>
         )}
         {(topWins.length>0||topLosses.length>0)&&(
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'10px'}}>
             {topWins.length>0&&(
               <div className="jm-card">
-                <h2 className="jm-card-title" style={{marginBottom:'12px',color:'#5DCAA5'}}>🏆 Top Wins</h2>
+                <h2 className="jm-card-title" style={{marginBottom:'12px',color:'#5DCAA5'}}>ð Top Wins</h2>
                 {topWins.map((t,i)=>(<div key={t.id||i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:i<topWins.length-1?'0.5px solid rgba(255,255,255,0.05)':'none'}}><div><span style={{fontSize:'13px',fontWeight:700,color:'#E8E6E1'}}>{t.symbol}</span><span style={{fontSize:'11px',color:'#8B8882',marginLeft:'8px'}}>{t.date}</span>{t.setup&&<span style={{fontSize:'10px',color:'#6B6760',marginLeft:'6px'}}>{t.setup}</span>}</div><span style={{fontSize:'13px',fontWeight:700,color:'#5DCAA5'}}>{fmt(t.pnl)}</span></div>))}
               </div>
             )}
             {topLosses.length>0&&(
               <div className="jm-card">
-                <h2 className="jm-card-title" style={{marginBottom:'12px',color:'#F09595'}}>📚 Biggest Lessons</h2>
+                <h2 className="jm-card-title" style={{marginBottom:'12px',color:'#F09595'}}>ð Biggest Lessons</h2>
                 {topLosses.map((t,i)=>(<div key={t.id||i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:i<topLosses.length-1?'0.5px solid rgba(255,255,255,0.05)':'none'}}><div><span style={{fontSize:'13px',fontWeight:700,color:'#E8E6E1'}}>{t.symbol}</span><span style={{fontSize:'11px',color:'#8B8882',marginLeft:'8px'}}>{t.date}</span>{t.setup&&<span style={{fontSize:'10px',color:'#6B6760',marginLeft:'6px'}}>{t.setup}</span>}</div><span style={{fontSize:'13px',fontWeight:700,color:'#F09595'}}>{fmt(t.pnl)}</span></div>))}
               </div>
             )}
@@ -213,7 +213,7 @@ function MetricRing({ label, value, pct, color, foot }) {
     <div className="jm-card" style={{display:'flex',flexDirection:'column',alignItems:'center',padding:'18px 12px',gap:'6px'}}>
       <svg width="68" height="68" style={{overflow:'visible'}}>
         <circle cx="34" cy="34" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5"/>
-        <circle cx="34" cy="34" r={r} fill="none" stroke={color} strokeWidth="5" strokeDasharray={dash+' '+circ} strokeLinecap="round" transform="rotate(-90 34 34)" style={{transition:'stroke-dasharray 0.6s ease'}}/>
+        <circle cx="34" cy="34" r={r} fill="none" stroke={color} strokeWidth="5" strokeDasharray={dash+' '+circ} strokeLinecap="butt" transform="rotate(-90 34 34)" style={{transition:'stroke-dasharray 0.6s ease'}}/>
       </svg>
       <p style={{fontSize:'20px',fontWeight:800,color,margin:'-48px 0 0',letterSpacing:'-0.5px'}}>{value}</p>
       <p style={{fontSize:'11px',color:'#8B8882',margin:'46px 0 0',textTransform:'uppercase',letterSpacing:'0.5px'}}>{label}</p>
