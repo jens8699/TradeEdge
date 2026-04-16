@@ -19,6 +19,7 @@ async function syncOfflineQueue(userId) {
       if (item.type === 'trade') {
         if (item.action === 'insert') {
           const data = { ...item.data };
+          // Handle base64 image upload
           if (data.image && data.image.startsWith('data:')) {
             try {
               const res = await fetch(data.image);
@@ -53,7 +54,7 @@ export function AppProvider({ userId, children }) {
   const [trades,   setTrades]   = useState([]);
   const [payouts,  setPayouts]  = useState([]);
   const [loading,  setLoading]  = useState(true);
-  const [activeTab, setActiveTab] = useState('entry');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [syncPending, setSyncPending] = useState(() => oqGet().length > 0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [theme, setTheme] = useState(() => localStorage.getItem('te_theme') || 'dark');
@@ -149,6 +150,7 @@ export function AppProvider({ userId, children }) {
       return;
     }
     await sb.from('trades').delete().eq('id', tradeId);
+    // Remove screenshot from storage
     if (trade?.image && !trade.image.startsWith('data:')) {
       sb.storage.from('trade-screenshots').remove([trade.image]).catch(() => {});
     }
