@@ -423,6 +423,9 @@ textarea.jm-in { resize:vertical; min-height:80px; }
 /* LOADING VIEW */
 .view-loading { display:flex; align-items:center; justify-content:center; min-height:400px; flex-direction:column; gap:12px; }
 
+/* ── SOCIAL ── */
+.social-discover-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:10px; }
+
 /* Ã¢ÂÂÃ¢ÂÂ MOBILE Ã¢ÂÂÃ¢ÂÂ */
 @media (max-width: 720px) {
   body { padding-bottom:80px; }
