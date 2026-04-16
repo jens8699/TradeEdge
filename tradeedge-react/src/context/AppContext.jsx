@@ -19,7 +19,6 @@ async function syncOfflineQueue(userId) {
       if (item.type === 'trade') {
         if (item.action === 'insert') {
           const data = { ...item.data };
-          // Handle base64 image upload
           if (data.image && data.image.startsWith('data:')) {
             try {
               const res = await fetch(data.image);
@@ -57,6 +56,18 @@ export function AppProvider({ userId, children }) {
   const [activeTab, setActiveTab] = useState('entry');
   const [syncPending, setSyncPending] = useState(() => oqGet().length > 0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [theme, setTheme] = useState(() => localStorage.getItem('te_theme') || 'dark');
+
+  // Apply theme to document root
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('te_theme', next);
+  }, [theme]);
 
   // Initial data load
   const load = useCallback(async (uid_) => {
@@ -138,7 +149,6 @@ export function AppProvider({ userId, children }) {
       return;
     }
     await sb.from('trades').delete().eq('id', tradeId);
-    // Remove screenshot from storage
     if (trade?.image && !trade.image.startsWith('data:')) {
       sb.storage.from('trade-screenshots').remove([trade.image]).catch(() => {});
     }
@@ -217,6 +227,7 @@ export function AppProvider({ userId, children }) {
     <AppContext.Provider value={{
       trades, payouts, userId, loading, activeTab, setActiveTab,
       syncPending, isOnline, offlineQueueCount,
+      theme, toggleTheme,
       load, addTrade, deleteTrade, updateTrade,
       addPayout, deletePayout,
       exportData, importData, doSync,
