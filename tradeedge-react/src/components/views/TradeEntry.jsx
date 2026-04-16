@@ -69,7 +69,7 @@ export default function TradeEntry({ showToast }) {
     if (!risk && !reward) return null;
     const totalRisk = risk * accounts;
     const totalReward = reward * accounts;
-    const rr = risk > 0 ? (reward / risk).toFixed(2) : '—';
+    const rr = risk > 0 ? (reward / risk).toFixed(2) : 'â';
     return { totalRisk, totalReward, rr, accounts };
   })();
 
@@ -105,12 +105,13 @@ export default function TradeEntry({ showToast }) {
     const rewardPer_ = parseFloat(rewardPer) || 0;
     const totalRisk  = riskPer_ * accounts_;
     const totalReward = rewardPer_ * accounts_;
-    if (isNaN(pnl)) {
+    const manualPnl = String(form.pnl).trim();
+    if (manualPnl === '' || isNaN(pnl)) {
       if (outcome === 'win') pnl = totalReward;
       else if (outcome === 'loss') pnl = -totalRisk;
       else pnl = 0;
     }
-    setSaving(true); setSaveMsg('Saving…');
+    setSaving(true); setSaveMsg('Savingâ¦');
 
     // Upload screenshot
     let imagePath = null;
@@ -140,10 +141,10 @@ export default function TradeEntry({ showToast }) {
     const result = await addTrade(trade);
     setSaving(false);
     if (!result.ok) { setSaveMsg('Save failed: ' + result.error); return; }
-    showToast(imagePath ? 'Trade saved with screenshot' : result.offline ? 'Saved offline — syncs when back online' : 'Trade saved', result.offline ? 'warn' : 'success', result.offline ? 4000 : 3000);
+    showToast(imagePath ? 'Trade saved with screenshot' : result.offline ? 'Saved offline â syncs when back online' : 'Trade saved', result.offline ? 'warn' : 'success', result.offline ? 4000 : 3000);
     setSaveMsg('');
     // Reset form
-    setForm(f => ({ ...f, riskPer: '', rewardPer: '', pnl: '', notes: '', setup: '' }));
+    setForm(f => ({ ...f, riskPer: '', rewardPer: '', pnl: '', notes: '', setup: '', outcome: 'win' }));
     setPendingImage(null); setPreviewSrc(null);
     localStorage.removeItem(DRAFT_KEY);
     setShowDraftBanner(false);
@@ -165,14 +166,14 @@ export default function TradeEntry({ showToast }) {
 
       {showDailyLoss && (
         <div className="daily-loss-banner">
-          <span>⚠️</span>
+          <span>â ï¸</span>
           <p>{dailyLossMsg}</p>
         </div>
       )}
 
       {showDraftBanner && (
         <div className="draft-banner">
-          <span>📝 Draft restored</span>
+          <span>ð Draft restored</span>
           <button onClick={clearDraft}>Discard draft</button>
         </div>
       )}
@@ -180,8 +181,8 @@ export default function TradeEntry({ showToast }) {
       {preview && (
         <div className="jm-preview">
           Across <strong>{preview.accounts} account{preview.accounts === 1 ? '' : 's'}</strong>:
-          total risk <strong>${preview.totalRisk.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> ·
-          total target <strong>${preview.totalReward.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> ·
+          total risk <strong>${preview.totalRisk.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> Â·
+          total target <strong>${preview.totalReward.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> Â·
           planned R:R <strong>{preview.rr}</strong>
         </div>
       )}
@@ -196,7 +197,7 @@ export default function TradeEntry({ showToast }) {
           </div>
           <div className="jm-field">
             <label>Symbol</label>
-            <input type="text" className="jm-in" placeholder="NQ, ES, AAPL…" value={form.symbol} onChange={e => set('symbol', e.target.value)} />
+            <input type="text" className="jm-in" placeholder="NQ, ES, AAPLâ¦" value={form.symbol} onChange={e => set('symbol', e.target.value)} />
           </div>
         </div>
 
@@ -240,7 +241,7 @@ export default function TradeEntry({ showToast }) {
         <div className="jm-field" style={{ marginBottom:'16px' }}>
           <label>Setup tag</label>
           <select className="jm-in" value={form.setup} onChange={e => set('setup', e.target.value)}>
-            {SETUPS.map(s => <option key={s} value={s}>{s || '— None —'}</option>)}
+            {SETUPS.map(s => <option key={s} value={s}>{s || 'â None â'}</option>)}
           </select>
         </div>
 
@@ -262,7 +263,7 @@ export default function TradeEntry({ showToast }) {
           >
             {previewSrc
               ? <img src={previewSrc} alt="preview" className="jm-thumb" style={{ maxWidth:'100%' }} />
-              : <span>📷 Drop chart screenshot here, or click to browse</span>
+              : <span>ð· Drop chart screenshot here, or click to browse</span>
             }
           </div>
           <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }}
@@ -271,7 +272,7 @@ export default function TradeEntry({ showToast }) {
 
         <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
           <button className="jm-btn" disabled={saving} onClick={save}>
-            {saving ? 'Saving…' : 'Save trade'}
+            {saving ? 'Savingâ¦' : 'Save trade'}
           </button>
           {saveMsg && (
             <span className="jm-save-msg" style={{ color: saveMsg.startsWith('Need') || saveMsg.startsWith('Save') ? '#E24B4A' : '#8B8882' }}>
