@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { sb } from '../../lib/supabase';
 
 export default function Settings({ user, profile, showToast }) {
-  const { exportData, importData, isOnline, syncPending, doSync, offlineQueueCount } = useApp();
+  const { exportData, importData, isOnline, syncPending, doSync, offlineQueueCount, theme, toggleTheme } = useApp();
   const [name,        setName]        = useState((profile?.name) || user?.user_metadata?.name || '');
   const [nameMsg,     setNameMsg]     = useState('');
   const [pass,        setPass]        = useState('');
@@ -17,7 +17,6 @@ export default function Settings({ user, profile, showToast }) {
   const [limitMsg,    setLimitMsg]    = useState('');
   const fileRef = useRef(null);
 
-  // Show saved status on load
   useEffect(() => {
     if (claudeKey) setClaudeMsg('✓ Key saved');
     if (elKey)     setElMsg('✓ Key saved');
@@ -84,6 +83,22 @@ export default function Settings({ user, profile, showToast }) {
       <div className="jm-greeting">
         <p className="jm-hello">Manage your account</p>
         <h1 className="jm-page-title">⚙ <span>Settings</span></h1>
+      </div>
+
+      {/* Appearance */}
+      <div className="set-section">
+        <p className="set-section-title">Appearance</p>
+        <div className="set-row theme-toggle-row">
+          <div>
+            <span style={{ fontSize:'13px', color:'#C8C4BC', fontWeight:500 }}>Light mode</span>
+            <p style={{ fontSize:'12px', color:'#6B6862', margin:'2px 0 0' }}>Switch between dark and light theme</p>
+          </div>
+          <label className="theme-switch">
+            <input type="checkbox" checked={theme === 'light'} onChange={toggleTheme} />
+            <span className="theme-track"></span>
+            <span className="theme-thumb"></span>
+          </label>
+        </div>
       </div>
 
       {/* Profile */}
@@ -160,7 +175,6 @@ export default function Settings({ user, profile, showToast }) {
       {/* Data */}
       <div className="set-section">
         <p className="set-section-title">Data</p>
-
         <div className="set-sync-row">
           <div className={`set-sync-indicator ${isOnline ? (syncPending ? 'pending' : 'online') : ''}`} />
           <span className="set-sync-text">
@@ -177,7 +191,6 @@ export default function Settings({ user, profile, showToast }) {
             </button>
           )}
         </div>
-
         <p style={{ fontSize:'12px', color:'#6B6862', margin:'0 0 14px', lineHeight:1.6 }}>
           Export a backup of all your trades and payouts as a JSON file. Import from a previous backup to restore data.
         </p>
