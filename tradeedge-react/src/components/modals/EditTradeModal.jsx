@@ -13,10 +13,15 @@ export default function EditTradeModal({ trade, onClose, showToast }) {
     riskPer:   trade.riskPer || '',
     rewardPer: trade.rewardPer || '',
     outcome:   trade.outcome,
-    pnl:       trade.pnl,
+    pnl:       trade.pnl ?? '',   // Keep existing pnl for editing; user can clear to re-auto-calc
     setup:     trade.setup || '',
     notes:     trade.notes || '',
   });
+  // When outcome changes, clear pnl so auto-calc kicks in (user can still type a custom value)
+  const handleOutcomeChange = (v) => {
+    set('outcome', v);
+    set('pnl', '');
+  };
   const [saving, setSaving] = useState(false);
   const [err,    setErr]    = useState('');
 
@@ -27,8 +32,9 @@ export default function EditTradeModal({ trade, onClose, showToast }) {
     const accounts  = parseInt(form.accounts)  || 1;
     const riskPer   = parseFloat(form.riskPer)   || 0;
     const rewardPer = parseFloat(form.rewardPer) || 0;
-    let pnl = parseFloat(form.pnl);
-    if (isNaN(pnl)) {
+    const manualPnl = String(form.pnl).trim();
+    let pnl = parseFloat(manualPnl);
+    if (manualPnl === '' || isNaN(pnl)) {
       if (form.outcome === 'win')  pnl =  rewardPer * accounts;
       else if (form.outcome === 'loss') pnl = -riskPer * accounts;
       else pnl = 0;
@@ -71,7 +77,7 @@ export default function EditTradeModal({ trade, onClose, showToast }) {
             <div className="jm-field"><label>Accounts</label>
               <input type="number" className="jm-in" min="1" value={form.accounts} onChange={e => set('accounts', e.target.value)} /></div>
             <div className="jm-field"><label>Outcome</label>
-              <select className="jm-in" value={form.outcome} onChange={e => set('outcome', e.target.value)}>
+              <select className="jm-in" value={form.outcome} onChange={e => handleOutcomeChange(e.target.value)}>
                 <option value="win">Win</option>
                 <option value="loss">Loss</option>
                 <option value="breakeven">Breakeven</option>
