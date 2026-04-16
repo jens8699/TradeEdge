@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TradeEdge Logger</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div id="root">
+
+    <!-- ── Header ── -->
+    <header>
+      <div class="logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M3 17l4-8 4 4 4-6 4 4" stroke="#E8724A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="19" cy="11" r="2" fill="#E8724A"/>
+        </svg>
+        <span>TradeEdge</span>
+      </div>
+      <div class="header-right">
+        <span id="sync-dot" class="sync-dot" title="Offline queue pending"></span>
+        <button id="btn-toggle-history" class="icon-btn" title="Recent trades">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </button>
+        <button id="btn-open-app" class="icon-btn" title="Open TradeEdge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+            <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ── Auth wall ── -->
+    <div id="view-auth" class="view hidden">
+      <div class="auth-box">
+        <p class="auth-note">Sign in to start logging trades</p>
+        <input id="auth-email" type="email" placeholder="Email" autocomplete="email" />
+        <input id="auth-pass"  type="password" placeholder="Password" autocomplete="current-password" />
+        <button id="btn-signin" class="btn-primary">Sign In</button>
+        <div id="auth-error" class="error-msg hidden"></div>
+      </div>
+    </div>
+
+    <!-- ── Log form ── -->
+    <div id="view-form" class="view hidden">
+      <form id="trade-form" autocomplete="off">
+
+        <!-- Row 1: Date + Symbol -->
+        <div class="row-2">
+          <div class="field">
+            <label>Date</label>
+            <input id="f-date" type="date" />
+          </div>
+          <div class="field">
+            <label>Symbol</label>
+            <input id="f-symbol" type="text" placeholder="NQ, ES, AAPL…" maxlength="12" />
+          </div>
+        </div>
+
+        <!-- Row 2: Direction + Outcome -->
+        <div class="row-2">
+          <div class="field">
+            <label>Direction</label>
+            <div class="seg-control" id="seg-direction">
+              <button type="button" data-val="long"  class="seg active">Long</button>
+              <button type="button" data-val="short" class="seg">Short</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Outcome</label>
+            <div class="seg-control" id="seg-outcome">
+              <button type="button" data-val="win"  class="seg win">Win</button>
+              <button type="button" data-val="loss" class="seg loss">Loss</button>
+              <button type="button" data-val="be"   class="seg be">BE</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 3: P&L + R:R -->
+        <div class="row-2">
+          <div class="field">
+            <label>P&amp;L ($)</label>
+            <input id="f-pnl" type="number" step="0.01" placeholder="0.00" />
+          </div>
+          <div class="field">
+            <label>R:R</label>
+            <input id="f-rr" type="number" step="0.1" min="0" placeholder="2.0" />
+          </div>
+        </div>
+
+        <!-- Row 4: Setup -->
+        <div class="field">
+          <label>Setup</label>
+          <input id="f-setup" type="text" placeholder="Break & retest, VWAP bounce…" maxlength="60" />
+        </div>
+
+        <!-- Row 5: Notes -->
+        <div class="field">
+          <label>Notes</label>
+          <textarea id="f-notes" placeholder="What happened? Emotions, mistakes, confluences…" rows="3" maxlength="500"></textarea>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" id="btn-submit" class="btn-primary">
+          <span id="btn-text">Log Trade</span>
+          <span id="btn-spinner" class="spinner hidden"></span>
+        </button>
+
+        <div id="form-success" class="success-msg hidden">✓ Trade logged!</div>
+        <div id="form-error"   class="error-msg hidden"></div>
+      </form>
+    </div>
+
+    <!-- ── History panel ── -->
+    <div id="view-history" class="view hidden">
+      <div class="history-header">
+        <span>Recent Trades</span>
+        <button id="btn-close-history" class="text-btn">← Back</button>
+      </div>
+      <div id="history-list" class="history-list">
+        <div class="loading-row">Loading…</div>
+      </div>
+    </div>
+
+    <!-- ── Loading ── -->
+    <div id="view-loading" class="view">
+      <div class="center-spinner">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
