@@ -13,7 +13,7 @@ export default function EditTradeModal({ trade, onClose, showToast }) {
     riskPer:   trade.riskPer || '',
     rewardPer: trade.rewardPer || '',
     outcome:   trade.outcome,
-    pnl:       trade.pnl ?? '',   // Keep existing pnl for editing; user can clear to re-auto-calc
+    pnl:       (trade.pnl === 0 && trade.outcome !== 'breakeven') ? '' : (trade.pnl ?? ''),
     setup:     trade.setup || '',
     notes:     trade.notes || '',
   });
@@ -94,7 +94,7 @@ export default function EditTradeModal({ trade, onClose, showToast }) {
           <div className="jm-field" style={{ marginBottom:'14px' }}>
             <label>Setup</label>
             <select className="jm-in" value={form.setup} onChange={e => set('setup', e.target.value)}>
-              {SETUPS.map(s => <option key={s} value={s}>{s || '— None —'}</option>)}
+              {SETUPS.map(s => <option key={s} value={s}>{s || 'â None â'}</option>)}
             </select>
           </div>
           <div className="jm-field" style={{ marginBottom:'14px' }}>
@@ -105,7 +105,7 @@ export default function EditTradeModal({ trade, onClose, showToast }) {
           <div className="edit-actions">
             <button className="btn-ghost" onClick={onClose}>Cancel</button>
             <button className="jm-btn" disabled={saving} onClick={save}>
-              {saving ? 'Saving…' : 'Save changes'}
+              {saving ? 'Savingâ¦' : 'Save changes'}
             </button>
           </div>
         </div>
