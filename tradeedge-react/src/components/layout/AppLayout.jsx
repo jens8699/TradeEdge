@@ -9,6 +9,7 @@ import Payouts from '../views/Payouts';
 import MarketBrief from '../views/MarketBrief';
 import Insights from '../views/Insights';
 import Settings from '../views/Settings';
+import Calendar from '../views/Calendar';
 import { getGreeting } from '../../lib/utils';
 
 export default function AppLayout({ user, profile, showToast }) {
@@ -33,19 +34,18 @@ export default function AppLayout({ user, profile, showToast }) {
     <div className="jm">
       <div className="jm-app">
         <Sidebar user={user} profile={profile} />
-
         <main className="jm-main">
           {activeTab === 'dashboard' && <Dashboard user={user} profile={profile} />}
-          {activeTab === 'entry'    && <TradeEntry showToast={showToast} />}
-          {activeTab === 'stats'    && <Stats />}
-          {activeTab === 'history'  && <History showToast={showToast} />}
-          {activeTab === 'payouts'  && <Payouts showToast={showToast} />}
-          {activeTab === 'brief'    && <MarketBrief showToast={showToast} />}
-          {activeTab === 'insights' && <Insights showToast={showToast} />}
-          {activeTab === 'settings' && <Settings user={user} profile={profile} showToast={showToast} />}
+          {activeTab === 'entry'     && <TradeEntry showToast={showToast} />}
+          {activeTab === 'stats'     && <Stats />}
+          {activeTab === 'history'   && <History showToast={showToast} />}
+          {activeTab === 'calendar'  && <Calendar />}
+          {activeTab === 'payouts'   && <Payouts showToast={showToast} />}
+          {activeTab === 'brief'     && <MarketBrief showToast={showToast} />}
+          {activeTab === 'insights'  && <Insights showToast={showToast} />}
+          {activeTab === 'settings'  && <Settings user={user} profile={profile} showToast={showToast} />}
         </main>
       </div>
-
       <MobileNav />
     </div>
   );
