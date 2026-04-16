@@ -7,10 +7,10 @@ export default function MobileNav() {
   const [moreOpen, setMoreOpen] = useState(false);
 
   const nav = [
+    { id: 'dashboard', icon: '⌂', label: 'Home' },
     { id: 'entry',   icon: '✦', label: 'Log' },
     { id: 'stats',   icon: '◈', label: 'Stats' },
     { id: 'history', icon: '≡', label: 'History' },
-    { id: 'payouts', icon: '$', label: 'Payouts' },
   ];
   const more = [
     { id: 'brief',    icon: '◎', label: 'Market Brief' },
