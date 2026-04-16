@@ -78,6 +78,11 @@ export default function Settings({ user, profile, showToast }) {
     e.target.value = '';
   };
 
+  const handleSignOut = async () => {
+    try { await sb.auth.signOut(); } catch(e) {}
+    window.location.href = '/';
+  };
+
   return (
     <div className="jm-view">
       <div className="jm-greeting">
@@ -186,7 +191,7 @@ export default function Settings({ user, profile, showToast }) {
             }
           </span>
           {isOnline && syncPending && (
-            <button onClick={doSync} style={{ background:'transparent', border:'0.5px solid #2A2720', color:'#8B8882', padding:'4px 12px', borderRadius:'8px', fontSize:'11px', cursor:'pointer', fontFamily:'inherit' }}>
+            <button onClick={doSync} style={{ background:'transparent', border:'0.5px solid #3D3A30', color:'#8B8882', padding:'4px 12px', borderRadius:'8px', fontSize:'11px', cursor:'pointer', fontFamily:'inherit' }}>
               Sync now
             </button>
           )}
@@ -206,7 +211,7 @@ export default function Settings({ user, profile, showToast }) {
         <p className="set-danger-title">Danger zone</p>
         <p className="set-danger-desc">Sign out of your account on this device.</p>
         <button style={{ background:'transparent', border:'0.5px solid rgba(226,75,74,0.4)', color:'#F09595', padding:'9px 20px', borderRadius:'12px', fontSize:'13px', fontWeight:500, cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s' }}
-          onClick={() => sb.auth.signOut()}>
+          onClick={handleSignOut}>
           Sign out
         </button>
       </div>
