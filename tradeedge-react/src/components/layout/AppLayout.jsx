@@ -45,6 +45,7 @@ export default function AppLayout({ user, profile, showToast }) {
           {activeTab === 'brief'     && <MarketBrief showToast={showToast} />}
           {activeTab === 'insights'  && <Insights showToast={showToast} />}
           {activeTab === 'settings'  && <Settings user={user} profile={profile} showToast={showToast} />}
+          {activeTab === 'social' && <Social user={user} profile={profile} showToast={showToast} />}
         </main>
       </div>
       <MobileNav />
