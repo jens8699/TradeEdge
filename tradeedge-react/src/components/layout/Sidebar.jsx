@@ -11,10 +11,13 @@ const NAV = [
   { id: 'payouts',   icon: '$',      label: 'Payouts' },
 ];
 const NAV2 = [
-  { id: 'social',   icon: '◉', label: 'Social' },
   { id: 'brief',    icon: 'â', label: 'Market Brief' },
   { id: 'insights', icon: 'â', label: 'AI Insights' },
   { id: 'settings', icon: 'â', label: 'Settings' },
+];
+
+const NAV3 = [
+  { id: 'social', icon: '◉', label: 'Social' },
 ];
 
 export default function Sidebar({ user, profile }) {
