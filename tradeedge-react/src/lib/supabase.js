@@ -3,14 +3,18 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL  = 'https://ppjrfpuqfofgggtgmipd.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwanJmcHVxZm9mZ2dndGdtaXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNDg2MTIsImV4cCI6MjA5MTgyNDYxMn0.f4sRfK2-rrKbfsl-51wluoJb9gpm95MeEng1kjpg3TA';
 
-export const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+export const sb = createClient(SUPABASE_URL, SUPABASE_ANON, {
+  auth: {
+    lock: async (_name, _timeout, fn) => fn(),
+  },
+});
 
 export async function getProfile(userId) {
   const { data } = await sb.from('profiles').select('*').eq('id', userId).single();
   return data;
 }
 
-// ── Supabase ↔ local shape mappers ──────────────────────────────────────────
+// ââ Supabase â local shape mappers ââââââââââââââââââââââââââââââââââââââââââ
 
 export function tradeToDb(t, userId) {
   return {
@@ -41,7 +45,7 @@ export function dbToPayout(r) {
   return { id: r.id, date: r.date, firm: r.firm, amount: r.amount, notes: r.notes || '', createdAt: r.created_at };
 }
 
-// ── Signed URLs for screenshots ──────────────────────────────────────────────
+// ââ Signed URLs for screenshots ââââââââââââââââââââââââââââââââââââââââââââââ
 
 export async function fetchSignedUrls(tradeList) {
   const paths = tradeList
