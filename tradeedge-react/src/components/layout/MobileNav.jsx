@@ -7,17 +7,19 @@ export default function MobileNav() {
   const [moreOpen, setMoreOpen] = useState(false);
 
   const nav = [
-    { id: 'dashboard', icon: '⌂', label: 'Home' },
-    { id: 'entry',   icon: '✦', label: 'Log' },
-    { id: 'stats',   icon: '◈', label: 'Stats' },
-    { id: 'history', icon: '≡', label: 'History' },
+    { id: 'dashboard', icon: '⌂',  label: 'Home' },
+    { id: 'entry',     icon: '✦',  label: 'Log' },
+    { id: 'stats',     icon: '◈',  label: 'Stats' },
+    { id: 'calendar',  icon: '▦',  label: 'Calendar' },
   ];
   const more = [
+    { id: 'history',  icon: '≡', label: 'History' },
+    { id: 'payouts',  icon: '$',      label: 'Payouts' },
     { id: 'brief',    icon: '◎', label: 'Market Brief' },
     { id: 'insights', icon: '◇', label: 'AI Insights' },
     { id: 'settings', icon: '⚙', label: 'Settings' },
   ];
-  const moreActive = ['brief','insights','settings'].includes(activeTab);
+  const moreActive = ['brief','insights','settings','history','payouts'].includes(activeTab);
 
   const go = (tab) => { setActiveTab(tab); setMoreOpen(false); };
 
