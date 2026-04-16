@@ -1,0 +1,9 @@
+[build]
+  base    = "tradeedge-react"
+    command = "npm install && npm run build"
+      publish = "tradeedge-react/dist"
+
+      [[redirects]]
+        from = "/*"
+          to   = "/index.html"
+            status = 200
