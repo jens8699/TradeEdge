@@ -48,12 +48,12 @@ export default function Dashboard({ user, profile }) {
   const winRateDash = (month.winRate / 100) * circumference;
 
   function getInsight() {
-    if (!trades.length) return { msg: "Log your first trade to get started. Every pro started at zero.", icon: '✦', color: '#E8724A' };
-    if (streak >= 5)    return { msg: `${streak}-trade win streak — you're locked in. Stay disciplined.`, icon: '🔥', color: '#F4A460' };
-    if (week.winRate >= 70) return { msg: `${week.winRate.toFixed(0)}% win rate this week. That edge is sharp.`, icon: '📈', color: '#5DCAA5' };
-    if (week.winRate > 0 && week.winRate < 40) return { msg: "Tough week. Review your setups — protect the capital first.", icon: '🛡', color: '#E24B4A' };
-    if (today.count === 0 && new Date().getHours() >= 9) return { msg: "No trades yet today. Wait for your setup — patience is alpha.", icon: '⏳', color: '#8B8882' };
-    return { msg: `${month.count} trades this month. Win rate: ${month.winRate.toFixed(0)}%. Keep building consistency.`, icon: '◈', color: '#E8724A' };
+    if (!trades.length) return { msg: "Log your first trade to get started. Every pro started at zero.", icon: 'â¦', color: '#E8724A' };
+    if (streak >= 5)    return { msg: `${streak}-trade win streak â you're locked in. Stay disciplined.`, icon: 'ð¥', color: '#F4A460' };
+    if (week.winRate >= 70) return { msg: `${week.winRate.toFixed(0)}% win rate this week. That edge is sharp.`, icon: 'ð', color: '#5DCAA5' };
+    if (week.winRate > 0 && week.winRate < 40) return { msg: "Tough week. Review your setups â protect the capital first.", icon: 'ð¡', color: '#E24B4A' };
+    if (today.count === 0 && new Date().getHours() >= 9) return { msg: "No trades yet today. Wait for your setup â patience is alpha.", icon: 'â³', color: '#8B8882' };
+    return { msg: `${month.count} trades this month. Win rate: ${month.winRate.toFixed(0)}%. Keep building consistency.`, icon: 'â', color: '#E8724A' };
   }
 
   const insight = getInsight();
@@ -63,15 +63,15 @@ export default function Dashboard({ user, profile }) {
   return (
     <div className="jm-view" style={{ paddingBottom: '24px' }}>
 
-      {/* ── Greeting bar ────────────────────────────── */}
-      <div style={{
+      {/* ââ Greeting bar ââââââââââââââââââââââââââââââ */}
+      <div className="dash-greeting-bar" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: '20px'
       }}>
         <div>
           <p style={{ margin: 0, fontSize: '11px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--c-text-2)', marginBottom: '2px' }}>{time}</p>
           <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--c-text)', letterSpacing: '-0.5px', lineHeight: 1.1 }}>
-            Hey, <span style={{ color: '#E8724A' }}>{firstName}</span> 👋
+            Hey, <span style={{ color: '#E8724A' }}>{firstName}</span> ð
           </h1>
         </div>
         <div style={{
@@ -80,13 +80,13 @@ export default function Dashboard({ user, profile }) {
         }}>
           <p style={{ margin: 0, fontSize: '10px', color: 'var(--c-text-2)', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 600 }}>Streak</p>
           <p style={{ margin: '2px 0 0', fontSize: '18px', fontWeight: 800, color: streak >= 3 ? '#F4A460' : 'var(--c-text)' }}>
-            {streak >= 1 ? `${streak} 🔥` : '—'}
+            {streak >= 1 ? `${streak} ð¥` : 'â'}
           </p>
         </div>
       </div>
 
-      {/* ── ROW 1: Hero + Week + Win Ring ─────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+      {/* ââ ROW 1: Hero + Week + Win Ring âââââââââââââââ */}
+      <div className="dash-row1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
 
         {/* Today P&L hero */}
         <div style={{
@@ -118,7 +118,7 @@ export default function Dashboard({ user, profile }) {
           <p style={{ margin: '0 0 10px', fontSize: '11px', color: 'var(--c-text-2)' }}>
             {todayTrades.length === 0
               ? 'No trades logged today'
-              : `${today.count} trade${today.count === 1 ? '' : 's'} · ${today.wins}W ${today.losses}L`}
+              : `${today.count} trade${today.count === 1 ? '' : 's'} Â· ${today.wins}W ${today.losses}L`}
           </p>
 
           {/* Sparkline */}
@@ -196,7 +196,7 @@ export default function Dashboard({ user, profile }) {
         </div>
       </div>
 
-      {/* ── ROW 2: Insight ────────────────────────────── */}
+      {/* ââ ROW 2: Insight ââââââââââââââââââââââââââââââ */}
       <div style={{
         background: `linear-gradient(135deg, rgba(232,114,74,0.12) 0%, var(--c-surface) 60%)`,
         border: '1px solid rgba(232,114,74,0.3)',
@@ -210,7 +210,7 @@ export default function Dashboard({ user, profile }) {
         </div>
       </div>
 
-      {/* ── ROW 3: Recent Trades ───────────────────────── */}
+      {/* ââ ROW 3: Recent Trades âââââââââââââââââââââââââ */}
       <div style={{
         background: 'var(--c-surface)', border: '1px solid var(--c-border)',
         borderRadius: '16px', padding: '18px', marginBottom: '10px'
@@ -228,16 +228,16 @@ export default function Dashboard({ user, profile }) {
               cursor: 'pointer', padding: '5px 10px', letterSpacing: '0.3px'
             }}
           >
-            View all →
+            View all â
           </button>
         </div>
 
         {recentTrades.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '28px 0' }}>
-            <p style={{ fontSize: '32px', margin: '0 0 8px' }}>📋</p>
+            <p style={{ fontSize: '32px', margin: '0 0 8px' }}>ð</p>
             <p style={{ color: 'var(--c-text-2)', fontSize: '13px', margin: '0 0 14px', lineHeight: 1.5 }}>No trades logged yet.<br />Start building your edge.</p>
             <button className="jm-btn" onClick={() => setActiveTab('entry')} style={{ fontSize: '13px', padding: '9px 22px' }}>
-              ✦ Log First Trade
+              â¦ Log First Trade
             </button>
           </div>
         ) : (
@@ -261,7 +261,7 @@ export default function Dashboard({ user, profile }) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
                       <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--c-text)' }}>
-                        {t.symbol || t.ticker || '—'}
+                        {t.symbol || t.ticker || 'â'}
                       </span>
                       {t.direction && (
                         <span style={{
@@ -298,10 +298,10 @@ export default function Dashboard({ user, profile }) {
         )}
       </div>
 
-      {/* ── ROW 4: Action buttons ─────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+      {/* ââ ROW 4: Action buttons âââââââââââââââââââââââ */}
+      <div className="dash-action-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
         <ActionBtn
-          icon="✦"
+          icon="â¦"
           label="Log Trade"
           desc="New entry"
           accent="#E8724A"
@@ -309,14 +309,14 @@ export default function Dashboard({ user, profile }) {
           primary
         />
         <ActionBtn
-          icon="◈"
+          icon="â"
           label="Stats"
           desc="Analytics"
           accent="#5DCAA5"
           onClick={() => setActiveTab('stats')}
         />
         <ActionBtn
-          icon="☰"
+          icon="â°"
           label="History"
           desc="All trades"
           accent="#8B8882"
