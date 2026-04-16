@@ -3,17 +3,18 @@ import { getGreeting, getMilestone, getStreak } from '../../lib/utils';
 import { sb } from '../../lib/supabase';
 
 const NAV = [
-  { id: 'dashboard', icon: 'â', label: 'Dashboard' },
-  { id: 'entry',     icon: 'â¦', label: 'Log Trade' },
-  { id: 'stats',     icon: 'â', label: 'Stats' },
-  { id: 'history',   icon: 'â¡', label: 'History' },
-  { id: 'calendar',  icon: 'â¦', label: 'Calendar' },
-  { id: 'payouts',   icon: '$',      label: 'Payouts' },
+  { id: 'dashboard', icon: '⌂', label: 'Dashboard' },
+  { id: 'entry',    icon: '✦', label: 'Log Trade' },
+  { id: 'stats',    icon: '◈', label: 'Stats' },
+  { id: 'history',  icon: '≡', label: 'History' },
+  { id: 'calendar', icon: '▦', label: 'Calendar' },
+  { id: 'payouts',  icon: '$', label: 'Payouts' },
 ];
+
 const NAV2 = [
-  { id: 'brief',    icon: 'â', label: 'Market Brief' },
-  { id: 'insights', icon: 'â', label: 'AI Insights' },
-  { id: 'settings', icon: 'â', label: 'Settings' },
+  { id: 'brief',    icon: '◎', label: 'Market Brief' },
+  { id: 'insights', icon: '◇', label: 'AI Insights' },
+  { id: 'settings', icon: '⚙', label: 'Settings' },
 ];
 
 const NAV3 = [
@@ -43,6 +44,7 @@ export default function Sidebar({ user, profile }) {
         </div>
         <div className="tp-user-chip">{name}</div>
       </div>
+
       <nav className="jm-nav">
         <div className="jm-nav-label">Journal</div>
         {NAV.map(n => (
@@ -52,6 +54,7 @@ export default function Sidebar({ user, profile }) {
             {n.label}
           </button>
         ))}
+
         <div className="jm-nav-label" style={{ marginTop:'8px' }}>Intelligence</div>
         {NAV2.map(n => (
           <button key={n.id} id={`tab-${n.id}`} className={activeTab === n.id ? 'on' : ''}
@@ -60,18 +63,36 @@ export default function Sidebar({ user, profile }) {
             {n.label}
           </button>
         ))}
+
+        <div className="jm-nav-label" style={{ marginTop:'8px' }}>Social</div>
+        {NAV3.map(n => (
+          <button key={n.id} id={`tab-${n.id}`} className={activeTab === n.id ? 'on' : ''}
+            onClick={() => setActiveTab(n.id)}>
+            <span className="jm-dot" />
+            {n.label}
+          </button>
+        ))}
       </nav>
+
       <div className="jm-side-foot">
         {streak >= 2 && (
-          <div className="jm-streak"><div className="jm-streak-dot" />ð¥ {streak} win streak</div>
+          <div className="jm-streak">
+            <div className="jm-streak-dot" />
+            🔥 {streak} win streak
+          </div>
         )}
         {streak < 2 && (
-          <div className="jm-streak"><div className="jm-streak-dot" />{trades.length} trades logged</div>
+          <div className="jm-streak">
+            <div className="jm-streak-dot" />
+            {trades.length} trades logged
+          </div>
         )}
         {milestone && (
           <div className="jm-milestone">{milestone.emoji} {milestone.label}</div>
         )}
-        <button className="tp-signout-btn" style={{ marginTop:'12px' }} onClick={() => sb.auth.signOut()}>Sign out</button>
+        <button className="tp-signout-btn" style={{ marginTop:'12px' }} onClick={() => sb.auth.signOut()}>
+          Sign out
+        </button>
       </div>
     </aside>
   );
