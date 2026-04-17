@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { sb } from '../../lib/supabase';
 
-export default function Settings({ user, profile, showToast }) {
+export default function Settings({ user, profile, showToast, onUpgrade }) {
   const { exportData, importData, isOnline, syncPending, doSync, offlineQueueCount, theme, toggleTheme } = useApp();
   const [name,        setName]        = useState((profile?.name) || user?.user_metadata?.name || '');
   const [nameMsg,     setNameMsg]     = useState('');
@@ -17,6 +17,7 @@ export default function Settings({ user, profile, showToast }) {
   const [limitMsg,    setLimitMsg]    = useState('');
   const fileRef = useRef(null);
 
+  // Show saved status on load
   useEffect(() => {
     if (claudeKey) setClaudeMsg('✓ Key saved');
     if (elKey)     setElMsg('✓ Key saved');
@@ -76,11 +77,6 @@ export default function Settings({ user, profile, showToast }) {
       showToast('Import failed: ' + err.message, 'error');
     }
     e.target.value = '';
-  };
-
-  const handleSignOut = async () => {
-    try { await sb.auth.signOut(); } catch(e) {}
-    window.location.href = '/';
   };
 
   return (
@@ -180,6 +176,7 @@ export default function Settings({ user, profile, showToast }) {
       {/* Data */}
       <div className="set-section">
         <p className="set-section-title">Data</p>
+
         <div className="set-sync-row">
           <div className={`set-sync-indicator ${isOnline ? (syncPending ? 'pending' : 'online') : ''}`} />
           <span className="set-sync-text">
@@ -191,11 +188,12 @@ export default function Settings({ user, profile, showToast }) {
             }
           </span>
           {isOnline && syncPending && (
-            <button onClick={doSync} style={{ background:'transparent', border:'0.5px solid #3D3A30', color:'#8B8882', padding:'4px 12px', borderRadius:'8px', fontSize:'11px', cursor:'pointer', fontFamily:'inherit' }}>
+            <button onClick={doSync} style={{ background:'transparent', border:'0.5px solid #2A2720', color:'��8B8882', padding:'4px 12px', borderRadius:'8px', fontSize:'11px', cursor:'pointer', fontFamily:'inherit' }}>
               Sync now
             </button>
           )}
         </div>
+
         <p style={{ fontSize:'12px', color:'#6B6862', margin:'0 0 14px', lineHeight:1.6 }}>
           Export a backup of all your trades and payouts as a JSON file. Import from a previous backup to restore data.
         </p>
@@ -206,12 +204,63 @@ export default function Settings({ user, profile, showToast }) {
         </div>
       </div>
 
+      {/* Subscription */}
+      <div className="set-section">
+        <p className="set-section-title">Subscription</p>
+        {(profile?.plan === 'pro') ? (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '14px 16px', borderRadius: '12px',
+            background: 'rgba(232,114,74,0.06)', border: '1px solid rgba(232,114,74,0.2)',
+          }}>
+            <div>
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#E8724A' }}>⚡ TradeEdge Pro</p>
+              <p style={{ margin: '3px 0 0', fontSize: '12px', color: 'var(--c-text-2)' }}>All features unlocked · Founding rate locked in</p>
+            </div>
+            <span style={{
+              fontSize: '11px', fontWeight: 700, color: '#5DCAA5',
+              background: 'rgba(93,202,165,0.1)', padding: '4px 10px', borderRadius: '100px',
+            }}>Active</span>
+          </div>
+        ) : (
+          <>
+            <div style={{
+              padding: '14px 16px', borderRadius: '12px', marginBottom: '12px',
+              background: 'var(--c-bg)', border: '1px solid var(--c-border)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--c-text)' }}>Free Plan</p>
+                <span style={{ fontSize: '11px', color: 'var(--c-text-2)', background: 'var(--c-surface)', padding: '3px 8px', borderRadius: '100px', border: '1px solid var(--c-border)' }}>Current</span>
+              </div>
+              <p style={{ margin: 0, fontSize: '12px', color: 'var(--c-text-2)', lineHeight: 1.6 }}>
+                You have access to the journal, stats, AI insights, and 1 connected account.
+                Upgrade to Pro to unlock unlimited connected accounts, AI Deep Coaching, weekly reports, and more.
+              </p>
+            </div>
+            <button
+              onClick={onUpgrade}
+              style={{
+                width: '100%', padding: '12px', background: '#E8724A',
+                color: '#fff', border: 'none', borderRadius: '10px',
+                fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              }}
+            >
+              ⚡ Upgrade to Pro — $19/month
+            </button>
+            <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--c-text-2)', textAlign: 'center' }}>
+              Founding rate · No lock-in · Cancel any time
+            </p>
+          </>
+        )}
+      </div>
+
       {/* Danger zone */}
       <div className="set-danger-zone">
         <p className="set-danger-title">Danger zone</p>
         <p className="set-danger-desc">Sign out of your account on this device.</p>
         <button style={{ background:'transparent', border:'0.5px solid rgba(226,75,74,0.4)', color:'#F09595', padding:'9px 20px', borderRadius:'12px', fontSize:'13px', fontWeight:500, cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s' }}
-          onClick={handleSignOut}>
+          onClick={async () => { try { await sb.auth.signOut(); } catch(e) {} window.location.href = '/'; }}>
           Sign out
         </button>
       </div>
