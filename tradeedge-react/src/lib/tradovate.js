@@ -4,25 +4,30 @@
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
-export async function tradovateAuth({ username, password, isDemo = false }) {
-  const res = await fetch('/api/tradovate/auth', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      name: username,
-      password,
-      appId: 'TradeEdge',
-      appVersion: '1.0.0',
-      cid: 0,
-      sec: '',
-      isDemo, // read by proxy, stripped before forwarding
-    }),
-  });
-  if (!res.ok) throw new Error(`Auth failed: ${res.status}`);
-  const data = await res.json();
-  if (data['p-ticket']) throw new Error('MFA required — not yet supported in TradeEdge.');
-  if (!data.accessToken) throw new Error(data.errorText || 'Auth failed — check your credentials.');
+const AUTH_BODY_BASE = (username, password) => ({
+  name: username,
+  password,
+  appId: 'TradeEdge',
+  appVersion: '1.0.0',
+  cid: 0,
+  sec: '',
+});
+
+function parseAuthResponse(data, isDemo) {
+  // MFA required — return ticket info so UI can prompt for code
+  if (data['p-ticket']) {
+    return {
+      mfaRequired: true,
+      pTicket: data['p-ticket'],
+      pTime: data['p-time'] ?? 60,
+      pCaptcha: data['p-captcha'] ?? false,
+    };
+  }
+  if (!data.accessToken) {
+    throw new Error(data.errorText || 'Auth failed — check your credentials.');
+  }
   return {
+    mfaRequired: false,
     accessToken: data.accessToken,
     expirationTime: data.expirationTime,
     userId: data.userId,
@@ -30,6 +35,37 @@ export async function tradovateAuth({ username, password, isDemo = false }) {
     userStatus: data.userStatus,
     isDemo,
   };
+}
+
+// Step 1: initial auth — may return { mfaRequired: true, pTicket } if MFA enabled
+export async function tradovateAuth({ username, password, isDemo = false }) {
+  const res = await fetch('/api/tradovate/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...AUTH_BODY_BASE(username, password), isDemo }),
+  });
+  if (!res.ok) throw new Error(`Auth failed: ${res.status}`);
+  const data = await res.json();
+  return parseAuthResponse(data, isDemo);
+}
+
+// Step 2: complete auth after MFA — send the 6-digit code
+export async function tradovateAuthMFA({ username, password, isDemo = false, pTicket, pTime, pCaptcha, mfaCode }) {
+  const res = await fetch('/api/tradovate/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...AUTH_BODY_BASE(username, password),
+      isDemo,
+      'p-ticket': pTicket,
+      'p-time': pTime,
+      'p-captcha': pCaptcha,
+      'p-response': mfaCode.trim(),
+    }),
+  });
+  if (!res.ok) throw new Error(`MFA auth failed: ${res.status}`);
+  const data = await res.json();
+  return parseAuthResponse(data, isDemo);
 }
 
 // ── Account list ──────────────────────────────────────────────────────────────
@@ -77,7 +113,7 @@ export async function tradovateSyncTrades({
   const res = await fetch(`/api/tradovate/executions?isDemo=${isDemo}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!res.ok) throw new Error(`Failed to fetch executions: ${res.staus}`);
+  if (!res.ok) throw new Error(`Failed to fetch executions: ${res.status}`);
   const execs = await res.json();
   if (!Array.isArray(execs)) throw new Error(execs?.errorText || 'Unexpected response from Tradovate');
 
