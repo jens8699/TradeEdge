@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { tradovateAuth, tradovateGetAccounts, tradovateSyncTrades } from '../../lib/tradovate';
+import { tradovateAuth, tradovateAuthMFA, tradovateGetAccounts, tradovateSyncTrades } from '../../lib/tradovate';
 import { sb } from '../../lib/supabase';
 
 // ── Platform definitions ──────────────────────────────────────────────────────
@@ -93,6 +93,9 @@ function TradovateModal({ onClose, onConnected, existingAccount }) {
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
+  // MFA state
+  const [mfaState, setMfaState] = useState(null); // { pTicket, pTime, pCaptcha }
+  const [mfaCode, setMfaCode] = useState('');
 
   async function handleConnect() {
     if (!username.trim() || !password.trim()) {
@@ -103,17 +106,49 @@ function TradovateModal({ onClose, onConnected, existingAccount }) {
     setError('');
     try {
       const auth = await tradovateAuth({ username: username.trim(), password, isDemo });
-      const accs = await tradovateGetAccounts({ accessToken: auth.accessToken, isDemo });
-      setAccounts(accs);
-      if (accs.length === 1) setSelectedAccountId(accs[0].id);
-      // Save token temporarily in state (not persisted until account chosen)
-      window.__tvAuth = { ...auth, isDemo, username: username.trim() };
-      setStep('accounts');
+      if (auth.mfaRequired) {
+        // MFA needed — show code input step
+        setMfaState({ pTicket: auth.pTicket, pTime: auth.pTime, pCaptcha: auth.pCaptcha });
+        setStep('mfa');
+        return;
+      }
+      await finishConnect(auth);
     } catch (e) {
       setError(e.message || 'Connection failed. Check your credentials.');
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleMfaSubmit() {
+    if (!mfaCode.trim()) { setError('Enter the code from your authenticator app or email.'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      const auth = await tradovateAuthMFA({
+        username: username.trim(),
+        password,
+        isDemo,
+        pTicket: mfaState.pTicket,
+        pTime: mfaState.pTime,
+        pCaptcha: mfaState.pCaptcha,
+        mfaCode,
+      });
+      if (auth.mfaRequired) throw new Error('MFA code incorrect or expired. Try again.');
+      await finishConnect(auth);
+    } catch (e) {
+      setError(e.message || 'MFA failed.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function finishConnect(auth) {
+    const accs = await tradovateGetAccounts({ accessToken: auth.accessToken, isDemo });
+    setAccounts(accs);
+    if (accs.length === 1) setSelectedAccountId(accs[0].id);
+    window.__tvAuth = { ...auth, isDemo, username: username.trim() };
+    setStep('accounts');
   }
 
   async function handleSaveAccount() {
@@ -283,6 +318,48 @@ function TradovateModal({ onClose, onConnected, existingAccount }) {
           </div>
         )}
 
+        {/* Step: MFA code */}
+        {step === 'mfa' && (
+          <div style={styles.modalBody}>
+            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>🔐</div>
+              <p style={{ margin: 0, fontWeight: 600, fontSize: '14px', color: 'var(--c-text)' }}>Two-factor authentication</p>
+              <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--c-text-2)', lineHeight: 1.5 }}>
+                Tradovate sent a verification code to your email or authenticator app. Enter it below.
+              </p>
+            </div>
+
+            <label style={styles.label}>Verification code</label>
+            <input
+              style={{ ...styles.input, textAlign: 'center', fontSize: '20px', letterSpacing: '0.2em', fontWeight: 600 }}
+              type="text"
+              inputMode="numeric"
+              placeholder="000000"
+              maxLength={8}
+              value={mfaCode}
+              onChange={e => setMfaCode(e.target.value.replace(/\D/g, ''))}
+              onKeyDown={e => e.key === 'Enter' && handleMfaSubmit()}
+              autoFocus
+            />
+
+            {error && <p style={styles.error}>{error}</p>}
+
+            <button
+              style={{ ...styles.primaryBtn, opacity: loading ? 0.7 : 1 }}
+              onClick={handleMfaSubmit}
+              disabled={loading}
+            >
+              {loading ? 'Verifying…' : 'Verify & Continue'}
+            </button>
+            <button
+              style={{ ...styles.primaryBtn, marginTop: '8px', background: 'transparent', color: 'var(--c-text-2)', border: '1px solid var(--c-border)' }}
+              onClick={() => { setStep('credentials'); setError(''); setMfaCode(''); }}
+            >
+              Back
+            </button>
+          </div>
+        )}
+
         {/* Step: Choose account */}
         {step === 'accounts' && (
           <div style={styles.modalBody}>
@@ -391,7 +468,7 @@ function TradovateModal({ onClose, onConnected, existingAccount }) {
   );
 }
 
-// ── MT4/MT5 Guide Modal ───────────────────────────────────────────────────────
+// ── MT4/MT5 Guide Modal ──────────────────────────────────────────────────────
 
 function MT5GuideModal({ onClose }) {
   const steps = [
@@ -578,7 +655,7 @@ export default function Connections({ user, showToast }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div style={{
                     width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0,
-                    background: `${platform.color}18`,
+                    backgrkground: `${platform.color}18`,
                     color: platform.color,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '18px',
