@@ -14,7 +14,7 @@ export async function getProfile(userId) {
   return data;
 }
 
-// ââ Supabase â local shape mappers ââââââââââââââââââââââââââââââââââââââââââ
+// ── Supabase ↔ local shape mappers ──────────────────────────────────────────
 
 export function tradeToDb(t, userId) {
   return {
@@ -24,6 +24,11 @@ export function tradeToDb(t, userId) {
     risk: t.risk, reward: t.reward, outcome: t.outcome, pnl: t.pnl,
     notes: t.notes || '', setup: t.setup || '', image: t.image || null,
     created_at: t.createdAt,
+    source: t.source || null,
+    external_id: t.external_id || null,
+    entry_price: t.entry || null,
+    exit_price: t.exit || null,
+    qty: t.qty || null,
   };
 }
 
@@ -34,6 +39,11 @@ export function dbToTrade(r) {
     risk: r.risk, reward: r.reward, outcome: r.outcome, pnl: r.pnl,
     notes: r.notes || '', setup: r.setup || '', image: r.image || null,
     createdAt: r.created_at,
+    source: r.source || null,
+    external_id: r.external_id || null,
+    entry: r.entry_price || null,
+    exit: r.exit_price || null,
+    qty: r.qty || null,
   };
 }
 
@@ -45,7 +55,7 @@ export function dbToPayout(r) {
   return { id: r.id, date: r.date, firm: r.firm, amount: r.amount, notes: r.notes || '', createdAt: r.created_at };
 }
 
-// ââ Signed URLs for screenshots ââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Signed URLs for screenshots ──────────────────────────────────────────────
 
 export async function fetchSignedUrls(tradeList) {
   const paths = tradeList
