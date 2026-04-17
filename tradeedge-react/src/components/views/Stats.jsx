@@ -204,7 +204,7 @@ export default function Stats() {
         </div>
 
         {/* Streak card */}
-        <div className="jm-card stats-streak-card" style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px', marginBottom:'10px', padding:'16px 20px' }}>
+        <div className="jm-card stats-streak-card" style={{ display:'grid', gridTemplateColumns:'~fr 1fr 1fr', gap:'12px', marginBottom:'10px', padding:'16px 20px' }}>
           <StreakCol
             label="Current streak"
             value={streak.current}
@@ -245,16 +245,16 @@ export default function Stats() {
         )}
 
         {/* Charts row */}
-        <div className="stats-charts-row" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'10px' }}>
+        <div className="stats-charts-row" style={{ display:'grid', gridTemplateColumns:'~fr 1fr', gap:'10px', marginBottom:'~dpx' }}>
           <div className="jm-card">
-            <h2 className="jm-card-title" style={{ marginBottom:'12px' }}>Cumulative P/L</h2>
-            <div style={{ position:'relative', height:'200px' }}>
+            <h2 className="jm-card-title" style={{ marginBottom:'~dpx' }}>Cumulative P/L</h2>
+            <div style={{ position:'relative', height:'~dpx' }}>
               <canvas ref={chartRef} />
             </div>
           </div>
           <div className="jm-card">
             <h2 className="jm-card-title" style={{ marginBottom:'12px' }}>Win / Loss Split</h2>
-            <div style={{ position:'relative', height:'200px' }}>
+            <div style={{ position:'relative', height:'~dpx' }}>
               <canvas ref={wlRef} />
             </div>
           </div>
@@ -262,8 +262,8 @@ export default function Stats() {
 
         {/* Day of week chart */}
         {dowStats.length > 1 && (
-          <div className="jm-card" style={{ marginBottom:'10px' }}>
-            <h2 className="jm-card-title" style={{ marginBottom:'12px' }}>P/L by Day of Week</h2>
+          <div className="jm-card" style={{ marginBottom:'~dpx' }}>
+            <h2 className="jm-card-title" style={{ marginBottom:'~dpx' }}>P/L by Day of Week</h2>
             <div style={{ position:'relative', height:'180px' }}>
               <canvas ref={dowRef} />
             </div>
@@ -289,23 +289,41 @@ export default function Stats() {
                 {topWins.map((t, i) => (
                   <div key={t.id || i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 0', borderBottom: i < topWins.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none' }}>
                     <div>
-                      <span style={{ fontSize:'13px', fontWeight:700, color:'#E8E6E1' }}>{t.symbol}</span>
+                      <span style={{ fontSize:'~dpx', fontWeight:700, color:'#E8E6E1' }}>{t.symbol}</span>
                       <span style={{ fontSize:'11px', color:'#8B8882', marginLeft:'8px' }}>{t.date}</span>
                       {t.setup && <span style={{ fontSize:'10px', color:'#6B6760', marginLeft:'6px' }}>{t.setup}</span>}
                     </div>
-                    <span style={{ fontSize:'13px', fontWeight:700, color:'#5DCAA5' }}>{fmt(t.pnl)}</span>
+                    <span style={{ fontSize:'~dpx', fontWeight:700, color:'#5DCAA5' }}>{fmt(t.pnl)}</span>
                   </div>
                 ))}
               </div>
             )}
             {topLosses.length > 0 && (
               <div className="jm-card">
-                <h2 className="jm-card-title" style={{ marginBottom:'12px', color:'#F09595' }}>📚 Biggest Lessons</h2>
+                <h2 className="jm-card-title" style={{ marginBottom:'~dpx', color:'#F09595' }}>📚 Biggest Lessons</h2>
                 {topLosses.map((t, i) => (
                   <div key={t.id || i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 0', borderBottom: i < topLosses.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none' }}>
                     <div>
-                      <span style={{ fontSize:'13px', fontWeight:700, color:'#E8E6E1' }}>{t.symbol}</span>
+                      <span style={{ fontSize:'~dpx', fontWeight:700, color:'#E8E6E1' }}>{t.symbol}</span>
                       <span style={{ fontSize:'11px', color:'#8B8882', marginLeft:'8px' }}>{t.date}</span>
+                      {t.setup && <span style={{ fontSize:'10px', color:'#6B6760', marginLeft:'6px' }}>{t.setup}</span>}
+                    </div>
+                    <span style={{ fontSize:'~dpx', fontWeight:700, color:'#F09595' }}>{fmt(t.pnl)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Session breakdown */}
+        <SessionBreakdown trades={list} />
+
+        {/* Rating breakdown */}
+        <RatingBreakdown trades={list} />
+
+        {/* Day of week chart */}
+olor:'#8B8882', marginLeft:'8px' }}>{t.date}</span>
                       {t.setup && <span style={{ fontSize:'10px', color:'#6B6760', marginLeft:'6px' }}>{t.setup}</span>}
                     </div>
                     <span style={{ fontSize:'13px', fontWeight:700, color:'#F09595' }}>{fmt(t.pnl)}</span>
@@ -321,6 +339,12 @@ export default function Stats() {
 
         {/* ── Setup win-rate breakdown ──────────────────────────────────── */}
         <SetupBreakdown trades={list} />
+
+        {/* ── Session breakdown ─────────────────────────────────────────── */}
+        <SessionBreakdown trades={list} />
+
+        {/* ── Rating breakdown ──────────────────────────────────────────── */}
+        <RatingBreakdown trades={list} />
 
         {/* ── Day-of-week performance ───────────────────────────────────── */}
         <DayOfWeek trades={list} />
@@ -465,6 +489,115 @@ function SetupBreakdown({ trades }) {
               </div>
               <div style={{ height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.05)' }}>
                 <div style={{ height: '100%', borderRadius: '3px', background: color, width: `${pct * 100}%`, transition: 'width 0.5s ease' }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Session breakdown ─────────────────────────────────────────────────────────
+const SESSION_COLORS = { Sydney: '#85B7EB', Tokyo: '#A78BFA', London: '#5DCAA5', 'New York': '#E8724A', Premarket: '#EFC97A', 'After Hours': '#8B8882' };
+
+function SessionBreakdown({ trades }) {
+  const stats = useMemo(() => {
+    const map = {};
+    trades.filter(t => t.session).forEach(t => {
+      if (!map[t.session]) map[t.session] = { pnl: 0, count: 0, wins: 0 };
+      map[t.session].pnl   += t.pnl;
+      map[t.session].count += 1;
+      if (t.pnl > 0) map[t.session].wins++;
+    });
+    return Object.entries(map)
+      .map(([name, s]) => ({ name, ...s, wr: s.count ? s.wins / s.count * 100 : 0 }))
+      .sort((a, b) => b.pnl - a.pnl);
+  }, [trades]);
+
+  if (!stats.length) return null;
+  const maxPnl = Math.max(...stats.map(s => Math.abs(s.pnl)), 1);
+
+  return (
+    <div className="jm-card" style={{ marginBottom: '10px' }}>
+      <h2 className="jm-card-title" style={{ marginBottom: '14px' }}>🌍 Session Breakdown</h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {stats.map((s, i) => {
+          const color = SESSION_COLORS[s.name] || '#8B8882';
+          const pct = Math.abs(s.pnl) / maxPnl;
+          const wrColor = s.wr >= 60 ? '#5DCAA5' : s.wr >= 40 ? '#EFC97A' : '#F09595';
+          return (
+            <div key={i}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, flexShrink: 0, display: 'inline-block', boxShadow: `0 0 4px ${color}88` }} />
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--c-text)' }}>{s.name}</span>
+                  <span style={{ fontSize: '10px', color: '#6B6760' }}>{s.count} trade{s.count !== 1 ? 's' : ''}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: wrColor }}>{s.wr.toFixed(0)}% WR</span>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: s.pnl >= 0 ? '#5DCAA5' : '#E24B4A', minWidth: '60px', textAlign: 'right' }}>
+                    {s.pnl >= 0 ? '+' : ''}{fmt(s.pnl)}
+                  </span>
+                </div>
+              </div>
+              <div style={{ height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.05)' }}>
+                <div style={{ height: '100%', borderRadius: '3px', background: color, width: `${pct * 100}%`, transition: 'width 0.5s ease', opacity: 0.75 }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Rating breakdown ──────────────────────────────────────────────────────────
+const RATING_COLORS_STATS = { A: '#5DCAA5', B: '#85B7EB', C: '#EFC97A', D: '#F09595' };
+const RATING_LABELS_STATS = { A: 'Perfect execution', B: 'Good trade', C: 'Average', D: 'Poor execution' };
+
+function RatingBreakdown({ trades }) {
+  const stats = useMemo(() => {
+    const map = {};
+    trades.filter(t => t.rating).forEach(t => {
+      if (!map[t.rating]) map[t.rating] = { pnl: 0, count: 0, wins: 0 };
+      map[t.rating].pnl   += t.pnl;
+      map[t.rating].count += 1;
+      if (t.pnl > 0) map[t.rating].wins++;
+    });
+    return ['A', 'B', 'C', 'D']
+      .filter(r => map[r])
+      .map(r => ({ rating: r, ...map[r], wr: map[r].wins / map[r].count * 100 }));
+  }, [trades]);
+
+  if (!stats.length) return null;
+  const maxPnl = Math.max(...stats.map(s => Math.abs(s.pnl)), 1);
+
+  return (
+    <div className="jm-card" style={{ marginBottom: '10px' }}>
+      <h2 className="jm-card-title" style={{ marginBottom: '14px' }}>⭐ Trade Rating Breakdown</h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {stats.map(s => {
+          const color = RATING_COLORS_STATS[s.rating];
+          const pct = Math.abs(s.pnl) / maxPnl;
+          const wrColor = s.wr >= 60 ? '#5DCAA5' : s.wr >= 40 ? '#EFC97A' : '#F09595';
+          return (
+            <div key={s.rating}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 800, color, width: '18px' }}>{s.rating}</span>
+                  <span style={{ fontSize: '11px', color: '#8B8882' }}>{RATING_LABELS_STATS[s.rating]}</span>
+                  <span style={{ fontSize: '10px', color: '#6B6760' }}>· {s.count} trade{s.count !== 1 ? 's' : ''}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: wrColor }}>{s.wr.toFixed(0)}% WR</span>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: s.pnl >= 0 ? '#5DCAA5' : '#E24B4A', minWidth: '60px', textAlign: 'right' }}>
+                    {s.pnl >= 0 ? '+' : ''}{fmt(s.pnl)}
+                  </span>
+                </div>
+              </div>
+              <div style={{ height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.05)' }}>
+                <div style={{ height: '100%', borderRadius: '3px', background: color, width: `${pct * 100}%`, transition: 'width 0.5s ease', opacity: 0.8 }} />
               </div>
             </div>
           );
