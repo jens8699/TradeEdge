@@ -3,6 +3,14 @@ import { useApp } from '../../context/AppContext';
 import { fmt } from '../../lib/utils';
 import EditTradeModal from '../modals/EditTradeModal';
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+const SESSION_COLORS = {
+  Sydney: '#85B7EB', Tokyo: '#A78BFA', London: '#5DCAA5',
+  'New York': '#E8724A', Premarket: '#EFC97A', 'After Hours': '#8B8882',
+};
+const RATING_COLORS = { A: '#5DCAA5', B: '#85B7EB', C: '#EFC97A', D: '#F09595' };
+const RATING_LABELS = { A: 'Perfect', B: 'Good', C: 'Average', D: 'Poor' };
+
 // ── Trade Detail Modal ────────────────────────────────────────────────────────
 
 function TradeDetailModal({ trade: t, onClose, onEdit, onDelete }) {
@@ -55,6 +63,32 @@ function TradeDetailModal({ trade: t, onClose, onEdit, onDelete }) {
             ? <div style={{ fontSize: '12px', color: '#E8724A', marginTop: '2px' }}>Loss</div>
             : <div style={{ fontSize: '12px', color: 'var(--c-text-2)', marginTop: '2px' }}>Breakeven</div>}
         </div>
+
+        {/* Session + Rating badges */}
+        {(t.session || t.rating) && (
+          <div style={{ padding: '0 20px 12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {t.session && (
+              <span style={{
+                fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px',
+                background: `${SESSION_COLORS[t.session] || '#8B8882'}22`,
+                color: SESSION_COLORS[t.session] || '#8B8882',
+                border: `1px solid ${SESSION_COLORS[t.session] || '#8B8882'}44`,
+              }}>
+                ● {t.session}
+              </span>
+            )}
+            {t.rating && (
+              <span style={{
+                fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px',
+                background: `${RATING_COLORS[t.rating]}22`,
+                color: RATING_COLORS[t.rating],
+                border: `1px solid ${RATING_COLORS[t.rating]}44`,
+              }}>
+                {t.rating} · {RATING_LABELS[t.rating]}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Details grid */}
         <div style={{ padding: '0 20px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -153,9 +187,28 @@ function TradeRow({ trade: t, onClick }) {
           {isLong ? '↑' : '↓'}
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-text)', whiteSpace: 'nowrap' }}>
-            {t.symbol}
-            {t.setup && <span style={{ marginLeft: '6px', fontSize: '11px', color: 'var(--c-text-2)', fontWeight: 400 }}>· {t.setup}</span>}
+          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-text)', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+            <span style={{ whiteSpace: 'nowrap' }}>{t.symbol}</span>
+            {t.setup && <span style={{ fontSize: '11px', color: 'var(--c-text-2)', fontWeight: 400, whiteSpace: 'nowrap' }}>· {t.setup}</span>}
+            {t.session && (
+              <span style={{
+                fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '10px',
+                background: `${SESSION_COLORS[t.session] || '#8B8882'}20`,
+                color: SESSION_COLORS[t.session] || '#8B8882',
+                whiteSpace: 'nowrap',
+              }}>
+                {t.session}
+              </span>
+            )}
+            {t.rating && (
+              <span style={{
+                fontSize: '9px', fontWeight: 800, padding: '1px 5px', borderRadius: '6px',
+                background: `${RATING_COLORS[t.rating]}20`,
+                color: RATING_COLORS[t.rating],
+              }}>
+                {t.rating}
+              </span>
+            )}
           </div>
           <div style={{ fontSize: '11px', color: 'var(--c-text-2)', marginTop: '1px' }}>
             {t.date}
@@ -212,8 +265,6 @@ function DateGroup({ date, trades, onSelect }) {
   );
 }
 
-// ── Main View ─────────────────────────────────────────────────────────────────
-
 export default function History({ showToast }) {
   const { trades, deleteTrade } = useApp();
   const [selectedTrade,  setSelectedTrade]  = useState(null);
@@ -223,11 +274,14 @@ export default function History({ showToast }) {
   const [symbolFilter,   setSymbolFilter]   = useState('');
   const [outcomeFilter,  setOutcomeFilter]  = useState('');
   const [sourceFilter,   setSourceFilter]   = useState('');
+  const [sessionFilter,  setSessionFilter]  = useState('');
+  const [ratingFilter,   setRatingFilter]   = useState('');
   const [search,         setSearch]         = useState('');
   const [sortBy,         setSortBy]         = useState('date_desc');
 
-  const setups   = [...new Set(trades.map(t => t.setup).filter(Boolean))].sort();
-  const symbols  = [...new Set(trades.map(t => t.symbol))].sort();
+  const setups    = [...new Set(trades.map(t => t.setup).filter(Boolean))].sort();
+  const symbols   = [...new Set(trades.map(t => t.symbol))].sort();
+  const sessions  = [...new Set(trades.map(t => t.session).filter(Boolean))].sort();
   const hasSynced = trades.some(t => t.source === 'tradovate' || t.source === 'tradovate_csv');
 
   const filtered = useMemo(() => {
@@ -239,6 +293,8 @@ export default function History({ showToast }) {
       if (outcomeFilter === 'win'       && t.pnl <= 0) return false;
       if (outcomeFilter === 'loss'      && t.pnl >= 0) return false;
       if (outcomeFilter === 'breakeven' && t.pnl !== 0) return false;
+      if (sessionFilter && t.session !== sessionFilter) return false;
+      if (ratingFilter  && t.rating  !== ratingFilter)  return false;
       if (search) {
         const q = search.toLowerCase();
         return t.symbol?.toLowerCase().includes(q) ||
@@ -255,7 +311,7 @@ export default function History({ showToast }) {
       case 'pnl_asc':   list = list.sort((a,b) => a.pnl - b.pnl); break;
     }
     return list;
-  }, [trades, setupFilter, symbolFilter, outcomeFilter, sourceFilter, search, sortBy]);
+  }, [trades, setupFilter, symbolFilter, outcomeFilter, sourceFilter, sessionFilter, ratingFilter, search, sortBy]);
 
   // Group by date (only when sorted by date)
   const grouped = useMemo(() => {
@@ -313,6 +369,18 @@ export default function History({ showToast }) {
             <option value="tradovate">Tradovate</option>
           </select>
         )}
+        {sessions.length > 0 && (
+          <select className="jm-in" value={sessionFilter} onChange={e => setSessionFilter(e.target.value)}>
+            <option value="">All sessions</option>
+            {sessions.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        )}
+        <select className="jm-in" value={ratingFilter} onChange={e => setRatingFilter(e.target.value)}>
+          <option value="">All ratings</option>
+          {['A','B','C','D'].map(r => (
+            <option key={r} value={r}>{r}— {RATING_LABELS[r]}</option>
+          ))}
+        </select>
         <select className="jm-in" value={sortBy} onChange={e => setSortBy(e.target.value)}>
           <option value="date_desc">Newest first</option>
           <option value="date_asc">Oldest first</option>
