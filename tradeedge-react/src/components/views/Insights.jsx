@@ -156,6 +156,65 @@ function computePatterns(trades) {
     }
   }
 
+  // ── Session analysis ──
+  const bySess = {};
+  trades.forEach(t => {
+    if (!t.session) return;
+    if (!bySess[t.session]) bySess[t.session] = { pnl: 0, count: 0, wins: 0 };
+    bySess[t.session].pnl += t.pnl;
+    bySess[t.session].count++;
+    if (t.pnl > 0) bySess[t.session].wins++;
+  });
+  const sessEntries = Object.entries(bySess).filter(([,v]) => v.count >= 3);
+  if (sessEntries.length >= 2) {
+    const best  = sessEntries.reduce((a,b) => a[1].pnl > b[1].pnl ? a : b);
+    const worst = sessEntries.reduce((a,b) => a[1].pnl < b[1].pnl ? a : b);
+    if (best[1].pnl > 0) patterns.push({
+      type: 'strength', icon: '🌍',
+      title: `${best[0]} session is your strongest`,
+      body: `You average ${fmt(best[1].pnl / best[1].count)} per trade in the ${best[0]} session with a ${(best[1].wins/best[1].count*100).toFixed(0)}% win rate across ${best[1].count} trades.`,
+      value: fmt(best[1].pnl / best[1].count), label: 'avg/trade',
+    });
+    if (worst[1].pnl < 0 && worst[0] !== best[0]) patterns.push({
+      type: 'warning', icon: '⏰',
+      title: `${worst[0]} session is costing you`,
+      body: `Your ${worst[0]} trades average ${fmt(worst[1].pnl / worst[1].count)} per trade. Consider sitting out this session or trading smaller size.`,
+      value: fmt(worst[1].pnl / worst[1].count), label: 'avg/trade',
+    });
+  }
+
+  // ── Rating analysis ──
+  const byRating = {};
+  trades.forEach(t => {
+    if (!t.rating) return;
+    if (!byRating[t.rating]) byRating[t.rating] = { pnl: 0, count: 0, wins: 0 };
+    byRating[t.rating].pnl += t.pnl;
+    byRating[t.rating].count++;
+    if (t.pnl > 0) byRating[t.rating].wins++;
+  });
+  const ratingEntries = Object.entries(byRating).filter(([,v]) => v.count >= 2);
+  if (ratingEntries.length >= 2) {
+    const aR = byRating['A'], dR = byRating['D'];
+    if (aR && dR && aR.count >= 2 && dR.count >= 2) {
+      const aWR = (aR.wins / aR.count * 100).toFixed(0);
+      const dWR = (dR.wins / dR.count * 100).toFixed(0);
+      patterns.push({
+        type: 'info', icon: '⭐',
+        title: `A-trades: ${aWR}% WR vs D-trades: ${dWR}% WR`,
+        body: `Your best-execution (A) trades win ${aWR}% of the time averaging ${fmt(aR.pnl / aR.count)}. Poor execution (D) trades win only ${dWR}% averaging ${fmt(dR.pnl / dR.count)}. Discipline directly impacts results.`,
+        value: aWR + '%', label: 'A-trade WR',
+      });
+    }
+    const cdPnl   = (byRating['C']?.pnl || 0) + (byRating['D']?.pnl || 0);
+    const cdCount = (byRating['C']?.count || 0) + (byRating['D']?.count || 0);
+    if (cdPnl < 0 && cdCount >= 3) patterns.push({
+      type: 'warning', icon: '📋',
+      title: 'C/D rated trades are dragging your P&L',
+      body: `Your ${cdCount} C and D rated trades have lost ${fmt(Math.abs(cdPnl))} combined. Focus on only taking setups you'd rate A or B before entering — your execution quality matters.`,
+      value: fmt(cdPnl), label: 'C/D total P&L',
+    });
+  }
+
   return patterns;
 }
 
@@ -289,6 +348,32 @@ export default function Insights({ showToast }) {
 
   const maxSymPnl = bySym.length ? Math.max(...bySym.map(([,v]) => Math.abs(v.pnl))) : 1;
 
+  // ── Session bars ──
+  const SESSION_COLORS_I = { Sydney: '#85B7EB', Tokyo: '#A78BFA', London: '#5DCAA5', 'New York': '#E8724A', Premarket: '#EFC97A', 'After Hours': '#8B8882' };
+  const RATING_COLORS_I  = { A: '#5DCAA5', B: '#85B7EB', C: '#EFC97A', D: '#F09595' };
+  const bySessArr = useMemo(() => {
+    const m = {};
+    list.forEach(t => {
+      if (!t.session) return;
+      if (!m[t.session]) m[t.session] = { pnl: 0, count: 0 };
+      m[t.session].pnl += t.pnl; m[t.session].count++;
+    });
+    return Object.entries(m).sort((a,b) => b[1].pnl - a[1].pnl);
+  }, [list]);
+  const maxSessPnl = bySessArr.length ? Math.max(...bySessArr.map(([,v]) => Math.abs(v.pnl)), 1) : 1;
+
+  // ── Rating bars ──
+  const byRatingArr = useMemo(() => {
+    const m = {};
+    list.forEach(t => {
+      if (!t.rating) return;
+      if (!m[t.rating]) m[t.rating] = { pnl: 0, count: 0, wins: 0 };
+      m[t.rating].pnl += t.pnl; m[t.rating].count++; if (t.pnl > 0) m[t.rating].wins++;
+    });
+    return ['A','B','C','D'].filter(r => m[r]).map(r => [r, m[r]]);
+  }, [list]);
+  const maxRatingPnl = byRatingArr.length ? Math.max(...byRatingArr.map(([,v]) => Math.abs(v.pnl)), 1) : 1;
+
   // ── Day of week bars ──
   const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const byDayArr = useMemo(() => {
@@ -313,6 +398,8 @@ export default function Insights({ showToast }) {
     const recentNotes = list.slice(0, 20).filter(t => t.notes).map(t => t.notes).join('\n');
     const patternSummary = patterns.map(p => `${p.title}: ${p.body}`).join('\n');
 
+    const sessionSummary = bySessArr.map(([s, v]) => `${s}: ${fmt(v.pnl)} (${v.count} trades)`).join(', ');
+    const ratingSummary  = byRatingArr.map(([r, v]) => `${r}: ${fmt(v.pnl)}, ${v.count} trades, ${(v.wins/v.count*100).toFixed(0)}% WR`).join(' | ');
     const prompt = `You are an expert trading coach analyzing a day trader's performance data. Here's their complete data:
 
 Period: ${period === 'all' ? 'All time' : period === 'day' ? 'Today' : period === 'week' ? 'This week' : 'This month'}
@@ -320,6 +407,8 @@ Total trades: ${s.count} | Win rate: ${s.winRate.toFixed(1)}%
 Avg win: ${fmt(s.avgWin)} | Avg loss: ${fmt(Math.abs(s.avgLoss))} | R:R: ${s.rr.toFixed(2)}
 Profit factor: ${isFinite(s.pf) ? s.pf.toFixed(2) : '∞'} | Net P/L: ${fmt(s.totalPnl)}
 Trading score: ${score}/100
+${sessionSummary ? 'Session performance: ' + sessionSummary : ''}
+${ratingSummary  ? 'Trade rating breakdown: ' + ratingSummary : ''}
 ${patternSummary ? 'Detected patterns:\n' + patternSummary : ''}
 ${recentNotes ? 'Recent trade notes:\n' + recentNotes : ''}
 
@@ -389,9 +478,9 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
             <ScoreRing score={score} />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', alignContent: 'center' }}>
               {[
-                { label: 'Net P&L',        value: fmt(s.totalPnl),           color: s.totalPnl >= 0 ? '#5DCAA5' : '#E8724A' },
+                { label: 'Net P&L',        value: fmt(s.totalPnl),            color: s.totalPnl >= 0 ? '#5DCAA5' : '#E8724A' },
                 { label: 'Win Rate',       value: `${s.winRate.toFixed(1)}%`, color: s.winRate >= 50 ? '#5DCAA5' : '#E8724A' },
-                { label: 'Profit Factor',  value: isFinite(s.pf) ? s.pf.toFixed(2) : '∞', color: s.pf >= 1.5 ? '#5DCAA5' : s.pf >= 1 ? '#EFC97A' : '#E8724A' },
+                { label: 'Profit Factor',  value: isFinite(s.pf) ? s.pf.toFixed(2) : '∞, color: s.pf >= 1.5 ? '#5DCAA5' : s.pf >= 1 ? '#EFC97A' : '#E8724A' },
                 { label: 'Avg Win',        value: fmt(s.avgWin),             color: '#5DCAA5' },
                 { label: 'Avg Loss',       value: fmt(Math.abs(s.avgLoss)),  color: '#E8724A' },
                 { label: 'R:R',            value: `${s.rr.toFixed(2)}:1`,    color: s.rr >= 1.5 ? '#5DCAA5' : s.rr >= 1 ? '#EFC97A' : '#E8724A' },
@@ -439,6 +528,29 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
                   color={d.pnl >= 0 ? '#5DCAA5' : '#E8724A'} fmt={fmt} />
               ))}
             </div>
+
+            {/* Session P&L */}
+            {bySessArr.length > 0 && (
+              <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: '14px', padding: '16px' }}>
+                <h3 style={{ margin: '0 0 14px', fontSize: '12px', fontWeight: 700, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>P&amp;L by Session</h3>
+                {bySessArr.map(([sess, v]) => (
+                  <StatBar key={sess} label={`${sess} (${v.count})`} value={v.pnl} max={maxSessPnl}
+                    color={SESSION_COLORS_I[sess] || (v.pnl >= 0 ? '#5DCAA5' : '#E8724A')} fmt={fmt} />
+                ))}
+              </div>
+            )}
+
+            {/* Rating P&L */}
+            {byRatingArr.length > 0 && (
+              <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: '14px', padding: '16px' }}>
+                <h3 style={{ margin: '0 0 14px', fontSize: '12px', fontWeight: 700, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>P&amp;L by Rating</h3>
+                {byRatingArr.map(([r, v]) => (
+                  <StatBar key={r} label={`${r}-rated (${v.count}t · ${v.count ? (v.wins/v.count*100).toFixed(0) : 0}% WR)`}
+                    value={v.pnl} max={maxRatingPnl}
+                    color={RATING_COLORS_I[r]} fmt={fmt} />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ── AI Analysis ── */}
