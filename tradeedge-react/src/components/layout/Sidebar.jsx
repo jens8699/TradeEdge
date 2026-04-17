@@ -25,7 +25,7 @@ const NAV4 = [
   { id: 'connections', icon: '⬡', label: 'Connections' },
 ];
 
-export default function Sidebar({ user, profile }) {
+export default function Sidebar({ user, profile, onUpgrade }) {
   const { trades, activeTab, setActiveTab } = useApp();
   const name    = (profile?.name) || user?.user_metadata?.name || user?.email || 'Trader';
   const plan    = profile?.plan || 'free';
@@ -43,9 +43,24 @@ export default function Sidebar({ user, profile }) {
             <p className="jm-brand-sub">Trading Journal</p>
           </div>
         </div>
-        <div className={`tp-plan-badge ${plan === 'pro' ? 'tp-badge-pro' : 'tp-badge-free'}`}>
-          {plan === 'pro' ? 'Pro' : 'Free trial'}
-        </div>
+        {plan === 'pro' ? (
+          <div className="tp-plan-badge tp-badge-pro">⚡ Pro</div>
+        ) : (
+          <button
+            onClick={onUpgrade}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              background: 'rgba(232,114,74,0.1)', border: '1px solid rgba(232,114,74,0.3)',
+              borderRadius: '8px', padding: '5px 10px', cursor: 'pointer',
+              fontSize: '11px', fontWeight: 700, color: '#E8724A',
+              marginBottom: '8px', transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,114,74,0.18)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(232,114,74,0.1)'}
+          >
+            ⚡ Go Pro
+          </button>
+        )}
         <div className="tp-user-chip">{name}</div>
       </div>
 
