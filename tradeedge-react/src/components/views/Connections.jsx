@@ -80,6 +80,34 @@ const PLATFORMS = [
   },
 ];
 
+// ── Tradovate OAuth launcher ──────────────────────────────────────────────────
+// TRADOVATE_CLIENT_ID must be set as a Cloudflare Pages env var
+// Register at: https://tradovate.com/api — redirect URI: https://tradeedge.pages.dev/api/tradovate/oauth-callback
+
+const TRADOVATE_CLIENT_ID = typeof window !== 'undefined'
+  ? (window.__TV_CLIENT_ID || '')   // injected by CF Pages if available
+  : '';
+
+function launchTradovateOAuth(isDemo = false) {
+  const base     = isDemo ? 'https://demo.tradovateapi.com' : 'https://live.tradovateapi.com';
+  const redirect = `${window.location.origin}/api/tradovate/oauth-callback`;
+  const state    = isDemo ? 'demo' : 'live';
+  const clientId = TRADOVATE_CLIENT_ID;
+
+  if (!clientId) {
+    alert('Tradovate OAuth is not yet configured. Please use "Import CSV" for now, or try the password login. Full OAuth coming soon!');
+    return;
+  }
+
+  const params = new URLSearchParams({
+    client_id:     clientId,
+    redirect_uri:  redirect,
+    response_type: 'code',
+    state,
+  });
+  window.location.href = `${base}/auth/oauth?${params}`;
+}
+
 // ── Tradovate Connect Modal ───────────────────────────────────────────────────
 
 function TradovateModal({ onClose, onConnected, existingAccount }) {
@@ -284,6 +312,30 @@ function TradovateModal({ onClose, onConnected, existingAccount }) {
               </button>
             </div>
 
+            {/* OAuth button — recommended for SSO users (MFF, Apex, TopStep, etc.) */}
+            <button
+              onClick={() => launchTradovateOAuth(isDemo)}
+              style={{
+                width: '100%', padding: '11px 14px', marginBottom: '4px',
+                background: 'rgba(0,194,224,0.08)', border: '1px solid rgba(0,194,224,0.3)',
+                borderRadius: '10px', color: '#00C2E0', fontSize: '13px', fontWeight: 600,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              }}
+            >
+              <span style={{ fontSize: '16px' }}>⬡</span>
+              Connect with Tradovate (OAuth)
+            </button>
+            <p style={{ margin: '4px 0 12px', fontSize: '11px', color: 'var(--c-text-2)', textAlign: 'center', lineHeight: 1.5 }}>
+              Recommended for MyFundedFutures, Apex, TopStep &amp; other prop firms — no password needed
+            </p>
+
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+              <div style={{ flex: 1, height: '1px', background: 'var(--c-border)' }} />
+              <span style={{ fontSize: '11px', color: 'var(--c-text-2)', whiteSpace: 'nowrap' }}>or connect with password</span>
+              <div style={{ flex: 1, height: '1px', background: 'var(--c-border)' }} />
+            </div>
+
             <label style={styles.label}>Username</label>
             <input
               style={styles.input}
@@ -470,39 +522,29 @@ function TradovateModal({ onClose, onConnected, existingAccount }) {
 
 // ── Tradovate CSV Import Modal ────────────────────────────────────────────────
 
+// Parse Tradovate's $(1,020.00) / $500.00 P&L format
+function parseTvPnl(raw) {
+  if (!raw) return NaN;
+  // Strip $, spaces, quotes, commas → leaves e.g. (1020.00) or 500.00
+  const s = raw.replace(/[$,"\s]/g, '');
+  if (!s) return NaN;
+  // Parentheses = negative: (1020.00) → -1020
+  if (s.startsWith('(') && s.endsWith(')')) return -parseFloat(s.slice(1, -1));
+  return parseFloat(s);
+}
+
+// Strip futures expiry codes: NQM6 → NQ, ESZ5 → ES, MNQH6 → MNQ
+function cleanSymbol(sym) {
+  if (!sym) return 'UNKNOWN';
+  return sym.replace(/[FGHJKMNQUVXZ]\d{1,2}$/, '').toUpperCase() || sym.toUpperCase();
+}
+
 function parseTradovateCSV(text) {
   const lines = text.trim().split(/\r?\n/);
   if (lines.length < 2) throw new Error('CSV appears to be empty.');
 
-  // Normalize headers
-  const rawHeaders = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim().toLowerCase());
-
-  // Flexible column mapping
-  function col(names) {
-    for (const n of names) {
-      const idx = rawHeaders.findIndex(h => h.includes(n));
-      if (idx >= 0) return idx;
-    }
-    return -1;
-  }
-
-  const idxId        = col(['id', 'fill id', 'trade id', 'execution id']);
-  const idxTimestamp = col(['timestamp', 'date', 'time', 'datetime', 'fill time', 'trade date']);
-  const idxSymbol    = col(['symbol', 'contract', 'instrument', 'name', 'contractid']);
-  const idxAction    = col(['action', 'side', 'buy/sell', 'direction', 'b/s']);
-  const idxQty       = col(['qty', 'quantity', 'size', 'filled qty', 'contracts']);
-  const idxPrice     = col(['price', 'fill price', 'execution price', 'avg price']);
-  const idxPnl       = col(['pnl', 'net pnl', 'realized pnl', 'profit', 'gain', 'net profit', 'p&l', 'netpnl']);
-  const idxComm      = col(['commission', 'fees', 'fee', 'comm']);
-
-  const trades = [];
-  const skipped = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-
-    // Handle quoted commas in CSV
+  // Split a line respecting quoted fields
+  function splitLine(line) {
     const cells = [];
     let inQ = false, cur = '';
     for (const ch of line) {
@@ -511,35 +553,100 @@ function parseTradovateCSV(text) {
       cur += ch;
     }
     cells.push(cur.trim());
+    return cells;
+  }
 
-    const get = idx => (idx >= 0 ? cells[idx] || '' : '');
+  const rawHeaders = splitLine(lines[0]).map(h => h.toLowerCase().trim());
 
-    const pnlRaw = parseFloat(get(idxPnl).replace(/[$,]/g, ''));
-    // Skip rows with no P&L (opening fills) — only import closing fills
-    if (isNaN(pnlRaw) || pnlRaw === 0) { skipped.push(i + 1); continue; }
+  function col(...names) {
+    for (const n of names) {
+      const idx = rawHeaders.findIndex(h => h === n || h.includes(n));
+      if (idx >= 0) return idx;
+    }
+    return -1;
+  }
 
-    const actionRaw = get(idxAction).toLowerCase();
-    const direction = actionRaw.includes('sell') ? 'Long' : actionRaw.includes('buy') ? 'Short' : 'Long';
+  // Tradovate Performance CSV columns (real format confirmed):
+  // symbol, _priceFormat, _priceFormatType, _tickSize,
+  // buyFillId, sellFillId, qty, buyPrice, sellPrice, pnl,
+  // boughtTimestamp, soldTimestamp, duration
+  const idxSymbol    = col('symbol', 'contract', 'instrument');
+  const idxQty       = col('qty', 'quantity', 'size', 'contracts');
+  const idxBuyPrice  = col('buyprice', 'buy price');
+  const idxSellPrice = col('sellprice', 'sell price');
+  const idxPnl       = col('pnl', 'net pnl', 'netpnl', 'realized pnl', 'profit', 'p&l');
+  const idxBuyTs     = col('boughttimestamp', 'bought timestamp', 'buy time', 'buytime');
+  const idxSellTs    = col('soldtimestamp', 'sold timestamp', 'sell time', 'selltime');
+  const idxBuyFill   = col('buyfillid', 'buy fill id');
+  const idxSellFill  = col('sellfillid', 'sell fill id');
+  // Fallback generic columns
+  const idxTimestamp = col('timestamp', 'date', 'datetime', 'trade date', 'fill time');
+  const idxAction    = col('action', 'side', 'buy/sell', 'direction');
+  const idxPrice     = col('price', 'fill price', 'execution price', 'avg price');
 
-    const tsRaw = get(idxTimestamp);
+  const trades = [];
+  const skipped = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    const cells = splitLine(line);
+    const get = idx => (idx >= 0 && idx < cells.length ? cells[idx] || '' : '');
+
+    const pnlRaw = parseTvPnl(get(idxPnl));
+    // Skip rows with no parseable P&L
+    if (isNaN(pnlRaw)) { skipped.push(i + 1); continue; }
+
+    // Determine direction from which fill came first
+    let direction = 'Long';
+    const buyTs  = get(idxBuyTs);
+    const sellTs = get(idxSellTs);
+    if (buyTs && sellTs) {
+      // sold first = short trade
+      direction = new Date(sellTs) < new Date(buyTs) ? 'Short' : 'Long';
+    } else if (idxAction >= 0) {
+      const act = get(idxAction).toLowerCase();
+      direction = act.includes('sell') ? 'Long' : 'Short';
+    }
+
+    // Trade open date = earlier of buy/sell timestamp
+    let dateStr = buyTs || sellTs || get(idxTimestamp);
     let date = new Date().toISOString().slice(0, 10);
-    if (tsRaw) {
-      const parsed = new Date(tsRaw);
+    if (dateStr) {
+      const parsed = new Date(dateStr);
       if (!isNaN(parsed)) date = parsed.toISOString().slice(0, 10);
     }
 
-    const symbol = get(idxSymbol) || 'UNKNOWN';
-    const external_id = get(idxId) ? `tv_csv_${get(idxId)}` : `hv_csv_${i}_${date}`;
+    // Entry/exit prices
+    let entry = null, exit = null;
+    if (direction === 'Short') {
+      entry = parseFloat(get(idxSellPrice)) || parseFloat(get(idxPrice)) || null;
+      exit  = parseFloat(get(idxBuyPrice))  || null;
+    } else {
+      entry = parseFloat(get(idxBuyPrice))  || parseFloat(get(idxPrice)) || null;
+      exit  = parseFloat(get(idxSellPrice)) || null;
+    }
+
+    const rawSym = get(idxSymbol);
+    const symbol = cleanSymbol(rawSym);
+
+    // Build dedup key from fill IDs if available
+    const buyFill  = get(idxBuyFill);
+    const sellFill = get(idxSellFill);
+    const external_id = buyFill && sellFill
+      ? `tv_csv_${buyFill}_${sellFill}`
+      : `tv_csv_${i}_${date}_${symbol}`;
 
     trades.push({
-      symbol: symbol.replace(/\s+/g, '').toUpperCase(),
+      symbol,
       direction,
       pnl: parseFloat(pnlRaw.toFixed(2)),
       date,
-      entry: parseFloat(get(idxPrice)) || null,
-      exit: null,
+      entry,
+      exit,
       qty: parseInt(get(idxQty)) || 1,
-      notes: `Imported from Tradovate CSV`,
+      notes: `Imported from Tradovate (${rawSym || symbol})`,
       source: 'tradovate_csv',
       external_id,
     });
@@ -548,7 +655,7 @@ function parseTradovateCSV(text) {
   return { trades, skipped };
 }
 
-function TradovateCSVModal({ onClose, onImported }) {
+function TradovateCSSVModal({ onClose, onImported }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null); // { trades, skipped }
   const [loading, setLoading] = useState(false);
@@ -564,9 +671,9 @@ function TradovateCSVModal({ onClose, onImported }) {
     const reader = new FileReader();
     reader.onload = ev => {
       try {
-        const result = parseTradovateCSV(ev.target.result);
+        const result = parseTradovateCSSV(ev.target.result);
         setPreview(result);
-      } catch (err) {
+      } catcherr) {
         setError(err.message || 'Could not parse CSV.');
       }
     };
@@ -788,6 +895,7 @@ export default function Connections({ user, showToast }) {
   const [connectedAccounts, setConnectedAccounts] = useState([]);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [activeModal, setActiveModal] = useState(null); // platform id or null
+  const [oauthError, setOauthError] = useState('');
 
   // Load existing connected accounts from Supabase
   useEffect(() => {
@@ -800,6 +908,45 @@ export default function Connections({ user, showToast }) {
       setLoadingAccounts(false);
     }
     loadAccounts();
+  }, []);
+
+  // Handle Tradovate OAuth callback — token arrives in URL fragment
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hash   = window.location.hash;
+
+    const oErr = params.get('oauth_error');
+    if (oErr) {
+      setOauthError(decodeURIComponent(oErr));
+      setActiveModal('tradovate');
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+
+    if (params.get('oauth_success') === '1' && hash.startsWith('#tv_token=')) {
+      const tokenParams = new URLSearchParams(hash.slice('#tv_token='.length));
+      const accessToken    = tokenParams.get('access_token');
+      const expirationTime = tokenParams.get('expiration_time');
+      const userId         = tokenParams.get('user_id');
+      const isDemo         = tokenParams.get('is_demo') === '1';
+
+      window.history.replaceState({}, '', window.location.pathname);
+
+      if (accessToken) {
+        window.__tvAuth = { accessToken, expirationTime, userId, isDemo, username: 'oauth' };
+        // Load accounts and open the accounts step
+        tradovateGetAccounts({ accessToken, isDemo })
+          .then(accs => {
+            // Store temporarily for the modal to pick up
+            window.__tvOAuthAccounts = accs;
+            setActiveModal('tradovate_oauth_accounts');
+          })
+          .catch(e => {
+            setOauthError(e.message || 'Failed to load accounts after OAuth');
+            setActiveModal('tradovate');
+          });
+      }
+    }
   }, []);
 
   function getConnectedAccount(platformId) {
