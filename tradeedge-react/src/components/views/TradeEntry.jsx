@@ -17,6 +17,10 @@ function loadDraft() {
 function today() { return new Date().toISOString().slice(0, 10); }
 
 const SETUPS = ['', 'Breakout', 'Pullback', 'Reversal', 'Range', 'Trend continuation', 'News play', 'Gap fill', 'VWAP', 'Support/Resistance', 'Other'];
+const SESSION_LIST = ['', 'Sydney', 'Tokyo', 'London', 'New York', 'Premarket', 'After Hours'];
+const RATINGS = ['A', 'B', 'C', 'D'];
+const RATING_LABELS = { A: 'Perfect execution', B: 'Good trade', C: 'Average', D: 'Poor execution' };
+const RATING_COLORS = { A: '#5DCAA5', B: '#85B7EB', C: '#EFC97A', D: '#F09595' };
 
 export default function TradeEntry({ showToast }) {
   const { userId, trades, addTrade } = useApp();
@@ -24,6 +28,7 @@ export default function TradeEntry({ showToast }) {
   const [form, setForm] = useState({
     date: today(), symbol: '', direction: 'long', accounts: 1,
     riskPer: '', rewardPer: '', outcome: 'win', pnl: '', setup: '', notes: '',
+    entry: '', exit: '', qty: '', session: '', rating: '',
   });
   const [pendingImage, setPendingImage]       = useState(null);
   const [previewSrc,   setPreviewSrc]         = useState(null);
@@ -69,8 +74,18 @@ export default function TradeEntry({ showToast }) {
     if (!risk && !reward) return null;
     const totalRisk = risk * accounts;
     const totalReward = reward * accounts;
-    const rr = risk > 0 ? (reward / risk).toFixed(2) : 'â';
-    return { totalRisk, totalReward, rr, accounts };
+    const rr = risk > 0 ? (reward / risk).toFixed(2) : '—';
+    // Compute what pnl WILL be saved
+    const manualPnl = String(form.pnl).trim();
+    let expectedPnl;
+    if (manualPnl === '') {
+      if (form.outcome === 'win') expectedPnl = totalReward;
+      else if (form.outcome === 'loss') expectedPnl = -totalRisk;
+      else expectedPnl = 0;
+    } else {
+      expectedPnl = parseFloat(manualPnl) || 0;
+    }
+    return { totalRisk, totalReward, rr, accounts, expectedPnl };
   })();
 
   const handleFile = useCallback((file) => {
@@ -105,13 +120,14 @@ export default function TradeEntry({ showToast }) {
     const rewardPer_ = parseFloat(rewardPer) || 0;
     const totalRisk  = riskPer_ * accounts_;
     const totalReward = rewardPer_ * accounts_;
+    // Auto-calc P&L unless the user explicitly typed a custom value
     const manualPnl = String(form.pnl).trim();
     if (manualPnl === '' || isNaN(pnl)) {
       if (outcome === 'win') pnl = totalReward;
       else if (outcome === 'loss') pnl = -totalRisk;
       else pnl = 0;
     }
-    setSaving(true); setSaveMsg('Savingâ¦');
+    setSaving(true); setSaveMsg('Saving…');
 
     // Upload screenshot
     let imagePath = null;
@@ -136,15 +152,20 @@ export default function TradeEntry({ showToast }) {
       riskPer: riskPer_, rewardPer: rewardPer_, risk: totalRisk, reward: totalReward,
       outcome, pnl, setup, notes: notes.trim(), image: imagePath, imageUrl,
       _pendingImage: pendingImage && !imagePath ? pendingImage : null,
+      entry:   form.entry   ? parseFloat(form.entry)  : null,
+      exit:    form.exit    ? parseFloat(form.exit)   : null,
+      qty:     form.qty     ? parseInt(form.qty)      : null,
+      session: form.session || null,
+      rating:  form.rating  || null,
     };
 
     const result = await addTrade(trade);
     setSaving(false);
     if (!result.ok) { setSaveMsg('Save failed: ' + result.error); return; }
-    showToast(imagePath ? 'Trade saved with screenshot' : result.offline ? 'Saved offline â syncs when back online' : 'Trade saved', result.offline ? 'warn' : 'success', result.offline ? 4000 : 3000);
+    showToast(imagePath ? 'Trade saved with screenshot' : result.offline ? 'Saved offline — syncs when back online' : 'Trade saved', result.offline ? 'warn' : 'success', result.offline ? 4000 : 3000);
     setSaveMsg('');
-    // Reset form
-    setForm(f => ({ ...f, riskPer: '', rewardPer: '', pnl: '', notes: '', setup: '', outcome: 'win' }));
+    // Reset form — also reset outcome so it never carries over to the next trade
+    setForm(f => ({ ...f, riskPer: '', rewardPer: '', pnl: '', notes: '', setup: '', outcome: 'win', entry: '', exit: '', qty: '', session: '', rating: '' }));
     setPendingImage(null); setPreviewSrc(null);
     localStorage.removeItem(DRAFT_KEY);
     setShowDraftBanner(false);
@@ -152,7 +173,7 @@ export default function TradeEntry({ showToast }) {
 
   const clearDraft = () => {
     localStorage.removeItem(DRAFT_KEY);
-    setForm({ date: today(), symbol: '', direction: 'long', accounts: 1, riskPer: '', rewardPer: '', outcome: 'win', pnl: '', setup: '', notes: '' });
+    setForm({ date: today(), symbol: '', direction: 'long', accounts: 1, riskPer: '', rewardPer: '', outcome: 'win', pnl: '', setup: '', notes: '', entry: '', exit: '', qty: '', session: '', rating: '' });
     setShowDraftBanner(false);
     setPendingImage(null); setPreviewSrc(null);
   };
@@ -166,14 +187,14 @@ export default function TradeEntry({ showToast }) {
 
       {showDailyLoss && (
         <div className="daily-loss-banner">
-          <span>â ï¸</span>
+          <span>⚠️</span>
           <p>{dailyLossMsg}</p>
         </div>
       )}
 
       {showDraftBanner && (
         <div className="draft-banner">
-          <span>ð Draft restored</span>
+          <span>📝 Draft restored</span>
           <button onClick={clearDraft}>Discard draft</button>
         </div>
       )}
@@ -181,9 +202,12 @@ export default function TradeEntry({ showToast }) {
       {preview && (
         <div className="jm-preview">
           Across <strong>{preview.accounts} account{preview.accounts === 1 ? '' : 's'}</strong>:
-          total risk <strong>${preview.totalRisk.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> Â·
-          total target <strong>${preview.totalReward.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> Â·
-          planned R:R <strong>{preview.rr}</strong>
+          risk <strong>${preview.totalRisk.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> ·
+          target <strong>${preview.totalReward.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> ·
+          R:R <strong>{preview.rr}</strong> ·
+          <span style={{ color: preview.expectedPnl > 0 ? '#5DCAA5' : preview.expectedPnl < 0 ? '#E24B4A' : 'var(--c-text-2)', fontWeight: 700 }}>
+            {' '}P&L will save as <strong>{preview.expectedPnl >= 0 ? '+' : ''}{preview.expectedPnl.toLocaleString(undefined,{style:'currency',currency:'USD'})}</strong>
+          </span>
         </div>
       )}
 
@@ -197,7 +221,7 @@ export default function TradeEntry({ showToast }) {
           </div>
           <div className="jm-field">
             <label>Symbol</label>
-            <input type="text" className="jm-in" placeholder="NQ, ES, AAPLâ¦" value={form.symbol} onChange={e => set('symbol', e.target.value)} />
+            <input type="text" className="jm-in" placeholder="NQ, ES, AAPL…" value={form.symbol} onChange={e => set('symbol', e.target.value)} />
           </div>
         </div>
 
@@ -238,11 +262,57 @@ export default function TradeEntry({ showToast }) {
           </div>
         </div>
 
-        <div className="jm-field" style={{ marginBottom:'16px' }}>
-          <label>Setup tag</label>
-          <select className="jm-in" value={form.setup} onChange={e => set('setup', e.target.value)}>
-            {SETUPS.map(s => <option key={s} value={s}>{s || 'â None â'}</option>)}
-          </select>
+        {/* Entry / Exit / Qty */}
+        <div className="jm-g3">
+          <div className="jm-field">
+            <label>Entry price</label>
+            <input type="number" className="jm-in" placeholder="0.00" step="0.01" value={form.entry} onChange={e => set('entry', e.target.value)} />
+          </div>
+          <div className="jm-field">
+            <label>Exit price</label>
+            <input type="number" className="jm-in" placeholder="0.00" step="0.01" value={form.exit} onChange={e => set('exit', e.target.value)} />
+          </div>
+          <div className="jm-field">
+            <label>Qty / contracts</label>
+            <input type="number" className="jm-in" placeholder="1" min="1" value={form.qty} onChange={e => set('qty', e.target.value)} />
+          </div>
+        </div>
+
+        {/* Session / Setup */}
+        <div className="jm-g2">
+          <div className="jm-field">
+            <label>Session</label>
+            <select className="jm-in" value={form.session} onChange={e => set('session', e.target.value)}>
+              {SESSION_LIST.map(s => <option key={s} value={s}>{s || '— None —'}</option>)}
+            </select>
+          </div>
+          <div className="jm-field">
+            <label>Setup tag</label>
+            <select className="jm-in" value={form.setup} onChange={e => set('setup', e.target.value)}>
+              {SETUPS.map(s => <option key={s} value={s}>{s || '— None —'}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Trade Rating */}
+        <div className="jm-field" style={{ marginBottom: '16px' }}>
+          <label>Trade rating</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+            {RATINGS.map(r => (
+              <button key={r} onClick={() => set('rating', form.rating === r ? '' : r)} style={{
+                width: '40px', height: '36px', borderRadius: '8px', fontWeight: 700, fontSize: '14px',
+                border: form.rating === r ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                background: form.rating === r ? RATING_COLORS[r] : 'rgba(255,255,255,0.05)',
+                color: form.rating === r ? '#17150F' : '#6B6760',
+                cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0,
+              }}>{r}</button>
+            ))}
+            {form.rating && (
+              <span style={{ fontSize: '11px', color: RATING_COLORS[form.rating], fontWeight: 600, marginLeft: '4px' }}>
+                {RATING_LABELS[form.rating]}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="jm-field" style={{ marginBottom:'16px' }}>
@@ -263,7 +333,7 @@ export default function TradeEntry({ showToast }) {
           >
             {previewSrc
               ? <img src={previewSrc} alt="preview" className="jm-thumb" style={{ maxWidth:'100%' }} />
-              : <span>ð· Drop chart screenshot here, or click to browse</span>
+              : <span>📷 Drop chart screenshot here, or click to browse</span>
             }
           </div>
           <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }}
@@ -272,7 +342,7 @@ export default function TradeEntry({ showToast }) {
 
         <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
           <button className="jm-btn" disabled={saving} onClick={save}>
-            {saving ? 'Savingâ¦' : 'Save trade'}
+            {saving ? 'Saving…' : 'Save trade'}
           </button>
           {saveMsg && (
             <span className="jm-save-msg" style={{ color: saveMsg.startsWith('Need') || saveMsg.startsWith('Save') ? '#E24B4A' : '#8B8882' }}>
