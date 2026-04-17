@@ -230,9 +230,9 @@ export default function Stats() {
                       <span style={{ fontSize:'13px', fontWeight:700, color: ss.pnl >= 0 ? '#5DCAA5' : '#F09595' }}>{fmt(ss.pnl)}</span>
                     </div>
                   </div>
-                  <div style={{ height:'5px', borderRadius:'3�x', background:'rgba(255,255,255,0.06)', overflow:'hidden' }}>
+                  <div style={{ height:'5px', borderRadius:'3px', background:'rgba(255,255,255,0.06)', overflow:'hidden' }}>
                     <div style={{
-                      height:'100%', borderRadius:'3�x',
+                      height:'100%', borderRadius:'3px',
                       width: `${Math.abs(ss.pnl) / maxSetupPnl * 100}%`,
                       background: ss.pnl >= 0 ? 'linear-gradient(90deg,#E8724A,#F0A67A)' : 'linear-gradient(90deg,#E24B4A,#F09595)',
                       transition: 'width 0.6s ease',
@@ -245,7 +245,7 @@ export default function Stats() {
         )}
 
         {/* Charts row */}
-        <div className="stats-charts-row" style={{ display:'grid', gridTemplateColumns:'~fr 1fr', gap:'10px', marginBottom:'10px' }}>
+        <div className="stats-charts-row" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'10px' }}>
           <div className="jm-card">
             <h2 className="jm-card-title" style={{ marginBottom:'12px' }}>Cumulative P/L</h2>
             <div style={{ position:'relative', height:'200px' }}>
@@ -306,7 +306,7 @@ export default function Stats() {
                     <div>
                       <span style={{ fontSize:'13px', fontWeight:700, color:'#E8E6E1' }}>{t.symbol}</span>
                       <span style={{ fontSize:'11px', color:'#8B8882', marginLeft:'8px' }}>{t.date}</span>
-                      {t.setup && <span style={{ fontSize:'10px', color:'#6B6760', marginLeft:'��x' }}>{t.setup}</span>}
+                      {t.setup && <span style={{ fontSize:'10px', color:'#6B6760', marginLeft:'6px' }}>{t.setup}</span>}
                     </div>
                     <span style={{ fontSize:'13px', fontWeight:700, color:'#F09595' }}>{fmt(t.pnl)}</span>
                   </div>
@@ -315,6 +315,15 @@ export default function Stats() {
             )}
           </div>
         )}
+
+        {/* ── Monthly P&L bar chart ─────────────────────────────────────── */}
+        <MonthlyBars trades={list} />
+
+        {/* ── Setup win-rate breakdown ──────────────────────────────────── */}
+        <SetupBreakdown trades={list} />
+
+        {/* ── Day-of-week performance ───────────────────────────────────── */}
+        <DayOfWeek trades={list} />
 
       </>)}
     </div>
@@ -357,6 +366,168 @@ function StreakCol({ label, value, type, icon, sub }) {
       <p style={{ fontSize:'11px', color:'#8B8882', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'6px' }}>{label}</p>
       <p style={{ fontSize:'28px', fontWeight:900, color, lineHeight:1 }}>{value}</p>
       <p style={{ fontSize:'12px', color:'#6B6760', marginTop:'4px' }}>{icon} {sub}</p>
+    </div>
+  );
+}
+
+// ── Monthly P&L bars (last 6 months) ─────────────────────────────────────────
+function MonthlyBars({ trades }) {
+  const months = useMemo(() => {
+    const map = {};
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      map[key] = { label, pnl: 0, count: 0, wins: 0 };
+    }
+    trades.forEach(t => {
+      const key = t.date.slice(0, 7);
+      if (map[key]) {
+        map[key].pnl += t.pnl;
+        map[key].count++;
+        if (t.pnl > 0) map[key].wins++;
+      }
+    });
+    return Object.values(map);
+  }, [trades]);
+
+  const maxAbs = Math.max(...months.map(m => Math.abs(m.pnl)), 1);
+  const hasData = months.some(m => m.count > 0);
+  if (!hasData) return null;
+
+  return (
+    <div className="jm-card" style={{ marginBottom: '10px' }}>
+      <h2 className="jm-card-title" style={{ marginBottom: '16px' }}>📅 Monthly P&L</h2>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', height: '120px' }}>
+        {months.map((m, i) => {
+          const pct = Math.abs(m.pnl) / maxAbs;
+          const isPos = m.pnl >= 0;
+          const barH = Math.max(4, pct * 88);
+          const color = isPos ? '#5DCAA5' : '#E24B4A';
+          return (
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', height: '100%', justifyContent: 'flex-end' }}>
+              <span style={{ fontSize: '10px', fontWeight: 700, color, opacity: m.count ? 1 : 0 }}>
+                {m.pnl >= 0 ? '+' : ''}{Math.abs(m.pnl) >= 1000 ? (m.pnl / 1000).toFixed(1) + 'k' : m.pnl.toFixed(0)}
+              </span>
+              <div style={{ width: '100%', height: `${barH}px`, borderRadius: '4px 4px 0 0', background: m.count ? color : 'rgba(255,255,255,0.04)', transition: 'height 0.4s ease', opacity: m.count ? 1 : 0.3 }} />
+              <span style={{ fontSize: '9px', color: '#6B6760', textAlign: 'center', letterSpacing: '0.3px' }}>{m.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Setup win-rate breakdown ──────────────────────────────────────────────────
+function SetupBreakdown({ trades }) {
+  const setups = useMemo(() => {
+    const map = {};
+    trades.filter(t => t.setup).forEach(t => {
+      if (!map[t.setup]) map[t.setup] = { pnl: 0, count: 0, wins: 0 };
+      map[t.setup].pnl   += t.pnl;
+      map[t.setup].count += 1;
+      if (t.pnl > 0) map[t.setup].wins++;
+    });
+    return Object.entries(map)
+      .map(([name, s]) => ({ name, ...s, wr: s.count ? s.wins / s.count * 100 : 0 }))
+      .filter(s => s.count >= 2)
+      .sort((a, b) => b.pnl - a.pnl);
+  }, [trades]);
+
+  if (!setups.length) return null;
+
+  const maxPnl = Math.max(...setups.map(s => Math.abs(s.pnl)), 1);
+
+  return (
+    <div className="jm-card" style={{ marginBottom: '10px' }}>
+      <h2 className="jm-card-title" style={{ marginBottom: '14px' }}>⚡ Setup Breakdown</h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {setups.map((s, i) => {
+          const pct = Math.abs(s.pnl) / maxPnl;
+          const isPos = s.pnl >= 0;
+          const color = isPos ? '#5DCAA5' : '#E24B4A';
+          const wrColor = s.wr >= 60 ? '#5DCAA5' : s.wr >= 40 ? '#EFC97A' : '#F09595';
+          return (
+            <div key={i}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--c-text)' }}>{s.name}</span>
+                  <span style={{ fontSize: '10px', color: '#6B6760' }}>{s.count} trades</span>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: wrColor }}>{s.wr.toFixed(0)}% WR</span>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color, minWidth: '60px', textAlign: 'right' }}>
+                    {isPos ? '+' : ''}{fmt(s.pnl)}
+                  </span>
+                </div>
+              </div>
+              <div style={{ height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.05)' }}>
+                <div style={{ height: '100%', borderRadius: '3px', background: color, width: `${pct * 100}%`, transition: 'width 0.5s ease' }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Day-of-week performance ───────────────────────────────────────────────────
+function DayOfWeek({ trades }) {
+  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  const stats = useMemo(() => {
+    const map = { 1: null, 2: null, 3: null, 4: null, 5: null }; // Mon=1...Fri=5
+    trades.forEach(t => {
+      const d = new Date(t.date + 'T12:00:00').getDay(); // 0=Sun
+      const idx = d === 0 ? 7 : d; // keep Mon-Fri only
+      if (idx >= 1 && idx <= 5) {
+        if (!map[idx]) map[idx] = { pnl: 0, count: 0, wins: 0 };
+        map[idx].pnl   += t.pnl;
+        map[idx].count += 1;
+        if (t.pnl > 0) map[idx].wins++;
+      }
+    });
+    return [1, 2, 3, 4, 5].map(i => map[i] ? { ...map[i], wr: map[i].wins / map[i].count * 100, avgPnl: map[i].pnl / map[i].count } : null);
+  }, [trades]);
+
+  if (!stats.some(Boolean)) return null;
+
+  const maxAbsAvg = Math.max(...stats.filter(Boolean).map(s => Math.abs(s.avgPnl)), 1);
+
+  return (
+    <div className="jm-card" style={{ marginBottom: '10px' }}>
+      <h2 className="jm-card-title" style={{ marginBottom: '14px' }}>📆 Day of Week</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+        {stats.map((s, i) => {
+          const isPos = s && s.avgPnl >= 0;
+          const color = s ? (isPos ? '#5DCAA5' : '#E24B4A') : '#2A2720';
+          const wrColor = s ? (s.wr >= 60 ? '#5DCAA5' : s.wr >= 40 ? '#EFC97A' : '#F09595') : '#6B6760';
+          const intensity = s ? Math.max(0.08, (Math.abs(s.avgPnl) / maxAbsAvg) * 0.25) : 0.04;
+          return (
+            <div key={i} style={{
+              background: s ? `rgba(${isPos ? '93,202,165' : '226,75,74'},${intensity})` : 'rgba(255,255,255,0.02)',
+              border: `1px solid ${s ? `rgba(${isPos ? '93,202,165' : '226,75,74'},0.25)` : 'rgba(255,255,255,0.05)'}`,
+              borderRadius: '10px', padding: '10px 8px', textAlign: 'center'
+            }}>
+              <p style={{ margin: '0 0 6px', fontSize: '11px', fontWeight: 700, color: '#8B8882', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{DAYS[i]}</p>
+              {s ? (
+                <>
+                  <p style={{ margin: '0 0 3px', fontSize: '13px', fontWeight: 800, color }}>
+                    {isPos ? '+' : ''}{Math.abs(s.avgPnl) >= 1000 ? (s.avgPnl / 1000).toFixed(1) + 'k' : s.avgPnl.toFixed(0)}
+                  </p>
+                  <p style={{ margin: '0 0 2px', fontSize: '10px', fontWeight: 700, color: wrColor }}>{s.wr.toFixed(0)}%</p>
+                  <p style={{ margin: 0, fontSize: '9px', color: '#6B6760' }}>{s.count}t</p>
+                </>
+              ) : (
+                <p style={{ margin: '14px 0', fontSize: '11px', color: '#4A4740' }}>—</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p style={{ fontSize: '10px', color: '#5F5C56', margin: '8px 0 0', textAlign: 'center' }}>Avg P&L per day · Win rate · Trade count</p>
     </div>
   );
 }
