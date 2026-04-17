@@ -21,6 +21,10 @@ const NAV3 = [
   { id: 'social', icon: '◉', label: 'Social' },
 ];
 
+const NAV4 = [
+  { id: 'connections', icon: '⬡', label: 'Connections' },
+];
+
 export default function Sidebar({ user, profile }) {
   const { trades, activeTab, setActiveTab } = useApp();
   const name    = (profile?.name) || user?.user_metadata?.name || user?.email || 'Trader';
@@ -66,6 +70,15 @@ export default function Sidebar({ user, profile }) {
 
         <div className="jm-nav-label" style={{ marginTop:'8px' }}>Social</div>
         {NAV3.map(n => (
+          <button key={n.id} id={`tab-${n.id}`} className={activeTab === n.id ? 'on' : ''}
+            onClick={() => setActiveTab(n.id)}>
+            <span className="jm-dot" />
+            {n.label}
+          </button>
+        ))}
+
+        <div className="jm-nav-label" style={{ marginTop:'8px' }}>Accounts</div>
+        {NAV4.map(n => (
           <button key={n.id} id={`tab-${n.id}`} className={activeTab === n.id ? 'on' : ''}
             onClick={() => setActiveTab(n.id)}>
             <span className="jm-dot" />
