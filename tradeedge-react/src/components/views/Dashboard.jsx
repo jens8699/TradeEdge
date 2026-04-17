@@ -1,10 +1,18 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { filterPeriod, computeStats, fmt, getGreeting, getStreak, animateCount } from '../../lib/utils';
+
+// ── Monthly goal helpers ──────────────────────────────────────────────────────
+const GOAL_KEY = 'te_monthly_goal';
+function loadGoal() { return parseFloat(localStorage.getItem(GOAL_KEY) || '0') || 0; }
+function saveGoal(v) { localStorage.setItem(GOAL_KEY, String(v)); }
 
 export default function Dashboard({ user, profile }) {
   const { trades, setActiveTab } = useApp();
   const heroRef = useRef(null);
+  const [goal,       setGoal]       = useState(loadGoal);
+  const [editingGoal, setEditingGoal] = useState(false);
+  const [goalInput,  setGoalInput]  = useState('');
 
   const name = (profile?.name) || user?.user_metadata?.name || user?.email || 'Trader';
   const { time, firstName } = getGreeting(name);
@@ -48,12 +56,12 @@ export default function Dashboard({ user, profile }) {
   const winRateDash = (month.winRate / 100) * circumference;
 
   function getInsight() {
-    if (!trades.length) return { msg: "Log your first trade to get started. Every pro started at zero.", icon: 'â¦', color: '#E8724A' };
-    if (streak >= 5)    return { msg: `${streak}-trade win streak â you're locked in. Stay disciplined.`, icon: 'ð¥', color: '#F4A460' };
-    if (week.winRate >= 70) return { msg: `${week.winRate.toFixed(0)}% win rate this week. That edge is sharp.`, icon: 'ð', color: '#5DCAA5' };
-    if (week.winRate > 0 && week.winRate < 40) return { msg: "Tough week. Review your setups â protect the capital first.", icon: 'ð¡', color: '#E24B4A' };
-    if (today.count === 0 && new Date().getHours() >= 9) return { msg: "No trades yet today. Wait for your setup â patience is alpha.", icon: 'â³', color: '#8B8882' };
-    return { msg: `${month.count} trades this month. Win rate: ${month.winRate.toFixed(0)}%. Keep building consistency.`, icon: 'â', color: '#E8724A' };
+    if (!trades.length) return { msg: "Log your first trade to get started. Every pro started at zero.", icon: '✦', color: '#E8724A' };
+    if (streak >= 5)    return { msg: `${streak}-trade win streak — you're locked in. Stay disciplined.`, icon: '🔥', color: '#F4A460' };
+    if (week.winRate >= 70) return { msg: `${week.winRate.toFixed(0)}% win rate this week. That edge is sharp.`, icon: '📈', color: '#5DCAA5' };
+    if (week.winRate > 0 && week.winRate < 40) return { msg: "Tough week. Review your setups — protect the capital first.", icon: '🛡', color: '#E24B4A' };
+    if (today.count === 0 && new Date().getHours() >= 9) return { msg: "No trades yet today. Wait for your setup — patience is alpha.", icon: '⏳', color: '#8B8882' };
+    return { msg: `${month.count} trades this month. Win rate: ${month.winRate.toFixed(0)}%. Keep building consistency.`, icon: '◈', color: '#E8724A' };
   }
 
   const insight = getInsight();
@@ -63,7 +71,7 @@ export default function Dashboard({ user, profile }) {
   return (
     <div className="jm-view" style={{ paddingBottom: '24px' }}>
 
-      {/* ââ Greeting bar ââââââââââââââââââââââââââââââ */}
+      {/* ── Greeting bar ─────────────────────────────── */}
       <div className="dash-greeting-bar" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: '20px'
@@ -71,7 +79,7 @@ export default function Dashboard({ user, profile }) {
         <div>
           <p style={{ margin: 0, fontSize: '11px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--c-text-2)', marginBottom: '2px' }}>{time}</p>
           <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--c-text)', letterSpacing: '-0.5px', lineHeight: 1.1 }}>
-            Hey, <span style={{ color: '#E8724A' }}>{firstName}</span> ð
+            Hey, <span style={{ color: '#E8724A' }}>{firstName}</span> 👋
           </h1>
         </div>
         <div style={{
@@ -80,12 +88,12 @@ export default function Dashboard({ user, profile }) {
         }}>
           <p style={{ margin: 0, fontSize: '10px', color: 'var(--c-text-2)', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 600 }}>Streak</p>
           <p style={{ margin: '2px 0 0', fontSize: '18px', fontWeight: 800, color: streak >= 3 ? '#F4A460' : 'var(--c-text)' }}>
-            {streak >= 1 ? `${streak} ð¥` : 'â'}
+            {streak >= 1 ? `${streak} 🔥` : '—'}
           </p>
         </div>
       </div>
 
-      {/* ââ ROW 1: Hero + Week + Win Ring âââââââââââââââ */}
+      {/* ── ROW 1: Hero + Week + Win Ring ─────────────── */}
       <div className="dash-row1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
 
         {/* Today P&L hero */}
@@ -118,7 +126,7 @@ export default function Dashboard({ user, profile }) {
           <p style={{ margin: '0 0 10px', fontSize: '11px', color: 'var(--c-text-2)' }}>
             {todayTrades.length === 0
               ? 'No trades logged today'
-              : `${today.count} trade${today.count === 1 ? '' : 's'} Â· ${today.wins}W ${today.losses}L`}
+              : `${today.count} trade${today.count === 1 ? '' : 's'} · ${today.wins}W ${today.losses}L`}
           </p>
 
           {/* Sparkline */}
@@ -196,7 +204,7 @@ export default function Dashboard({ user, profile }) {
         </div>
       </div>
 
-      {/* ââ ROW 2: Insight ââââââââââââââââââââââââââââââ */}
+      {/* ── ROW 2: Insight ────────────────────────────── */}
       <div style={{
         background: `linear-gradient(135deg, rgba(232,114,74,0.12) 0%, var(--c-surface) 60%)`,
         border: '1px solid rgba(232,114,74,0.3)',
@@ -210,7 +218,7 @@ export default function Dashboard({ user, profile }) {
         </div>
       </div>
 
-      {/* ââ ROW 3: Recent Trades âââââââââââââââââââââââââ */}
+      {/* ── ROW 3: Recent Trades ───────────────────────── */}
       <div style={{
         background: 'var(--c-surface)', border: '1px solid var(--c-border)',
         borderRadius: '16px', padding: '18px', marginBottom: '10px'
@@ -228,16 +236,16 @@ export default function Dashboard({ user, profile }) {
               cursor: 'pointer', padding: '5px 10px', letterSpacing: '0.3px'
             }}
           >
-            View all â
+            View all →
           </button>
         </div>
 
         {recentTrades.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '28px 0' }}>
-            <p style={{ fontSize: '32px', margin: '0 0 8px' }}>ð</p>
+            <p style={{ fontSize: '32px', margin: '0 0 8px' }}>📋</p>
             <p style={{ color: 'var(--c-text-2)', fontSize: '13px', margin: '0 0 14px', lineHeight: 1.5 }}>No trades logged yet.<br />Start building your edge.</p>
             <button className="jm-btn" onClick={() => setActiveTab('entry')} style={{ fontSize: '13px', padding: '9px 22px' }}>
-              â¦ Log First Trade
+              ✦ Log First Trade
             </button>
           </div>
         ) : (
@@ -261,7 +269,7 @@ export default function Dashboard({ user, profile }) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
                       <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--c-text)' }}>
-                        {t.symbol || t.ticker || 'â'}
+                        {t.symbol || t.ticker || '—'}
                       </span>
                       {t.direction && (
                         <span style={{
@@ -298,10 +306,10 @@ export default function Dashboard({ user, profile }) {
         )}
       </div>
 
-      {/* ââ ROW 4: Action buttons âââââââââââââââââââââââ */}
-      <div className="dash-action-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+      {/* ── ROW 4: Action buttons ─────────────────────── */}
+      <div className="dash-action-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '10px' }}>
         <ActionBtn
-          icon="â¦"
+          icon="✦"
           label="Log Trade"
           desc="New entry"
           accent="#E8724A"
@@ -309,20 +317,120 @@ export default function Dashboard({ user, profile }) {
           primary
         />
         <ActionBtn
-          icon="â"
+          icon="◈"
           label="Stats"
           desc="Analytics"
           accent="#5DCAA5"
           onClick={() => setActiveTab('stats')}
         />
         <ActionBtn
-          icon="â°"
+          icon="☰"
           label="History"
           desc="All trades"
           accent="#8B8882"
           onClick={() => setActiveTab('history')}
         />
       </div>
+
+      {/* ── ROW 5: Monthly Goal ───────────────────────── */}
+      {(() => {
+        const monthPnl = month.totalPnl;
+        const now = new Date();
+        const dayOfMonth = now.getDate();
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const paceMultiplier = daysInMonth / Math.max(dayOfMonth, 1);
+        const projectedPnl = monthPnl * paceMultiplier;
+        const goalSet = goal > 0;
+        const pct = goalSet ? Math.min(1, Math.max(0, monthPnl / goal)) : 0;
+        const smashed = goalSet && monthPnl >= goal;
+        const onPace = goalSet && !smashed && projectedPnl >= goal;
+        const barColor = smashed ? '#F4A460' : onPace ? '#5DCAA5' : '#E8724A';
+
+        return (
+          <div style={{
+            background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+            borderRadius: '16px', padding: '16px 18px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div>
+                <p style={{ margin: '0 0 2px', fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--c-text-2)' }}>Monthly Goal</p>
+                {smashed
+                  ? <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#F4A460' }}>🏆 Goal smashed!</p>
+                  : onPace
+                    ? <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#5DCAA5' }}>✓ On pace</p>
+                    : goalSet
+                      ? <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, color: 'var(--c-text-2)' }}>Behind pace — keep pushing</p>
+                      : <p style={{ margin: 0, fontSize: '12px', color: 'var(--c-text-2)' }}>Set a goal to track progress</p>}
+              </div>
+              {editingGoal ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--c-text-2)' }}>$</span>
+                  <input
+                    autoFocus
+                    type="number"
+                    value={goalInput}
+                    onChange={e => setGoalInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        const v = parseFloat(goalInput) || 0;
+                        saveGoal(v); setGoal(v); setEditingGoal(false);
+                      }
+                      if (e.key === 'Escape') setEditingGoal(false);
+                    }}
+                    placeholder="0"
+                    style={{
+                      width: '80px', padding: '5px 8px', borderRadius: '8px', fontSize: '13px',
+                      background: 'var(--c-bg)', border: '1px solid var(--c-border)', color: 'var(--c-text)',
+                      outline: 'none', fontFamily: 'inherit', fontVariantNumeric: 'tabular-nums'
+                    }}
+                  />
+                  <button
+                    onClick={() => { const v = parseFloat(goalInput) || 0; saveGoal(v); setGoal(v); setEditingGoal(false); }}
+                    style={{ padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: '#E8724A', color: '#fff', border: 'none', cursor: 'pointer' }}
+                  >Save</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setGoalInput(goal > 0 ? String(goal) : ''); setEditingGoal(true); }}
+                  style={{
+                    padding: '6px 12px', borderRadius: '9px', fontSize: '11px', fontWeight: 600,
+                    background: 'rgba(232,114,74,0.12)', color: '#E8724A',
+                    border: '1px solid rgba(232,114,74,0.25)', cursor: 'pointer', letterSpacing: '0.3px'
+                  }}
+                >
+                  {goalSet ? 'Edit' : '+ Set Goal'}
+                </button>
+              )}
+            </div>
+
+            {goalSet && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: monthPnl >= 0 ? '#5DCAA5' : '#E24B4A', fontVariantNumeric: 'tabular-nums' }}>
+                    {monthPnl >= 0 ? '+' : ''}{fmt(monthPnl)}
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-text-2)', fontVariantNumeric: 'tabular-nums' }}>
+                    / {fmt(goal)}
+                  </span>
+                </div>
+                <div style={{ background: 'var(--c-bg)', borderRadius: '6px', height: '8px', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: '6px',
+                    width: `${(pct * 100).toFixed(1)}%`,
+                    background: smashed
+                      ? 'linear-gradient(90deg, #E8724A, #F4A460)'
+                      : `linear-gradient(90deg, ${barColor}99, ${barColor})`,
+                    transition: 'width 0.5s ease'
+                  }} />
+                </div>
+                <p style={{ margin: '6px 0 0', fontSize: '10px', color: 'var(--c-text-2)', textAlign: 'right' }}>
+                  {(pct * 100).toFixed(0)}% · projected {fmt(projectedPnl)} this month
+                </p>
+              </>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
