@@ -30,16 +30,23 @@ function StatBubble({ label, val, color }) {
 }
 
 // ── ProfileCard ───────────────────────────────────────────────────────────────
-function ProfileCard({ p, isFollowing, onToggleFollow, isSelf }) {
+function ProfileCard({ p, isFollowing, onToggleFollow, isSelf, followerCount }) {
   const [hov, setHov] = useState(false);
   return (
     <div className="jm-card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', animation: 'fadeSlideUp 0.3s ease both' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
         <Avatar name={p.name} color={p.avatar_color || '#E8724A'} size={46} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#F5F3ED', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {p.name || 'Trader'}
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#F5F3ED', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {p.name || 'Trader'}
+            </p>
+            {followerCount > 0 && (
+              <span style={{ fontSize: '10px', color: '#6B6760', fontWeight: 500 }}>
+                {followerCount} follower{followerCount !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
           {p.username && (
             <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#E8724A', fontWeight: 600 }}>@{p.username}</p>
           )}
@@ -82,14 +89,24 @@ function ProfileCard({ p, isFollowing, onToggleFollow, isSelf }) {
 
 // ── Main Social View ───────────────────────────────────────────────────────────
 const COLORS = ['#E8724A','#5DCAA5','#85B7EB','#EFC97A','#F09595','#A78BFA','#34D399','#FB923C'];
+const SORT_OPTIONS = [
+  { value: 'default',   label: 'Default' },
+  { value: 'win_rate',  label: 'Win Rate' },
+  { value: 'pnl',       label: 'P&L' },
+  { value: 'trades',    label: 'Most Trades' },
+  { value: 'followers', label: 'Most Followed' },
+];
 
 export default function Social({ user, profile, showToast }) {
   const { trades } = useApp();
   const [tab, setTab] = useState('discover');
   const [publicProfiles, setPublicProfiles] = useState([]);
   const [following, setFollowing]           = useState([]); // array of user_ids
+  const [followerCounts, setFollowerCounts] = useState({}); // { userId: count }
   const [loading, setLoading]               = useState(true);
+  const [dbError, setDbError]               = useState(false); // migration not run yet
   const [search, setSearch]                 = useState('');
+  const [sortBy, setSortBy]                 = useState('default');
   const [toggling, setToggling]             = useState(null); // userId being toggled
 
   // My profile edit state
@@ -123,20 +140,45 @@ export default function Social({ user, profile, showToast }) {
 
   async function loadSocial() {
     setLoading(true);
+    setDbError(false);
     try {
       // Who I follow
-      const { data: followData } = await sb.from('follows')
+      const { data: followData, error: followErr } = await sb.from('follows')
         .select('following_id')
         .eq('follower_id', userId);
+
+      // If the table doesn't exist yet (migration not run), show helpful message
+      if (followErr && (followErr.code === '42P01' || followErr.message?.includes('does not exist'))) {
+        setDbError(true);
+        setLoading(false);
+        return;
+      }
       setFollowing((followData || []).map(f => f.following_id));
 
       // All public profiles (excluding self)
-      const { data: profs } = await sb
+      const { data: profs, error: profErr } = await sb
         .from('profiles')
         .select('id, name, username, bio, avatar_color, is_public, trade_count, win_rate, total_pnl')
         .eq('is_public', true)
         .neq('id', userId);
-      setPublicProfiles(profs || []);
+
+      if (profErr) throw profErr;
+      const profList = profs || [];
+      setPublicProfiles(profList);
+
+      // Follower counts for all visible profiles
+      if (profList.length > 0) {
+        const ids = profList.map(p => p.id);
+        const { data: counts } = await sb
+          .from('follows')
+          .select('following_id')
+          .in('following_id', ids);
+        const countMap = {};
+        (counts || []).forEach(row => {
+          countMap[row.following_id] = (countMap[row.following_id] || 0) + 1;
+        });
+        setFollowerCounts(countMap);
+      }
     } catch (e) {
       console.error('Social load error:', e);
     }
@@ -149,10 +191,12 @@ export default function Social({ user, profile, showToast }) {
       if (following.includes(targetId)) {
         await sb.from('follows').delete().eq('follower_id', userId).eq('following_id', targetId);
         setFollowing(f => f.filter(id => id !== targetId));
+        setFollowerCounts(fc => ({ ...fc, [targetId]: Math.max(0, (fc[targetId] || 1) - 1) }));
         showToast('Unfollowed', 'info');
       } else {
         await sb.from('follows').insert({ follower_id: userId, following_id: targetId });
         setFollowing(f => [...f, targetId]);
+        setFollowerCounts(fc => ({ ...fc, [targetId]: (fc[targetId] || 0) + 1 }));
         showToast('Now following!', 'success');
       }
     } catch (e) {
@@ -174,30 +218,80 @@ export default function Social({ user, profile, showToast }) {
       bio:      bio.trim()      || null,
       is_public: isPublic,
       avatar_color: avatarColor,
-      // Snapshot stats so other users can see them without querying trades
+      // Snapshot live stats so other users see them without querying trades
       trade_count: myStats.count,
       win_rate:    myStats.winRate,
       total_pnl:   myStats.totalPnl,
     }).eq('id', userId);
 
     if (error) {
-      setProfileMsg(error.message.includes('unique') ? 'That username is already taken.' : error.message);
+      if (error.code === '42703') {
+        setProfileMsg('Run the social DB migration in Supabase first — see the SQL file.');
+      } else {
+        setProfileMsg(error.message.includes('unique') ? 'That username is already taken.' : error.message);
+      }
     } else {
       setProfileMsg('✓ Profile saved');
       showToast('Profile updated', 'success');
-      if (isPublic) loadSocial(); // refresh discover list
+      if (isPublic) loadSocial();
       setTimeout(() => setProfileMsg(''), 3000);
     }
     setSaving(false);
   }
 
-  // ── Filtered discover list ──────────────────────────────────────────────────
-  const feedProfiles    = publicProfiles.filter(p => following.includes(p.id));
-  const discoverList    = publicProfiles.filter(p => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (p.name || '').toLowerCase().includes(q) || (p.username || '').toLowerCase().includes(q);
-  });
+  // ── Sorted discover list ──────────────────────────────────────────────────
+  const feedProfiles = publicProfiles.filter(p => following.includes(p.id));
+
+  const discoverList = useMemo(() => {
+    let list = publicProfiles.filter(p => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (p.name || '').toLowerCase().includes(q) || (p.username || '').toLowerCase().includes(q);
+    });
+    if (sortBy === 'win_rate')  list = [...list].sort((a, b) => (b.win_rate ?? -1) - (a.win_rate ?? -1));
+    if (sortBy === 'pnl')       list = [...list].sort((a, b) => (b.total_pnl ?? 0) - (a.total_pnl ?? 0));
+    if (sortBy === 'trades')    list = [...list].sort((a, b) => (b.trade_count ?? 0) - (a.trade_count ?? 0));
+    if (sortBy === 'followers') list = [...list].sort((a, b) => (followerCounts[b.id] ?? 0) - (followerCounts[a.id] ?? 0));
+    return list;
+  }, [publicProfiles, search, sortBy, followerCounts]);
+
+  // ── DB Migration prompt ─────────────────────────────────────────────────────
+  if (dbError) {
+    return (
+      <div className="jm-view">
+        <div className="jm-greeting">
+          <p className="jm-hello">Community</p>
+          <h1 className="jm-page-title">Social <span>Hub</span></h1>
+        </div>
+        <div className="jm-card" style={{ marginTop: '12px', borderColor: 'rgba(232,114,74,0.3)', background: 'rgba(232,114,74,0.06)' }}>
+          <p style={{ margin: '0 0 6px', fontSize: '18px' }}>⚙️</p>
+          <p style={{ margin: '0 0 8px', fontSize: '14px', fontWeight: 700, color: '#F5F3ED' }}>One-time setup needed</p>
+          <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#8B8882', lineHeight: 1.6 }}>
+            The Social features need a quick database migration. Run the SQL file in your Supabase SQL Editor, then come back here.
+          </p>
+          <a
+            href="https://supabase.com/dashboard/project/ppjrfpuqfofgggtgmipd/sql/new"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-block', padding: '9px 18px', borderRadius: '10px',
+              background: '#E8724A', color: '#fff', fontSize: '13px',
+              fontWeight: 600, textDecoration: 'none', marginRight: '8px',
+            }}
+          >
+            Open Supabase SQL Editor →
+          </a>
+          <button
+            className="jm-btn-ghost"
+            style={{ marginTop: '8px', fontSize: '12px' }}
+            onClick={loadSocial}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -208,7 +302,11 @@ export default function Social({ user, profile, showToast }) {
       </div>
 
       <div className="jm-seg" style={{ marginBottom: '20px' }}>
-        {[['feed', `Feed${feedProfiles.length ? ' · ' + feedProfiles.length : ''}`], ['discover', 'Discover'], ['profile', 'My Profile']].map(([id, label]) => (
+        {[
+          ['feed',     `Feed${feedProfiles.length ? ' · ' + feedProfiles.length : ''}`],
+          ['discover', 'Discover'],
+          ['profile',  'My Profile'],
+        ].map(([id, label]) => (
           <button key={id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>{label}</button>
         ))}
       </div>
@@ -245,6 +343,7 @@ export default function Social({ user, profile, showToast }) {
                       key={p.id} p={p}
                       isFollowing={true}
                       onToggleFollow={handleToggleFollow}
+                      followerCount={followerCounts[p.id] || 0}
                     />
                   ))}
                 </div>
@@ -256,14 +355,31 @@ export default function Social({ user, profile, showToast }) {
         {/* ── DISCOVER ─────────────────────────────────────────────────── */}
         {tab === 'discover' && (
           <div>
-            <input
-              className="jm-in"
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search traders by name or @handle…"
-              style={{ marginBottom: '14px' }}
-            />
+            {/* Search + Sort row */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', alignItems: 'center' }}>
+              <input
+                className="jm-in"
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search by name or @handle…"
+                style={{ flex: 1, margin: 0 }}
+              />
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value)}
+                style={{
+                  background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+                  color: 'var(--c-text-2)', borderRadius: '10px', padding: '9px 12px',
+                  fontSize: '12px', fontFamily: 'var(--font-sans)', cursor: 'pointer',
+                  outline: 'none', flexShrink: 0,
+                }}
+              >
+                {SORT_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
 
             {discoverList.length === 0 ? (
               <div className="jm-empty" style={{ paddingTop: '2rem' }}>
@@ -289,6 +405,7 @@ export default function Social({ user, profile, showToast }) {
                       key={p.id} p={p}
                       isFollowing={following.includes(p.id)}
                       onToggleFollow={handleToggleFollow}
+                      followerCount={followerCounts[p.id] || 0}
                     />
                   ))}
                 </div>
