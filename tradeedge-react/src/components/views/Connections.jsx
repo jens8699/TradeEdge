@@ -468,7 +468,237 @@ function TradovateModal({ onClose, onConnected, existingAccount }) {
   );
 }
 
-// ── MT4/MT5 Guide Modal ──────────────────────────────────────────────────────
+// ── Tradovate CSV Import Modal ────────────────────────────────────────────────
+
+function parseTradovateCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) throw new Error('CSV appears to be empty.');
+
+  // Normalize headers
+  const rawHeaders = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim().toLowerCase());
+
+  // Flexible column mapping
+  function col(names) {
+    for (const n of names) {
+      const idx = rawHeaders.findIndex(h => h.includes(n));
+      if (idx >= 0) return idx;
+    }
+    return -1;
+  }
+
+  const idxId        = col(['id', 'fill id', 'trade id', 'execution id']);
+  const idxTimestamp = col(['timestamp', 'date', 'time', 'datetime', 'fill time', 'trade date']);
+  const idxSymbol    = col(['symbol', 'contract', 'instrument', 'name', 'contractid']);
+  const idxAction    = col(['action', 'side', 'buy/sell', 'direction', 'b/s']);
+  const idxQty       = col(['qty', 'quantity', 'size', 'filled qty', 'contracts']);
+  const idxPrice     = col(['price', 'fill price', 'execution price', 'avg price']);
+  const idxPnl       = col(['pnl', 'net pnl', 'realized pnl', 'profit', 'gain', 'net profit', 'p&l', 'netpnl']);
+  const idxComm      = col(['commission', 'fees', 'fee', 'comm']);
+
+  const trades = [];
+  const skipped = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    // Handle quoted commas in CSV
+    const cells = [];
+    let inQ = false, cur = '';
+    for (const ch of line) {
+      if (ch === '"') { inQ = !inQ; continue; }
+      if (ch === ',' && !inQ) { cells.push(cur.trim()); cur = ''; continue; }
+      cur += ch;
+    }
+    cells.push(cur.trim());
+
+    const get = idx => (idx >= 0 ? cells[idx] || '' : '');
+
+    const pnlRaw = parseFloat(get(idxPnl).replace(/[$,]/g, ''));
+    // Skip rows with no P&L (opening fills) — only import closing fills
+    if (isNaN(pnlRaw) || pnlRaw === 0) { skipped.push(i + 1); continue; }
+
+    const actionRaw = get(idxAction).toLowerCase();
+    const direction = actionRaw.includes('sell') ? 'Long' : actionRaw.includes('buy') ? 'Short' : 'Long';
+
+    const tsRaw = get(idxTimestamp);
+    let date = new Date().toISOString().slice(0, 10);
+    if (tsRaw) {
+      const parsed = new Date(tsRaw);
+      if (!isNaN(parsed)) date = parsed.toISOString().slice(0, 10);
+    }
+
+    const symbol = get(idxSymbol) || 'UNKNOWN';
+    const external_id = get(idxId) ? `tv_csv_${get(idxId)}` : `hv_csv_${i}_${date}`;
+
+    trades.push({
+      symbol: symbol.replace(/\s+/g, '').toUpperCase(),
+      direction,
+      pnl: parseFloat(pnlRaw.toFixed(2)),
+      date,
+      entry: parseFloat(get(idxPrice)) || null,
+      exit: null,
+      qty: parseInt(get(idxQty)) || 1,
+      notes: `Imported from Tradovate CSV`,
+      source: 'tradovate_csv',
+      external_id,
+    });
+  }
+
+  return { trades, skipped };
+}
+
+function TradovateCSVModal({ onClose, onImported }) {
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null); // { trades, skipped }
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(null);
+
+  function handleFile(e) {
+    const f = e.target.files[0];
+    if (!f) return;
+    setFile(f);
+    setError('');
+    setPreview(null);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const result = parseTradovateCSV(ev.target.result);
+        setPreview(result);
+      } catch (err) {
+        setError(err.message || 'Could not parse CSV.');
+      }
+    };
+    reader.readAsText(f);
+  }
+
+  async function handleImport() {
+    if (!preview?.trades?.length) return;
+    setLoading(true);
+    setError('');
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      const toInsert = preview.trades.map(t => ({ ...t, user_id: user.id }));
+      const { error: dbErr, data } = await sb.from('trades').upsert(toInsert, {
+        onConflict: 'user_id,external_id',
+        ignoreDuplicates: true,
+      });
+      if (dbErr) throw new Error(dbErr.message);
+      setDone(preview.trades.length);
+      onImported?.(preview.trades.length);
+    } catch (e) {
+      setError(e.message || 'Import failed.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ ...styles.modal, maxWidth: '460px' }}>
+        <div style={styles.modalHeader}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ ...styles.platformIcon, background: 'rgba(0,194,224,0.12)', color: '#00C2E0', fontSize: '18px' }}>↑</div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--c-text)' }}>Import Tradovate CSV</h3>
+              <p style={{ margin: 0, fontSize: '12px', color: 'var(--c-text-2)' }}>Upload your fills export</p>
+            </div>
+          </div>
+          <button onClick={onClose} style={styles.closeBtn}>✕</button>
+        </div>
+
+        <div style={styles.modalBody}>
+          {!done ? (
+            <>
+              <div style={{
+                background: 'rgba(0,194,224,0.04)', border: '1px solid rgba(0,194,224,0.15)',
+                borderRadius: '10px', padding: '12px 14px', marginBottom: '16px',
+              }}>
+                <p style={{ margin: '0 0 6px', fontSize: '12px', fontWeight: 600, color: '#00C2E0' }}>How to export from Tradovate</p>
+                <ol style={{ margin: 0, paddingLeft: '16px', fontSize: '12px', color: 'var(--c-text-2)', lineHeight: 1.7 }}>
+                  <li>Open <strong style={{ color: 'var(--c-text)' }}>trader.tradovate.com</strong></li>
+                  <li>Go to <strong style={{ color: 'var(--c-text)' }}>Account → Performance</strong></li>
+                  <li>Click the <strong style={{ color: 'var(--c-text)' }}>Fills</strong> tab</li>
+                  <li>Click <strong style={{ color: 'var(--c-text)' }}>Export → CSV</strong></li>
+                </ol>
+              </div>
+
+              <label style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                border: `2px dashed ${file ? '#00C2E0' : 'var(--c-border)'}`,
+                borderRadius: '12px', padding: '24px 16px', cursor: 'pointer',
+                background: file ? 'rgba(0,194,224,0.04)' : 'var(--c-bg)',
+                transition: 'all 0.2s', marginBottom: '12px',
+              }}>
+                <input type="file" accept=".csv,.txt" onChange={handleFile} style={{ display: 'none' }} />
+                <span style={{ fontSize: '24px', marginBottom: '8px' }}>📄</span>
+                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-text)' }}>
+                  {file ? file.name : 'Click to select CSV file'}
+                </span>
+                <span style={{ fontSize: '11px', color: 'var(--c-text-2)', marginTop: '3px' }}>
+                  {file ? 'Click to choose a different file' : '.csv files only'}
+                </span>
+              </label>
+
+              {preview && (
+                <div style={{
+                  background: 'rgba(93,202,165,0.06)', border: '1px solid rgba(93,202,165,0.2)',
+                  borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
+                }}>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#5DCAA5', fontWeight: 600 }}>
+                    ✓ {preview.trades.length} trade{preview.trades.length !== 1 ? 's' : ''} ready to import
+                  </p>
+                  {preview.skipped.length > 0 && (
+                    <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--c-text-2)' }}>
+                      {preview.skipped.length} rows skipped (opening fills / no P&L)
+                    </p>
+                  )}
+                  {preview.trades.slice(0, 3).map((t, i) => (
+                    <div key={i} style={{ fontSize: '11px', color: 'var(--c-text-2)', marginTop: '4px' }}>
+                      {t.date} · {t.symbol} · {t.direction} · {t.pnl >= 0 ? '+' : ''}{t.pnl.toFixed(2)}
+                    </div>
+                  ))}
+                  {preview.trades.length > 3 && (
+                    <div style={{ fontSize: '11px', color: 'var(--c-text-2)', marginTop: '2px' }}>
+                      …and {preview.trades.length - 3} more
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {error && <p style={styles.error}>{error}</p>}
+
+              <button
+                style={{
+                  ...styles.primaryBtn,
+                  opacity: (!preview?.trades?.length || loading) ? 0.5 : 1,
+                }}
+                onClick={handleImport}
+                disabled={!preview?.trades?.length || loading}
+              >
+                {loading ? 'Importing…' : `Import ${preview?.trades?.length || ''} Trades`}
+              </button>
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '8px 0' }}>
+              <div style={{ fontSize: '40px', marginBottom: '12px' }}>🎉</div>
+              <p style={{ margin: '0 0 6px', fontWeight: 600, fontSize: '15px', color: 'var(--c-text)' }}>
+                {done} trade{done !== 1 ? 's' : ''} imported!
+              </p>
+              <p style={{ margin: '0 0 20px', fontSize: '12px', color: 'var(--c-text-2)' }}>
+                Your trades are now in your journal. Head to History or Stats to see them.
+              </p>
+              <button style={styles.primaryBtn} onClick={onClose}>Done</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── MT4/MT5 Guide Modal ───────────────────────────────────────────────────────
 
 function MT5GuideModal({ onClose }) {
   const steps = [
@@ -655,7 +885,7 @@ export default function Connections({ user, showToast }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div style={{
                     width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0,
-                    backgrkground: `${platform.color}18`,
+                    background: `${platform.color}18`,
                     color: platform.color,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '18px',
@@ -709,19 +939,36 @@ export default function Connections({ user, showToast }) {
                 </div>
               )}
 
-              {/* Action button */}
+              {/* Action buttons */}
               {platform.status === 'available' && (
-                <button
-                  onClick={() => setActiveModal(platform.id)}
-                  style={{
-                    ...styles.cardBtn,
-                    background: isConnected ? 'transparent' : '#E8724A',
-                    color: isConnected ? 'var(--c-text)' : '#fff',
-                    border: isConnected ? '1px solid var(--c-border)' : 'none',
-                  }}
-                >
-                  {isConnected ? '⚙ Manage' : '+ Connect'}
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: 'auto' }}>
+                  <button
+                    onClick={() => setActiveModal(platform.id)}
+                    style={{
+                      ...styles.cardBtn,
+                      background: isConnected ? 'transparent' : '#E8724A',
+                      color: isConnected ? 'var(--c-text)' : '#fff',
+                      border: isConnected ? '1px solid var(--c-border)' : 'none',
+                    }}
+                  >
+                    {isConnected ? '⚙ Manage' : '+ Connect'}
+                  </button>
+                  {/* CSV import always available for Tradovate */}
+                  {platform.id === 'tradovate' && (
+                    <button
+                      onClick={() => setActiveModal('tradovate_csv')}
+                      style={{
+                        ...styles.cardBtn,
+                        background: 'transparent',
+                        color: '#00C2E0',
+                        border: '1px solid rgba(0,194,224,0.3)',
+                        fontSize: '11px',
+                      }}
+                    >
+                      ↑ Import CSV
+                    </button>
+                  )}
+                </div>
               )}
 
               {platform.status === 'coming_soon' && (
@@ -768,6 +1015,12 @@ export default function Connections({ user, showToast }) {
           onClose={() => setActiveModal(null)}
           onConnected={handleConnected}
           existingAccount={getConnectedAccount('tradovate')}
+        />
+      )}
+      {activeModal === 'tradovate_csv' && (
+        <TradovateCSVModal
+          onClose={() => setActiveModal(null)}
+          onImported={count => showToast?.(`${count} trades imported from Tradovate CSV!`)}
         />
       )}
       {activeModal === 'mt4mt5' && (
