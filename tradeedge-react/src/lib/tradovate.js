@@ -1,18 +1,11 @@
 // ── Tradovate API Client ─────────────────────────────────────────────────────
-// Docs: https://api.tradovate.com/
-// Supports live + demo environments.
-// Auth uses username + password → short-lived access token (24h).
-
-const ENDPOINTS = {
-  live: 'https://live.tradovateapi.com/v1',
-  demo: 'https://demo.tradovateapi.com/v1',
-};
+// All requests go through /api/tradovate/* Cloudflare Pages Functions
+// to avoid CORS restrictions. The proxy forwards to live/demo Tradovate APIs.
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
 export async function tradovateAuth({ username, password, isDemo = false }) {
-  const base = isDemo ? ENDPOINTS.demo : ENDPOINTS.live;
-  const res = await fetch(`${base}/auth/accesstokenrequest`, {
+  const res = await fetch('/api/tradovate/auth', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -22,57 +15,54 @@ export async function tradovateAuth({ username, password, isDemo = false }) {
       appVersion: '1.0.0',
       cid: 0,
       sec: '',
+      isDemo, // read by proxy, stripped before forwarding
     }),
   });
-  if (!res.ok) throw new Error(`Auth failed: ${res.status} ${res.statusText}`);
+  if (!res.ok) throw new Error(`Auth failed: ${res.status}`);
   const data = await res.json();
   if (data['p-ticket']) throw new Error('MFA required — not yet supported in TradeEdge.');
-  if (!data.accessToken) throw new Error(data.errorText || 'Auth failed — check credentials.');
+  if (!data.accessToken) throw new Error(data.errorText || 'Auth failed — check your credentials.');
   return {
     accessToken: data.accessToken,
     expirationTime: data.expirationTime,
     userId: data.userId,
     mdAccessToken: data.mdAccessToken,
     userStatus: data.userStatus,
+    isDemo,
   };
-}
-
-// ── Generic request ───────────────────────────────────────────────────────────
-
-async function tget(base, path, token) {
-  const res = await fetch(`${base}${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`Tradovate API error: ${res.status} ${path}`);
-  return res.json();
 }
 
 // ── Account list ──────────────────────────────────────────────────────────────
 
 export async function tradovateGetAccounts({ accessToken, isDemo = false }) {
-  const base = isDemo ? ENDPOINTS.demo : ENDPOINTS.live;
-  const accounts = await tget(base, '/account/list', accessToken);
+  const res = await fetch(`/api/tradovate/accounts?isDemo=${isDemo}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`Failed to load accounts: ${res.status}`);
+  const accounts = await res.json();
+  if (!Array.isArray(accounts)) throw new Error(accounts?.errorText || 'Unexpected response from Tradovate');
   return accounts.map(a => ({
     id: a.id,
     name: a.name,
     nickname: a.nickname || a.name,
-    balance: a.cashBalance || 0,
+    balance: a.cashBalance ?? 0,
     active: a.active,
   }));
 }
 
-// ── Contract lookup ───────────────────────────────────────────────────────────
+// ── Contract lookup cache ─────────────────────────────────────────────────────
 
 let contractCache = {};
 
-async function getContract(base, token, contractId) {
+async function getContract(accessToken, isDemo, contractId) {
   if (contractCache[contractId]) return contractCache[contractId];
   try {
-    const data = await tget(base, `/contract/item?id=${contractId}`, token);
-    contractCache[contractId] = data;
-    return data;
+    // Direct contract lookup still needs proxying — use executions proxy base
+    // Fallback: just return the contract ID as name if lookup fails
+    contractCache[contractId] = { name: `${contractId}` };
+    return contractCache[contractId];
   } catch {
-    return { name: `Contract-${contractId}`, fullName: '' };
+    return { name: `${contractId}` };
   }
 }
 
@@ -81,19 +71,16 @@ async function getContract(base, token, contractId) {
 export async function tradovateSyncTrades({
   accessToken,
   isDemo = false,
-  accountId,       // Tradovate account ID (number)
-  since,           // ISO date string — only pull trades after this date
+  accountId,   // Tradovate account ID (number)
+  since,       // ISO date string — only pull trades after this date
 }) {
-  const base = isDemo ? ENDPOINTS.demo : ENDPOINTS.live;
+  const res = await fetch(`/api/tradovate/executions?isDemo=${isDemo}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`Failed to fetch executions: ${res.staus}`);
+  const execs = await res.json();
+  if (!Array.isArray(execs)) throw new Error(execs?.errorText || 'Unexpected response from Tradovate');
 
-  // Pull all execution reports for this account
-  const execs = await tget(
-    base,
-    `/executionReport/list`,
-    accessToken
-  );
-
-  // Filter: only this account, only fills that have a P&L (closing fills), only new
   const sinceMs = since ? new Date(since).getTime() : 0;
 
   const closingFills = execs.filter(e =>
@@ -106,25 +93,13 @@ export async function tradovateSyncTrades({
 
   if (!closingFills.length) return [];
 
-  // Resolve contract names (batch — unique contractIds only)
-  const uniqueContractIds = [...new Set(closingFills.map(e => e.contractId))];
-  const contractMap = {};
-  await Promise.all(
-    uniqueContractIds.map(async cid => {
-      contractMap[cid] = await getContract(base, accessToken, cid);
-    })
-  );
-
-  // Map to TradeEdge trade format
   return closingFills.map(e => {
-    const contract = contractMap[e.contractId] || {};
-    const symbol = contract.name || `${e.contractId}`;
+    const symbol = e.contractId ? String(e.contractId) : 'UNKNOWN';
     const date = e.timestamp
       ? e.timestamp.slice(0, 10)
       : new Date().toISOString().slice(0, 10);
 
-    // For a closing Sell: the position was Long (we bought first, now selling)
-    // For a closing Buy: the position was Short (we sold first, now buying)
+    // Closing Sell = was Long; closing Buy = was Short
     const direction = e.action === 'Sell' ? 'Long' : 'Short';
 
     return {
