@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
@@ -12,10 +13,13 @@ import Settings from '../views/Settings';
 import Calendar from '../views/Calendar';
 import Social from '../views/Social';
 import Connections from '../views/Connections';
+import UpgradeModal from '../modals/UpgradeModal';
+import ErrorBoundary from '../ErrorBoundary';
 import { getGreeting } from '../../lib/utils';
 
 export default function AppLayout({ user, profile, showToast }) {
   const { activeTab, loading } = useApp();
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const name = (profile?.name) || user?.user_metadata?.name || user?.email || 'Trader';
   const { full: greet } = getGreeting(name);
 
@@ -35,24 +39,27 @@ export default function AppLayout({ user, profile, showToast }) {
   return (
     <div className="jm">
       <div className="jm-app">
-        <Sidebar user={user} profile={profile} />
+        <Sidebar user={user} profile={profile} onUpgrade={() => setShowUpgrade(true)} />
 
         <main className="jm-main">
-          {activeTab === 'dashboard' && <Dashboard user={user} profile={profile} />}
-          {activeTab === 'entry'    && <TradeEntry showToast={showToast} />}
-          {activeTab === 'stats'    && <Stats />}
-          {activeTab === 'history'  && <History showToast={showToast} />}
-          {activeTab === 'payouts'  && <Payouts showToast={showToast} />}
-          {activeTab === 'brief'    && <MarketBrief showToast={showToast} />}
-          {activeTab === 'insights' && <Insights showToast={showToast} />}
-          {activeTab === 'calendar'  && <Calendar />}
-          {activeTab === 'social'       && <Social user={user} profile={profile} showToast={showToast} />}
-          {activeTab === 'connections'  && <Connections user={user} showToast={showToast} />}
-          {activeTab === 'settings'     && <Settings user={user} profile={profile} showToast={showToast} />}
+          <ErrorBoundary>
+            {activeTab === 'dashboard' && <Dashboard user={user} profile={profile} />}
+            {activeTab === 'entry'    && <TradeEntry showToast={showToast} />}
+            {activeTab === 'stats'    && <Stats />}
+            {activeTab === 'history'  && <History showToast={showToast} />}
+            {activeTab === 'payouts'  && <Payouts showToast={showToast} />}
+            {activeTab === 'brief'    && <MarketBrief showToast={showToast} />}
+            {activeTab === 'insights' && <Insights showToast={showToast} />}
+            {activeTab === 'calendar'  && <Calendar />}
+            {activeTab === 'social'       && <Social user={user} profile={profile} showToast={showToast} />}
+            {activeTab === 'connections'  && <Connections user={user} showToast={showToast} />}
+            {activeTab === 'settings'     && <Settings user={user} profile={profile} showToast={showToast} onUpgrade={() => setShowUpgrade(true)} />}
+          </ErrorBoundary>
         </main>
       </div>
 
       <MobileNav />
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
     </div>
   );
 }
