@@ -6,6 +6,9 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
   const { exportData, importData, isOnline, syncPending, doSync, offlineQueueCount, theme, toggleTheme } = useApp();
   const [name,        setName]        = useState((profile?.name) || user?.user_metadata?.name || '');
   const [nameMsg,     setNameMsg]     = useState('');
+  const [bio,         setBio]         = useState(profile?.bio || '');
+  const [statsPublic, setStatsPublic] = useState(profile?.stats_public !== false);
+  const [profileMsg,  setProfileMsg]  = useState('');
   const [pass,        setPass]        = useState('');
   const [passConfirm, setPassConfirm] = useState('');
   const [passMsg,     setPassMsg]     = useState('');
@@ -30,6 +33,17 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
     setNameMsg('✓ Name updated');
     setTimeout(() => setNameMsg(''), 3000);
     showToast('Display name updated', 'success');
+  };
+
+  const savePublicProfile = async () => {
+    const { error } = await sb.from('profiles').update({
+      bio: bio.trim(),
+      stats_public: statsPublic,
+    }).eq('id', user.id);
+    if (error) { setProfileMsg(error.message); return; }
+    setProfileMsg('✓ Profile saved');
+    setTimeout(() => setProfileMsg(''), 3000);
+    showToast('Public profile updated', 'success');
   };
 
   const savePass = async () => {
@@ -117,6 +131,38 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
         <button className="jm-btn" style={{ marginTop:'14px' }} onClick={saveName}>Save name</button>
       </div>
 
+      {/* Public Profile */}
+      <div className="set-section">
+        <p className="set-section-title">Public Profile</p>
+        <p style={{ fontSize:'12px', color:'#6B6862', margin:'0 0 14px', lineHeight:1.6 }}>
+          Visible to other traders on the Social tab when you share your profile.
+        </p>
+        <div className="set-row">
+          <label>Bio</label>
+          <textarea
+            className="jm-in"
+            rows={3}
+            placeholder="Tell other traders about your style, experience, favourite setups…"
+            value={bio}
+            onChange={e => setBio(e.target.value)}
+            style={{ resize:'vertical', minHeight:'72px', fontFamily:'inherit', lineHeight:1.5 }}
+          />
+        </div>
+        <div className="set-row theme-toggle-row" style={{ marginBottom:0 }}>
+          <div>
+            <span style={{ fontSize:'13px', color:'#C8C4BC', fontWeight:500 }}>Show stats publicly</span>
+            <p style={{ fontSize:'12px', color:'#6B6862', margin:'2px 0 0' }}>Let followers see your win rate, P&amp;L, and trade count</p>
+          </div>
+          <label className="theme-switch">
+            <input type="checkbox" checked={statsPublic} onChange={e => setStatsPublic(e.target.checked)} />
+            <span className="theme-track"></span>
+            <span className="theme-thumb"></span>
+          </label>
+        </div>
+        {profileMsg && <p className="set-msg" style={{ color: profileMsg.startsWith('✓') ? '#5DCAA5' : '#F09595', marginTop:'8px' }}>{profileMsg}</p>}
+        <button className="jm-btn" style={{ marginTop:'14px' }} onClick={savePublicProfile}>Save public profile</button>
+      </div>
+
       {/* Password */}
       <div className="set-section">
         <p className="set-section-title">Change password</p>
@@ -188,7 +234,7 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
             }
           </span>
           {isOnline && syncPending && (
-            <button onClick={doSync} style={{ background:'transparent', border:'0.5px solid #2A2720', color:'��8B8882', padding:'4px 12px', borderRadius:'8px', fontSize:'11px', cursor:'pointer', fontFamily:'inherit' }}>
+            <button onClick={doSync} style={{ background:'transparent', border:'0.5px solid #2A2720', color:'#8B8882', padding:'4px 12px', borderRadius:'8px', fontSize:'11px', cursor:'pointer', fontFamily:'inherit' }}>
               Sync now
             </button>
           )}
