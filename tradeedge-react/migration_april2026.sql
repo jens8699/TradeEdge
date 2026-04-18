@@ -1,14 +1,12 @@
 -- ============================================================================
--- TradeEdge DB Migration — April 2026
+-- TradeEdge DB Migration — April 2026 (v2 — Social share_trades)
 -- Run this in Supabase SQL Editor
 -- ============================================================================
 
 -- ── 1. Add theme column to profiles ─────────────────────────────────────────
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS theme TEXT DEFAULT 'dark';
 
--- ── 2. Social schema (if not already created) ──────────────────────────────
--- The follows table should already exist from the Social view setup.
--- If not, create it:
+-- ── 2. Social schema ──────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS follows (
   id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   follower_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -17,7 +15,7 @@ CREATE TABLE IF NOT EXISTS follows (
   UNIQUE(follower_id, following_id)
 );
 
--- ── 3. Friendships table (for mutual follow / friend request flow) ──────────
+-- ── 3. Friendships table ────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS friendships (
   id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id    UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -28,13 +26,17 @@ CREATE TABLE IF NOT EXISTS friendships (
   UNIQUE(user_id, friend_id)
 );
 
--- ── 4. Profile improvements for social ──────────────────────────────────────
+-- ── 4. Profile columns for social ───────────────────────────────────────────
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT DEFAULT '';
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS stats_public BOOLEAN DEFAULT true;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT DEFAULT '';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_color TEXT DEFAULT '#E8724A';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS share_trades BOOLEAN DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS trade_count INT DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS win_rate NUMERIC(5,2) DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS total_pnl NUMERIC(12,2) DEFAULT 0;
 
--- ── 5. RLS policies ────────────────────────────────────────────────────────
--- Follows: users can see all follows, but only insert/delete their own
+-- ── 5. RLS policies — follows ────────────────────────────────────────────────
 ALTER TABLE follows ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
@@ -49,7 +51,7 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- Friendships: users can see their own, insert requests, update their own received
+-- ── 6. RLS policies — friendships ───────────────────────────────────────────
 ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
@@ -61,5 +63,30 @@ DO $$ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'friendships_update_own') THEN
     CREATE POLICY friendships_update_own ON friendships FOR UPDATE USING (auth.uid() = friend_id);
+  END IF;
+END $$;
+
+-- ── 7. RLS policy — trades feed (followers can read shared trades) ────────────
+-- Allow users to read their own trades, OR trades from traders who have
+-- share_trades=true and is_public=true AND the viewer follows them.
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'trades_public_feed') THEN
+    CREATE POLICY trades_public_feed ON trades FOR SELECT
+    USING (
+      auth.uid() = user_id
+      OR (
+        EXISTS (
+          SELECT 1 FROM profiles
+          WHERE profiles.id = trades.user_id
+            AND profiles.share_trades = true
+            AND profiles.is_public = true
+        )
+        AND EXISTS (
+          SELECT 1 FROM follows
+          WHERE follows.follower_id = auth.uid()
+            AND follows.following_id = trades.user_id
+        )
+      )
+    );
   END IF;
 END $$;
