@@ -357,19 +357,23 @@ olor:'#8B8882', marginLeft:'8px' }}>{t.date}</span>
 // ── sub-components ────────────────────────────────────────────────────────────
 
 function MetricRing({ label, value, pct, color, foot }) {
-  const r = 26, circ = 2 * Math.PI * r;
+  const r = 28, circ = 2 * Math.PI * r;
   const dash = (Math.max(0, Math.min(100, pct)) / 100) * circ;
   return (
-    <div className="jm-card" style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'18px 12px', gap:'6px' }}>
-      <svg width="68" height="68" style={{ overflow:'visible' }}>
-        <circle cx="34" cy="34" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
-        <circle cx="34" cy="34" r={r} fill="none" stroke={color} strokeWidth="5"
-          strokeDasharray={`${dash} ${circ}`} strokeLinecap="butt"
-          transform="rotate(-90 34 34)" style={{ transition:'stroke-dasharray 0.6s ease' }} />
-      </svg>
-      <p style={{ fontSize:'20px', fontWeight:800, color, margin:'-48px 0 0', letterSpacing:'-0.5px' }}>{value}</p>
-      <p style={{ fontSize:'11px', color:'#8B8882', margin:'46px 0 0', textTransform:'uppercase', letterSpacing:'0.5px' }}>{label}</p>
-      {foot && <p style={{ fontSize:'11px', color:'#6B6760', textAlign:'center', lineHeight:1.4 }}>{foot}</p>}
+    <div className="jm-card" style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'18px 12px', gap:'8px' }}>
+      <div style={{ position:'relative', width:'72px', height:'72px', flexShrink:0 }}>
+        <svg width="72" height="72">
+          <circle cx="36" cy="36" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
+          <circle cx="36" cy="36" r={r} fill="none" stroke={color} strokeWidth="5"
+            strokeDasharray={`${dash} ${circ}`} strokeLinecap="butt"
+            transform="rotate(-90 36 36)" style={{ transition:'stroke-dasharray 0.6s ease' }} />
+        </svg>
+        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <p style={{ fontSize:'14px', fontWeight:800, color, margin:0, letterSpacing:'-0.5px', lineHeight:1 }}>{value}</p>
+        </div>
+      </div>
+      <p style={{ fontSize:'11px', color:'#8B8882', margin:0, textTransform:'uppercase', letterSpacing:'0.5px', textAlign:'center' }}>{label}</p>
+      {foot && <p style={{ fontSize:'11px', color:'#6B6760', textAlign:'center', lineHeight:1.4, margin:0 }}>{foot}</p>}
     </div>
   );
 }
