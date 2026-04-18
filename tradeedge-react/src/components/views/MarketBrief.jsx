@@ -206,6 +206,11 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
 
   const hasKey = !!getClaudeKey();
 
+  // Today's quick stats
+  const todayTrades = trades.filter(t => t.date === new Date().toISOString().slice(0,10));
+  const todayStats = computeStats(todayTrades);
+  const localTime = new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+
   return (
     <div className="jm-view">
       <div className="jm-greeting">
@@ -217,6 +222,7 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
       <div className="jm-clock-row">
         <span className="jm-clock">{clock}</span>
         <span className="jm-clock-tz">UTC</span>
+        <span style={{ fontSize:'12px', color:'#6B6862', marginLeft:'8px' }}>({localTime} local)</span>
       </div>
       <div className="jm-session-bar">
         {sessions.map(s => (
@@ -226,6 +232,25 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
           </div>
         ))}
       </div>
+
+      {/* Today's trading snapshot */}
+      {todayTrades.length > 0 && (
+        <div style={{
+          display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'8px', marginBottom:'16px',
+        }}>
+          {[
+            { label: 'Trades', val: todayStats.count, color:'var(--c-text)' },
+            { label: 'P&L', val: `${todayStats.totalPnl >= 0 ? '+' : ''}$${todayStats.totalPnl.toFixed(0)}`, color: todayStats.totalPnl >= 0 ? '#5DCAA5' : '#F09595' },
+            { label: 'Win Rate', val: `${todayStats.winRate.toFixed(0)}%`, color:'var(--c-text)' },
+            { label: 'W/L', val: `${todayStats.wins}/${todayStats.losses}`, color:'var(--c-text)' },
+          ].map(s => (
+            <div key={s.label} style={{ background:'var(--c-surface)', border:'1px solid var(--c-border)', borderRadius:'10px', padding:'8px 10px', textAlign:'center' }}>
+              <p style={{ fontSize:'9px', color:'#6B6862', textTransform:'uppercase', letterSpacing:'0.5px', margin:'0 0 3px', fontWeight:600 }}>{s.label}</p>
+              <p style={{ fontSize:'14px', fontWeight:800, color:s.color, margin:0, fontVariantNumeric:'tabular-nums' }}>{s.val}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Today's topics */}
       <div style={{ marginBottom:'20px' }}>

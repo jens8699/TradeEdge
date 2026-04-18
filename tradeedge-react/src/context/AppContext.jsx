@@ -64,25 +64,35 @@ export function AppProvider({ userId, children }) {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  const toggleTheme = useCallback(() => {
+  const toggleTheme = useCallback(async () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     localStorage.setItem('te_theme', next);
-  }, [theme]);
+    // Persist to Supabase profile
+    if (userId && navigator.onLine) {
+      try { await sb.from('profiles').update({ theme: next }).eq('id', userId); } catch(e) {}
+    }
+  }, [theme, userId]);
 
   // Initial data load
   const load = useCallback(async (uid_) => {
     setLoading(true);
     try {
-      const [{ data: t }, { data: p }] = await Promise.all([
+      const [{ data: t }, { data: p }, { data: profileData }] = await Promise.all([
         sb.from('trades').select('*').eq('user_id', uid_).order('date', { ascending: false }),
         sb.from('payouts').select('*').eq('user_id', uid_).order('date', { ascending: false }),
+        sb.from('profiles').select('theme').eq('id', uid_).single(),
       ]);
       const tradeList  = (t || []).map(dbToTrade);
       const payoutList = (p || []).map(dbToPayout);
       await fetchSignedUrls(tradeList);
       setTrades(tradeList);
       setPayouts(payoutList);
+      // Restore theme from profile if available
+      if (profileData?.theme && !localStorage.getItem('te_theme')) {
+        setTheme(profileData.theme);
+        localStorage.setItem('te_theme', profileData.theme);
+      }
     } catch(e) {
       console.warn('Load error:', e);
     }

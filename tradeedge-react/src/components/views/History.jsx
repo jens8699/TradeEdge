@@ -265,6 +265,8 @@ function DateGroup({ date, trades, onSelect }) {
   );
 }
 
+// ── Main View ─────────────────────────────────────────────────────────────────
+
 export default function History({ showToast }) {
   const { trades, deleteTrade } = useApp();
   const [selectedTrade,  setSelectedTrade]  = useState(null);
@@ -278,6 +280,7 @@ export default function History({ showToast }) {
   const [ratingFilter,   setRatingFilter]   = useState('');
   const [search,         setSearch]         = useState('');
   const [sortBy,         setSortBy]         = useState('date_desc');
+  const [filtersOpen,    setFiltersOpen]    = useState(false);
 
   const setups    = [...new Set(trades.map(t => t.setup).filter(Boolean))].sort();
   const symbols   = [...new Set(trades.map(t => t.symbol))].sort();
@@ -344,54 +347,83 @@ export default function History({ showToast }) {
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
         <input type="text" className="jm-in" placeholder="Search symbol, setup, notes…"
           value={search} onChange={e => setSearch(e.target.value)}
           style={{ flex: '1', minWidth: '160px' }} />
-        <select className="jm-in" value={symbolFilter} onChange={e => setSymbolFilter(e.target.value)}>
-          <option value="">All symbols</option>
-          {symbols.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select className="jm-in" value={setupFilter} onChange={e => setSetupFilter(e.target.value)}>
-          <option value="">All setups</option>
-          {setups.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select className="jm-in" value={outcomeFilter} onChange={e => setOutcomeFilter(e.target.value)}>
-          <option value="">Win &amp; Loss</option>
-          <option value="win">Wins only</option>
-          <option value="loss">Losses only</option>
-          <option value="breakeven">Breakeven</option>
-        </select>
-        {hasSynced && (
-          <select className="jm-in" value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}>
-            <option value="">All sources</option>
-            <option value="manual">Manual</option>
-            <option value="tradovate">Tradovate</option>
-          </select>
-        )}
-        {sessions.length > 0 && (
-          <select className="jm-in" value={sessionFilter} onChange={e => setSessionFilter(e.target.value)}>
-            <option value="">All sessions</option>
-            {sessions.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        )}
-        <select className="jm-in" value={ratingFilter} onChange={e => setRatingFilter(e.target.value)}>
-          <option value="">All ratings</option>
-          {['A','B','C','D'].map(r => (
-            <option key={r} value={r}>{r}— {RATING_LABELS[r]}</option>
-          ))}
-        </select>
-        <select className="jm-in" value={sortBy} onChange={e => setSortBy(e.target.value)}>
-          <option value="date_desc">Newest first</option>
-          <option value="date_asc">Oldest first</option>
-          <option value="pnl_desc">Biggest wins first</option>
-          <option value="pnl_asc">Biggest losses first</option>
-        </select>
+        <button
+          className="jm-filter-toggle"
+          onClick={() => setFiltersOpen(o => !o)}
+          style={{
+            background: filtersOpen ? 'rgba(232,114,74,0.12)' : 'var(--c-surface)',
+            border: `1px solid ${filtersOpen ? 'rgba(232,114,74,0.3)' : 'var(--c-border)'}`,
+            color: filtersOpen ? '#E8724A' : 'var(--c-text-2)',
+            padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0,
+          }}
+        >
+          {filtersOpen ? '✕ Close' : '⊞ Filters'}
+          {(symbolFilter || setupFilter || outcomeFilter || sourceFilter || sessionFilter || ratingFilter)
+            ? <span style={{ marginLeft: '6px', background: '#E8724A', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 800 }}>
+                {[symbolFilter, setupFilter, outcomeFilter, sourceFilter, sessionFilter, ratingFilter].filter(Boolean).length}
+              </span>
+            : null}
+        </button>
       </div>
+
+      {filtersOpen && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px', padding: '12px', background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: '12px' }}>
+          <select className="jm-in" value={symbolFilter} onChange={e => setSymbolFilter(e.target.value)} style={{ flex: '1', minWidth: '120px' }}>
+            <option value="">All symbols</option>
+            {symbols.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select className="jm-in" value={setupFilter} onChange={e => setSetupFilter(e.target.value)} style={{ flex: '1', minWidth: '120px' }}>
+            <option value="">All setups</option>
+            {setups.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select className="jm-in" value={outcomeFilter} onChange={e => setOutcomeFilter(e.target.value)} style={{ flex: '1', minWidth: '120px' }}>
+            <option value="">Win &amp; Loss</option>
+            <option value="win">Wins only</option>
+            <option value="loss">Losses only</option>
+            <option value="breakeven">Breakeven</option>
+          </select>
+          {hasSynced && (
+            <select className="jm-in" value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} style={{ flex: '1', minWidth: '120px' }}>
+              <option value="">All sources</option>
+              <option value="manual">Manual</option>
+              <option value="tradovate">Tradovate</option>
+            </select>
+          )}
+          {sessions.length > 0 && (
+            <select className="jm-in" value={sessionFilter} onChange={e => setSessionFilter(e.target.value)} style={{ flex: '1', minWidth: '120px' }}>
+              <option value="">All sessions</option>
+              {sessions.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          )}
+          <select className="jm-in" value={ratingFilter} onChange={e => setRatingFilter(e.target.value)} style={{ flex: '1', minWidth: '120px' }}>
+            <option value="">All ratings</option>
+            {['A','B','C','D'].map(r => (
+              <option key={r} value={r}>{r} — {RATING_LABELS[r]}</option>
+            ))}
+          </select>
+          <select className="jm-in" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ flex: '1', minWidth: '140px' }}>
+            <option value="date_desc">Newest first</option>
+            <option value="date_asc">Oldest first</option>
+            <option value="pnl_desc">Biggest wins first</option>
+            <option value="pnl_asc">Biggest losses first</option>
+          </select>
+          {(symbolFilter || setupFilter || outcomeFilter || sourceFilter || sessionFilter || ratingFilter) && (
+            <button onClick={() => { setSymbolFilter(''); setSetupFilter(''); setOutcomeFilter(''); setSourceFilter(''); setSessionFilter(''); setRatingFilter(''); }}
+              style={{ background: 'transparent', border: '1px solid rgba(226,75,74,0.3)', color: '#F09595', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Summary strip */}
       {filtered.length > 0 && (
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
           {[
             { label: 'Trades', value: filtered.length },
             { label: 'Win Rate', value: `${filtered.length ? (wins/filtered.length*100).toFixed(0) : 0}%` },
@@ -402,6 +434,34 @@ export default function History({ showToast }) {
               <span style={{ fontSize: '11px', color: 'var(--c-text-2)' }}>{s.label}</span>
             </div>
           ))}
+          <button
+            onClick={() => {
+              const headers = ['Date','Symbol','Direction','Session','Setup','Rating','Entry','Exit','Qty','P&L','Outcome','Accounts','Risk','Reward','Notes'];
+              const rows = filtered.map(t => [
+                t.date, t.symbol, t.direction, t.session||'', t.setup||'', t.rating||'',
+                t.entry||'', t.exit||'', t.qty||'', t.pnl?.toFixed(2)||'0', t.outcome||'',
+                t.accounts||1, t.risk||'', t.reward||'',
+                (t.notes||'').replace(/"/g, '""')
+              ]);
+              const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `tradeedge_export_${new Date().toISOString().slice(0,10)}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+              showToast('CSV exported');
+            }}
+            style={{
+              background: 'transparent', border: '1px solid var(--c-border)',
+              color: 'var(--c-text-2)', padding: '8px 14px', borderRadius: '10px',
+              fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              marginLeft: 'auto', whiteSpace: 'nowrap',
+            }}
+          >
+            ↓ Export CSV
+          </button>
         </div>
       )}
 

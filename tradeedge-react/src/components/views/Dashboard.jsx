@@ -2,6 +2,13 @@ import { useRef, useEffect, useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { filterPeriod, computeStats, fmt, getGreeting, getStreak, animateCount } from '../../lib/utils';
 
+// ── Session / Rating constants ──────────────────────────────────────────────
+const SESSION_COLORS = {
+  Sydney: '#85B7EB', Tokyo: '#A78BFA', London: '#5DCAA5',
+  'New York': '#E8724A', Premarket: '#EFC97A', 'After Hours': '#8B8882',
+};
+const RATING_COLORS = { A: '#5DCAA5', B: '#85B7EB', C: '#EFC97A', D: '#F09595' };
+
 // ── Monthly goal helpers ──────────────────────────────────────────────────────
 const GOAL_KEY = 'te_monthly_goal';
 function loadGoal() { return parseFloat(localStorage.getItem(GOAL_KEY) || '0') || 0; }
@@ -218,6 +225,53 @@ export default function Dashboard({ user, profile }) {
         </div>
       </div>
 
+      {/* ── ROW 2.5: Cumulative P&L curve ───────────────── */}
+      {(() => {
+        const sorted = [...trades].reverse();
+        if (sorted.length < 2) return null;
+        let cum = 0;
+        const pts = sorted.map(t => { cum += t.pnl; return cum; });
+        const min = Math.min(...pts, 0);
+        const max = Math.max(...pts, 0);
+        const range = max - min || 1;
+        const w = 460, h = 100, padY = 6;
+        const points = pts.map((v, i) => {
+          const x = (i / (pts.length - 1)) * w;
+          const y = (h - padY) - ((v - min) / range) * (h - padY * 2);
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        });
+        const fillPoints = `0,${h} ${points.join(' ')} ${w},${h}`;
+        const isUp = cum >= 0;
+        const stroke = isUp ? '#5DCAA5' : '#E24B4A';
+        const zeroY = (h - padY) - ((0 - min) / range) * (h - padY * 2);
+        return (
+          <div style={{
+            background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+            borderRadius: '16px', padding: '16px 18px', marginBottom: '10px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <div>
+                <p style={{ margin: '0 0 2px', fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--c-text-2)' }}>Account Curve</p>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--c-text-2)' }}>{trades.length} trades total</p>
+              </div>
+              <p style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: stroke, fontVariantNumeric: 'tabular-nums' }}>
+                {cum >= 0 ? '+' : ''}{fmt(cum)}
+              </p>
+            </div>
+            <svg width="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block', overflow: 'visible' }}>
+              {/* Zero line */}
+              <line x1="0" y1={zeroY} x2={w} y2={zeroY} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="4 4" />
+              {/* Fill */}
+              <polygon points={fillPoints} fill={isUp ? 'rgba(93,202,165,0.1)' : 'rgba(226,75,74,0.1)'} />
+              {/* Line */}
+              <polyline points={points.join(' ')} fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              {/* End dot */}
+              <circle cx={w} cy={parseFloat(points[points.length-1].split(',')[1])} r="3" fill={stroke} />
+            </svg>
+          </div>
+        );
+      })()}
+
       {/* ── ROW 3: Recent Trades ───────────────────────── */}
       <div style={{
         background: 'var(--c-surface)', border: '1px solid var(--c-border)',
@@ -282,6 +336,24 @@ export default function Dashboard({ user, profile }) {
                       )}
                       {t.setup && (
                         <span style={{ fontSize: '10px', color: 'var(--c-text-2)', fontStyle: 'italic' }}>{t.setup}</span>
+                      )}
+                      {t.session && (
+                        <span style={{
+                          fontSize: '9px', fontWeight: 700, padding: '2px 5px', borderRadius: '4px', letterSpacing: '0.5px',
+                          background: `${SESSION_COLORS[t.session] || '#8B8882'}22`,
+                          color: SESSION_COLORS[t.session] || '#8B8882',
+                        }}>
+                          ● {t.session}
+                        </span>
+                      )}
+                      {t.rating && (
+                        <span style={{
+                          fontSize: '9px', fontWeight: 700, padding: '2px 5px', borderRadius: '4px', letterSpacing: '0.5px',
+                          background: `${RATING_COLORS[t.rating]}22`,
+                          color: RATING_COLORS[t.rating],
+                        }}>
+                          {t.rating}
+                        </span>
                       )}
                     </div>
                     <p style={{ margin: 0, fontSize: '10px', color: 'var(--c-text-2)' }}>{t.date}</p>
