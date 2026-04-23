@@ -508,9 +508,13 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
       const resp = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
+        body: JSON.stringify({ model: 'claude-3-5-sonnet-20241022', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
       });
-      if (!resp.ok) { const err = await resp.json(); throw new Error(err.error?.message || resp.status); }
+      if (!resp.ok) {
+        let errMsg = `HTTP ${resp.status}`;
+        try { const err = await resp.json(); errMsg = err.error?.message || err.error || errMsg; } catch {}
+        throw new Error(errMsg);
+      }
       const data = await resp.json();
       setAiResult(data.content?.[0]?.text || '');
     } catch(e) {
