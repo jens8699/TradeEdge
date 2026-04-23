@@ -108,7 +108,7 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
         <div className="set-row">
           <label>Display name</label>
           <input type="text" className="jm-in" value={name} onChange={e => setName(e.target.value)} />
-          <p className="set-msg" style={{ color: nameMsg.startsWith('✓') ? '#5DCAA5' : '#F09595' }}>{nameMsg}</p>
+          <p className="set-msg" style={{ color: nameMsg.startsWith('✓') ? '#E07A3B' : '#F09595' }}>{nameMsg}</p>
         </div>
         <div className="set-row" style={{ marginBottom:0 }}>
           <label>Email</label>
@@ -127,7 +127,7 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
         <div className="set-row" style={{ marginBottom:0 }}>
           <label>Confirm password</label>
           <input type="password" className="jm-in" placeholder="Repeat password" value={passConfirm} onChange={e => setPassConfirm(e.target.value)} />
-          <p className="set-msg" style={{ color: passMsg.startsWith('✓') ? '#5DCAA5' : '#F09595' }}>{passMsg}</p>
+          <p className="set-msg" style={{ color: passMsg.startsWith('✓') ? '#E07A3B' : '#F09595' }}>{passMsg}</p>
         </div>
         <button className="jm-btn" style={{ marginTop:'14px' }} onClick={savePass}>Update password</button>
       </div>
@@ -142,7 +142,7 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
         <div className="set-row" style={{ marginBottom:0 }}>
           <label>API key (sk-ant-…)</label>
           <input type="password" className="jm-in" placeholder="sk-ant-api03-…" value={claudeKey} onChange={e => setClaudeKey(e.target.value)} />
-          <p className="set-msg" style={{ color: claudeMsg.startsWith('✓') ? '#5DCAA5' : '#F09595' }}>{claudeMsg}</p>
+          <p className="set-msg" style={{ color: claudeMsg.startsWith('✓') ? '#E07A3B' : '#F09595' }}>{claudeMsg}</p>
         </div>
         <button className="jm-btn" style={{ marginTop:'14px' }} onClick={saveClaudeKey}>Save Claude key</button>
       </div>
@@ -157,7 +157,7 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
         <div className="set-row" style={{ marginBottom:0 }}>
           <label>API key</label>
           <input type="password" className="jm-in" placeholder="Paste your ElevenLabs key…" value={elKey} onChange={e => setElKey(e.target.value)} />
-          <p className="set-msg" style={{ color: elMsg.startsWith('✓') ? '#5DCAA5' : '#F09595' }}>{elMsg}</p>
+          <p className="set-msg" style={{ color: elMsg.startsWith('✓') ? '#E07A3B' : '#F09595' }}>{elMsg}</p>
         </div>
         <button className="jm-btn" style={{ marginTop:'14px' }} onClick={saveElKey}>Save ElevenLabs key</button>
       </div>
@@ -168,7 +168,7 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
         <div className="set-row" style={{ marginBottom:0 }}>
           <label>Daily loss limit ($) — triggers a warning banner when reached</label>
           <input type="number" className="jm-in" placeholder="e.g. 200 (leave blank to disable)" step="0.01" value={dailyLimit} onChange={e => setDailyLimit(e.target.value)} />
-          <p className="set-msg" style={{ color: limitMsg.startsWith('✓') ? '#5DCAA5' : '#F09595' }}>{limitMsg}</p>
+          <p className="set-msg" style={{ color: limitMsg.startsWith('✓') ? '#E07A3B' : '#F09595' }}>{limitMsg}</p>
         </div>
         <button className="jm-btn" style={{ marginTop:'14px' }} onClick={saveDailyLimit}>Save limit</button>
       </div>
@@ -188,7 +188,7 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
             }
           </span>
           {isOnline && syncPending && (
-            <button onClick={doSync} style={{ background:'transparent', border:'0.5px solid #2A2720', color:'��8B8882', padding:'4px 12px', borderRadius:'8px', fontSize:'11px', cursor:'pointer', fontFamily:'inherit' }}>
+            <button onClick={doSync} style={{ background:'transparent', border:'0.5px solid #2A2720', color:'��8B8882', padding:'4px 12px', borderRadius:'8px', fontSize:'11px', cursor:'pointer', fontFamily:'inherit' }}>
               Sync now
             </button>
           )}
@@ -211,15 +211,15 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '14px 16px', borderRadius: '12px',
-            background: 'rgba(232,114,74,0.06)', border: '1px solid rgba(232,114,74,0.2)',
+            background: 'rgba(224,122,59,0.06)', border: '1px solid rgba(224,122,59,0.2)',
           }}>
             <div>
-              <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#E8724A' }}>⚡ TradeEdge Pro</p>
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#E07A3B' }}>⚡ TradeEdge Pro</p>
               <p style={{ margin: '3px 0 0', fontSize: '12px', color: 'var(--c-text-2)' }}>All features unlocked · Founding rate locked in</p>
             </div>
             <span style={{
-              fontSize: '11px', fontWeight: 700, color: '#5DCAA5',
-              background: 'rgba(93,202,165,0.1)', padding: '4px 10px', borderRadius: '100px',
+              fontSize: '11px', fontWeight: 700, color: '#E07A3B',
+              background: 'rgba(224,122,59,0.1)', padding: '4px 10px', borderRadius: '100px',
             }}>Active</span>
           </div>
         ) : (
@@ -240,7 +240,7 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
             <button
               onClick={onUpgrade}
               style={{
-                width: '100%', padding: '12px', background: '#E8724A',
+                width: '100%', padding: '12px', background: '#E07A3B',
                 color: '#fff', border: 'none', borderRadius: '10px',
                 fontSize: '13px', fontWeight: 700, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',

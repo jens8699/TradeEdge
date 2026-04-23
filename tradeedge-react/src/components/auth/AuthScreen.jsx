@@ -3,9 +3,8 @@ import { sb } from '../../lib/supabase';
 
 function LogoMark() {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'36px', justifyContent:'center' }}>
-      <div className="tp-auth-logo-mark">TE</div>
-      <span className="tp-auth-logo-name">TradeEdge</span>
+    <div style={{ marginBottom:'36px', textAlign:'center' }}>
+      <span className="te-logo" style={{ fontSize:'28px' }}>tradeedge<span className="te-logo-dot" /></span>
     </div>
   );
 }
@@ -89,7 +88,7 @@ function RegisterPanel({ onSwitch }) {
       <button className="tp-auth-btn" disabled={busy} onClick={submit}>
         {busy ? 'Creating account…' : (msg.ok ? 'Check your email ✓' : 'Create free account')}
       </button>
-      <p className="tp-auth-err" style={msg.ok ? { color: '#5DCAA5' } : {}}>{msg.text}</p>
+      <p className="tp-auth-err" style={msg.ok ? { color: '#E07A3B' } : {}}>{msg.text}</p>
       <div className="tp-plans">
         <div className="tp-plan">
           <div className="tp-plan-label">Free trial</div>
@@ -133,7 +132,7 @@ function ResetPanel({ onSwitch }) {
       <button className="tp-auth-btn" disabled={busy} onClick={submit}>
         {busy ? 'Sending…' : 'Send reset link'}
       </button>
-      <p className="tp-auth-err" style={msg.ok ? { color:'#5DCAA5' } : {}}>{msg.text}</p>
+      <p className="tp-auth-err" style={msg.ok ? { color:'#E07A3B' } : {}}>{msg.text}</p>
       <div className="tp-auth-switch" style={{ marginTop:'16px' }}>
         <button onClick={() => onSwitch('login')}>← Back to sign in</button>
       </div>
@@ -169,7 +168,7 @@ function NewPassPanel() {
       <button className="tp-auth-btn" disabled={busy} onClick={submit}>
         {busy ? 'Updating…' : 'Update password'}
       </button>
-      <p className="tp-auth-err" style={msg.ok ? { color:'#5DCAA5' } : {}}>{msg.text}</p>
+      <p className="tp-auth-err" style={msg.ok ? { color:'#E07A3B' } : {}}>{msg.text}</p>
     </div>
   );
 }

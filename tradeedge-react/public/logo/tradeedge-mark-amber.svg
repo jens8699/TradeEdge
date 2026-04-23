@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&amp;display=swap');
+      .mono { font-family: 'Fraunces', 'Lora', Georgia, serif; font-weight: 500; font-size: 340px; letter-spacing: -0.04em; fill: #1C1613; }
+      .dot { fill: #1C1613; }
+    </style>
+  </defs>
+  <rect width="512" height="512" rx="96" ry="96" fill="#E07A3B"/>
+  <text x="68" y="356" class="mono">te</text>
+  <circle cx="402" cy="340" r="26" class="dot"/>
+</svg>

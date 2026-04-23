@@ -35,10 +35,10 @@ const SESSIONS = [
 ];
 
 const SESSION_COLORS = {
-  sydney:  '#85B7EB',
-  tokyo:   '#A78BFA',
-  london:  '#5DCAA5',
-  newyork: '#E8724A',
+  sydney:  '#A89687',
+  tokyo:   '#C4A882',
+  london:  '#E07A3B',
+  newyork: '#F0904E',
 };
 
 function isActive(s) {
@@ -78,8 +78,8 @@ function SessionChip() {
       margin: '10px 0 4px',
       padding: '8px 10px',
       borderRadius: '10px',
-      background: hasActive ? 'rgba(93,202,165,0.08)' : 'rgba(107,103,96,0.08)',
-      border: `1px solid ${hasActive ? 'rgba(93,202,165,0.2)' : 'rgba(107,103,96,0.18)'}`,
+      background: hasActive ? 'rgba(224,122,59,0.08)' : 'rgba(107,103,96,0.08)',
+      border: `1px solid ${hasActive ? 'rgba(224,122,59,0.2)' : 'rgba(107,103,96,0.18)'}`,
       fontSize: '11px',
       transition: 'all 0.3s',
     }}>
@@ -125,12 +125,9 @@ export default function Sidebar({ user, profile, onUpgrade }) {
   return (
     <aside className="jm-side">
       <div className="jm-brand">
-        <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px' }}>
-          <div className="tp-logo-mark">TE</div>
-          <div>
-            <p className="jm-brand-name">TradeEdge</p>
-            <p className="jm-brand-sub">Trading Journal</p>
-          </div>
+        <div style={{ marginBottom:'12px' }}>
+          <span className="te-logo">tradeedge<span className="te-logo-dot" /></span>
+          <p className="jm-brand-sub" style={{ margin:'3px 0 0', paddingLeft:'2px' }}>Trading Journal</p>
         </div>
         {plan === 'pro' ? (
           <div className="tp-plan-badge tp-badge-pro">⚡ Pro</div>
@@ -139,13 +136,13 @@ export default function Sidebar({ user, profile, onUpgrade }) {
             onClick={onUpgrade}
             style={{
               display: 'flex', alignItems: 'center', gap: '5px',
-              background: 'rgba(232,114,74,0.1)', border: '1px solid rgba(232,114,74,0.3)',
+              background: 'rgba(224,122,59,0.1)', border: '1px solid rgba(224,122,59,0.3)',
               borderRadius: '8px', padding: '5px 10px', cursor: 'pointer',
-              fontSize: '11px', fontWeight: 700, color: '#E8724A',
+              fontSize: '11px', fontWeight: 700, color: '#E07A3B',
               marginBottom: '8px', transition: 'all 0.15s',
             }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,114,74,0.18)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(232,114,74,0.1)'}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(224,122,59,0.18)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(224,122,59,0.1)'}
           >
             ⚡ Go Pro
           </button>

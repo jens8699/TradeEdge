@@ -20,7 +20,7 @@ const SETUPS = ['', 'Breakout', 'Pullback', 'Reversal', 'Range', 'Trend continua
 const SESSION_LIST = ['', 'Sydney', 'Tokyo', 'London', 'New York', 'Premarket', 'After Hours'];
 const RATINGS = ['A', 'B', 'C', 'D'];
 const RATING_LABELS = { A: 'Perfect execution', B: 'Good trade', C: 'Average', D: 'Poor execution' };
-const RATING_COLORS = { A: '#5DCAA5', B: '#85B7EB', C: '#EFC97A', D: '#F09595' };
+const RATING_COLORS = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#F09595' };
 
 export default function TradeEntry({ showToast }) {
   const { userId, trades, addTrade } = useApp();
@@ -205,7 +205,7 @@ export default function TradeEntry({ showToast }) {
           risk <strong>${preview.totalRisk.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> ·
           target <strong>${preview.totalReward.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> ·
           R:R <strong>{preview.rr}</strong> ·
-          <span style={{ color: preview.expectedPnl > 0 ? '#5DCAA5' : preview.expectedPnl < 0 ? '#E24B4A' : 'var(--c-text-2)', fontWeight: 700 }}>
+          <span style={{ color: preview.expectedPnl > 0 ? '#E07A3B' : preview.expectedPnl < 0 ? '#E24B4A' : 'var(--c-text-2)', fontWeight: 700 }}>
             {' '}P&L will save as <strong>{preview.expectedPnl >= 0 ? '+' : ''}{preview.expectedPnl.toLocaleString(undefined,{style:'currency',currency:'USD'})}</strong>
           </span>
         </div>
@@ -325,7 +325,7 @@ export default function TradeEntry({ showToast }) {
           <label>Screenshot (optional)</label>
           <div
             className="jm-drop"
-            style={isDragOver ? { borderColor:'#E8724A', background:'rgba(232,114,74,0.05)' } : {}}
+            style={isDragOver ? { borderColor:'#E07A3B', background:'rgba(224,122,59,0.05)' } : {}}
             onClick={() => fileRef.current?.click()}
             onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
             onDragLeave={() => setIsDragOver(false)}

@@ -28,7 +28,7 @@ const PLATFORMS = [
     id: 'tradestation',
     name: 'TradeStation',
     logo: '◇',
-    color: '#E8724A',
+    color: '#E07A3B',
     description: 'Stocks, options & futures broker',
     status: 'coming_soon',
     tags: ['Stocks', 'Options', 'Futures'],
@@ -424,10 +424,10 @@ function TradovateModal({ onClose, onConnected, existingAccount }) {
                   style={{
                     ...styles.accountRow,
                     border: selectedAccountId === acc.id
-                      ? '1.5px solid #E8724A'
+                      ? '1.5px solid #E07A3B'
                       : '1px solid var(--c-border)',
                     background: selectedAccountId === acc.id
-                      ? 'rgba(232,114,74,0.06)'
+                      ? 'rgba(224,122,59,0.06)'
                       : 'var(--c-bg)',
                   }}
                 >
@@ -493,9 +493,9 @@ function TradovateModal({ onClose, onConnected, existingAccount }) {
                 borderRadius: '8px',
                 marginBottom: '12px',
                 fontSize: '13px',
-                background: syncResult.error ? 'rgba(239,68,68,0.08)' : 'rgba(93,202,165,0.08)',
-                color: syncResult.error ? '#EF4444' : '#5DCAA5',
-                border: `1px solid ${syncResult.error ? 'rgba(239,68,68,0.2)' : 'rgba(93,202,165,0.2)'}`,
+                background: syncResult.error ? 'rgba(239,68,68,0.08)' : 'rgba(224,122,59,0.08)',
+                color: syncResult.error ? '#EF4444' : '#E07A3B',
+                border: `1px solid ${syncResult.error ? 'rgba(239,68,68,0.2)' : 'rgba(224,122,59,0.2)'}`,
               }}>
                 {syncResult.message}
               </div>
@@ -750,10 +750,10 @@ function TradovateCSSVModal({ onClose, onImported }) {
 
               {preview && (
                 <div style={{
-                  background: 'rgba(93,202,165,0.06)', border: '1px solid rgba(93,202,165,0.2)',
+                  background: 'rgba(224,122,59,0.06)', border: '1px solid rgba(224,122,59,0.2)',
                   borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
                 }}>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#5DCAA5', fontWeight: 600 }}>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#E07A3B', fontWeight: 600 }}>
                     ✓ {preview.trades.length} trade{preview.trades.length !== 1 ? 's' : ''} ready to import
                   </p>
                   {preview.skipped.length > 0 && (
@@ -856,7 +856,7 @@ function MT5GuideModal({ onClose }) {
               <div key={s.n} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                 <div style={{
                   width: '26px', height: '26px', borderRadius: '50%', flexShrink: 0,
-                  background: 'rgba(232,114,74,0.12)', color: '#E8724A',
+                  background: 'rgba(224,122,59,0.12)', color: '#E07A3B',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '12px', fontWeight: 700, marginTop: '1px',
                 }}>
@@ -871,10 +871,10 @@ function MT5GuideModal({ onClose }) {
           </div>
 
           <div style={{
-            background: 'rgba(232,114,74,0.06)', border: '1px solid rgba(232,114,74,0.2)',
+            background: 'rgba(224,122,59,0.06)', border: '1px solid rgba(224,122,59,0.2)',
             borderRadius: '10px', padding: '12px 14px',
           }}>
-            <p style={{ margin: 0, fontSize: '12px', color: '#E8724A', fontWeight: 600 }}>
+            <p style={{ margin: 0, fontSize: '12px', color: '#E07A3B', fontWeight: 600 }}>
               Coming soon
             </p>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--c-text-2)' }}>
@@ -1057,7 +1057,7 @@ export default function Connections({ user, showToast }) {
                 {isConnected && (
                   <div style={{
                     width: '8px', height: '8px', borderRadius: '50%',
-                    background: '#5DCAA5', flexShrink: 0, marginTop: '4px',
+                    background: '#E07A3B', flexShrink: 0, marginTop: '4px',
                   }} title="Connected" />
                 )}
               </div>
@@ -1075,7 +1075,7 @@ export default function Connections({ user, showToast }) {
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                     <span style={{ fontSize: '12px', color: 'var(--c-text)', fontWeight: 500 }}>{connected.account_name}</span>
-                    <span style={{ fontSize: '11px', color: '#5DCAA5' }}>{connected.is_demo ? 'Demo' : 'Live'}</span>
+                    <span style={{ fontSize: '11px', color: '#E07A3B' }}>{connected.is_demo ? 'Demo' : 'Live'}</span>
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--c-text-2)' }}>
                     {connected.trade_count || 0} trades synced
@@ -1093,7 +1093,7 @@ export default function Connections({ user, showToast }) {
                     onClick={() => setActiveModal(platform.id)}
                     style={{
                       ...styles.cardBtn,
-                      background: isConnected ? 'transparent' : '#E8724A',
+                      background: isConnected ? 'transparent' : '#E07A3B',
                       color: isConnected ? 'var(--c-text)' : '#fff',
                       border: isConnected ? '1px solid var(--c-border)' : 'none',
                     }}
@@ -1235,7 +1235,7 @@ const styles = {
     boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
   },
   primaryBtn: {
-    width: '100%', padding: '11px', background: '#E8724A',
+    width: '100%', padding: '11px', background: '#E07A3B',
     color: '#fff', border: 'none', borderRadius: '10px',
     fontSize: '13px', fontWeight: 600, cursor: 'pointer',
   },
@@ -1252,7 +1252,7 @@ const styles = {
   },
   successBadge: {
     display: 'inline-block', padding: '5px 12px', borderRadius: '100px',
-    background: 'rgba(93,202,165,0.12)', color: '#5DCAA5',
+    background: 'rgba(224,122,59,0.12)', color: '#E07A3B',
     fontSize: '12px', fontWeight: 600, marginBottom: '12px',
   },
   syncInfo: {

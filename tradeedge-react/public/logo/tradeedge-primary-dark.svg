@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 240" width="800" height="240">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&amp;display=swap');
+      .wordmark { font-family: 'Fraunces', 'Lora', Georgia, serif; font-weight: 400; font-size: 140px; letter-spacing: -0.03em; fill: #F0E6D8; }
+      .dot { fill: #E07A3B; }
+    </style>
+  </defs>
+  <rect width="800" height="240" fill="#1C1613"/>
+  <text x="60" y="165" class="wordmark">tradeedge</text>
+  <circle cx="718" cy="158" r="14" class="dot"/>
+</svg>
