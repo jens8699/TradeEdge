@@ -204,7 +204,7 @@ export default function Stats() {
         </div>
 
         {/* Streak card */}
-        <div className="jm-card stats-streak-card" style={{ display:'grid', gridTemplateColumns:'~fr 1fr 1fr', gap:'12px', marginBottom:'10px', padding:'16px 20px' }}>
+        <div className="jm-card stats-streak-card" style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px', marginBottom:'10px', padding:'16px 20px' }}>
           <StreakCol
             label="Current streak"
             value={streak.current}

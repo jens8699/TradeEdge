@@ -673,7 +673,7 @@ function TradovateCSSVModal({ onClose, onImported }) {
       try {
         const result = parseTradovateCSSV(ev.target.result);
         setPreview(result);
-      } catcherr) {
+      } catch(err) {
         setError(err.message || 'Could not parse CSV.');
       }
     };
