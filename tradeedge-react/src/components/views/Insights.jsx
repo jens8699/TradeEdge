@@ -663,8 +663,6 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
                 {aiLoading ? '\u25CC Analysing\u2026' : '\u25C7 Analyse Now'}
               </button>
             </div>
-            {false && (
-            )}
             {aiResult && (
               <div className="jm-insight-result" dangerouslySetInnerHTML={{ __html: aiResult }} />
             )}
