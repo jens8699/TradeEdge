@@ -245,16 +245,16 @@ export default function Stats() {
         )}
 
         {/* Charts row */}
-        <div className="stats-charts-row" style={{ display:'grid', gridTemplateColumns:'~fr 1fr', gap:'10px', marginBottom:'~dpx' }}>
+        <div className="stats-charts-row" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'12px' }}>
           <div className="jm-card">
-            <h2 className="jm-card-title" style={{ marginBottom:'~dpx' }}>Cumulative P/L</h2>
-            <div style={{ position:'relative', height:'~dpx' }}>
+            <h2 className="jm-card-title" style={{ marginBottom:'12px' }}>Cumulative P/L</h2>
+            <div style={{ position:'relative', height:'180px' }}>
               <canvas ref={chartRef} />
             </div>
           </div>
           <div className="jm-card">
             <h2 className="jm-card-title" style={{ marginBottom:'12px' }}>Win / Loss Split</h2>
-            <div style={{ position:'relative', height:'~dpx' }}>
+            <div style={{ position:'relative', height:'180px' }}>
               <canvas ref={wlRef} />
             </div>
           </div>
@@ -262,8 +262,8 @@ export default function Stats() {
 
         {/* Day of week chart */}
         {dowStats.length > 1 && (
-          <div className="jm-card" style={{ marginBottom:'~dpx' }}>
-            <h2 className="jm-card-title" style={{ marginBottom:'~dpx' }}>P/L by Day of Week</h2>
+          <div className="jm-card" style={{ marginBottom:'12px' }}>
+            <h2 className="jm-card-title" style={{ marginBottom:'12px' }}>P/L by Day of Week</h2>
             <div style={{ position:'relative', height:'180px' }}>
               <canvas ref={dowRef} />
             </div>
@@ -289,41 +289,23 @@ export default function Stats() {
                 {topWins.map((t, i) => (
                   <div key={t.id || i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 0', borderBottom: i < topWins.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none' }}>
                     <div>
-                      <span style={{ fontSize:'~dpx', fontWeight:700, color:'#E8E6E1' }}>{t.symbol}</span>
+                      <span style={{ fontSize:'13px', fontWeight:700, color:'#E8E6E1' }}>{t.symbol}</span>
                       <span style={{ fontSize:'11px', color:'#8B8882', marginLeft:'8px' }}>{t.date}</span>
                       {t.setup && <span style={{ fontSize:'10px', color:'#6B6760', marginLeft:'6px' }}>{t.setup}</span>}
                     </div>
-                    <span style={{ fontSize:'~dpx', fontWeight:700, color:'#5DCAA5' }}>{fmt(t.pnl)}</span>
+                    <span style={{ fontSize:'13px', fontWeight:700, color:'#5DCAA5' }}>{fmt(t.pnl)}</span>
                   </div>
                 ))}
               </div>
             )}
             {topLosses.length > 0 && (
               <div className="jm-card">
-                <h2 className="jm-card-title" style={{ marginBottom:'~dpx', color:'#F09595' }}>📚 Biggest Lessons</h2>
+                <h2 className="jm-card-title" style={{ marginBottom:'12px', color:'#F09595' }}>📚 Biggest Lessons</h2>
                 {topLosses.map((t, i) => (
                   <div key={t.id || i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 0', borderBottom: i < topLosses.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none' }}>
                     <div>
-                      <span style={{ fontSize:'~dpx', fontWeight:700, color:'#E8E6E1' }}>{t.symbol}</span>
+                      <span style={{ fontSize:'13px', fontWeight:700, color:'#E8E6E1' }}>{t.symbol}</span>
                       <span style={{ fontSize:'11px', color:'#8B8882', marginLeft:'8px' }}>{t.date}</span>
-                      {t.setup && <span style={{ fontSize:'10px', color:'#6B6760', marginLeft:'6px' }}>{t.setup}</span>}
-                    </div>
-                    <span style={{ fontSize:'~dpx', fontWeight:700, color:'#F09595' }}>{fmt(t.pnl)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Session breakdown */}
-        <SessionBreakdown trades={list} />
-
-        {/* Rating breakdown */}
-        <RatingBreakdown trades={list} />
-
-        {/* Day of week chart */}
-olor:'#8B8882', marginLeft:'8px' }}>{t.date}</span>
                       {t.setup && <span style={{ fontSize:'10px', color:'#6B6760', marginLeft:'6px' }}>{t.setup}</span>}
                     </div>
                     <span style={{ fontSize:'13px', fontWeight:700, color:'#F09595' }}>{fmt(t.pnl)}</span>
@@ -333,6 +315,7 @@ olor:'#8B8882', marginLeft:'8px' }}>{t.date}</span>
             )}
           </div>
         )}
+
 
         {/* ── Monthly P&L bar chart ─────────────────────────────────────── */}
         <MonthlyBars trades={list} />
