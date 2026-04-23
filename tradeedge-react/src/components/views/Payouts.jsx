@@ -149,7 +149,7 @@ export default function Payouts({ showToast }) {
 
       {challenges.length === 0 && (
         <div className="jm-empty" style={{ marginBottom: '20px' }}>
-          <div className="jm-empty-icon">◎</div>
+          <div className="jm-empty-icon">🏆</div>
           No challenges yet. Add your first prop firm challenge above.
         </div>
       )}

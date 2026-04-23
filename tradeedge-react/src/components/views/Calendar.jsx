@@ -72,7 +72,7 @@ export default function Calendar() {
 
   function tileStyle(cell) {
     if (!cell || !cell.count) return {};
-    const intensity = Math.min(0.9, 0.2 + (Math.abs(cell.pnl) / maxAbs) * 0.7);
+    const intensity = Math.min(0.9, 0.45 + (Math.abs(cell.pnl) / maxAbs) * 0.45);
     if (cell.pnl > 0) return { background: `rgba(224,122,59,${intensity})`, borderColor: `rgba(224,122,59,${intensity + 0.1})` };
     if (cell.pnl < 0) return { background: `rgba(226,75,74,${intensity})`, borderColor: `rgba(226,75,74,${intensity + 0.1})` };
     return { background: 'rgba(139,136,130,0.15)', borderColor: 'rgba(139,136,130,0.2)' };

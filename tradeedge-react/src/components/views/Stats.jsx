@@ -351,7 +351,7 @@ function MetricRing({ label, value, pct, color, foot }) {
             strokeDasharray={`${dash} ${circ}`} strokeLinecap="butt"
             transform="rotate(-90 34 34)" style={{ transition:'stroke-dasharray 0.6s ease' }} />
         </svg>
-        <p style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', margin:0, fontSize:'16px', fontWeight:800, color, letterSpacing:'-0.5px' }}>{value}</p>
+        <p style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', margin:0, fontSize: value.length > 5 ? '11px' : value.length > 3 ? '13px' : '16px', fontWeight:800, color, letterSpacing:'-0.5px' }}>{value}</p>
       </div>
       <p style={{ fontSize:'11px', color:'#8B8882', margin:0, textTransform:'uppercase', letterSpacing:'0.5px' }}>{label}</p>
       {foot && <p style={{ fontSize:'11px', color:'#6B6760', textAlign:'center', lineHeight:1.4, margin:0 }}>{foot}</p>}
