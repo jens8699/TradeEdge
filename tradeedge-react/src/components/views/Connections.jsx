@@ -1045,7 +1045,7 @@ export default function Connections({ user, showToast }) {
                       {platform.tags.map(t => (
                         <span key={t} style={{
                           fontSize: '10px', padding: '1px 7px', borderRadius: '100px',
-                          background: 'var(--c-bg)', color: 'var(--c-text-2)',
+                          background: 'rgba(255,255,255,0.06)', color: 'var(--c-text-muted)',
                           border: '1px solid var(--c-border)',
                         }}>{t}</span>
                       ))}
@@ -1120,10 +1120,10 @@ export default function Connections({ user, showToast }) {
 
               {platform.status === 'coming_soon' && (
                 <div style={{
-                  fontSize: '12px', color: 'var(--c-text-2)', textAlign: 'center',
+                  fontSize: '12px', color: 'var(--c-text-muted)', textAlign: 'center',
                   padding: '8px', borderRadius: '8px',
                   border: '1px dashed var(--c-border)',
-                  background: 'var(--c-bg)',
+                  background: 'rgba(255,255,255,0.04)',
                 }}>
                   Coming soon
                 </div>
