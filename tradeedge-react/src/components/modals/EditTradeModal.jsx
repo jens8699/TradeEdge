@@ -6,6 +6,16 @@ const SESSION_LIST = ['', 'Sydney', 'Tokyo', 'London', 'New York', 'Premarket', 
 const RATINGS = ['A', 'B', 'C', 'D'];
 const RATING_LABELS = { A: 'Perfect execution', B: 'Good trade', C: 'Average', D: 'Poor execution' };
 const RATING_COLORS = { A: '#5DCAA5', B: '#85B7EB', C: '#EFC97A', D: '#F09595' };
+const EMOTIONS = [
+  { key: 'calm',          label: 'Calm',          icon: '😌', color: '#5DCAA5' },
+  { key: 'confident',     label: 'Confident',     icon: '💪', color: '#85B7EB' },
+  { key: 'fomo',          label: 'FOMO',           icon: '😰', color: '#EFC97A' },
+  { key: 'anxious',       label: 'Anxious',        icon: '😬', color: '#EFC97A' },
+  { key: 'revenge',       label: 'Revenge',        icon: '😤', color: '#F09595' },
+  { key: 'overconfident', label: 'Overconfident',  icon: '🤑', color: '#F09595' },
+  { key: 'bored',         label: 'Bored',          icon: '😑', color: '#8B8882' },
+  { key: 'focused',       label: 'Focused',        icon: '🎯', color: '#5DCAA5' },
+];
 
 export default function EditTradeModal({ trade, onClose, showToast }) {
   const { updateTrade } = useApp();
@@ -25,6 +35,7 @@ export default function EditTradeModal({ trade, onClose, showToast }) {
     qty:       trade.qty   || '',
     session:   trade.session || '',
     rating:    trade.rating  || '',
+    emotion:   trade.emotion || '',
   });
   const [saving, setSaving] = useState(false);
   const [err,    setErr]    = useState('');
@@ -70,6 +81,7 @@ export default function EditTradeModal({ trade, onClose, showToast }) {
       qty:     form.qty     ? parseInt(form.qty)      : null,
       session: form.session || null,
       rating:  form.rating  || null,
+      emotion: form.emotion || null,
     };
     setSaving(true);
     const result = await updateTrade(updated);
@@ -198,6 +210,30 @@ export default function EditTradeModal({ trade, onClose, showToast }) {
                   {RATING_LABELS[form.rating]}
                 </span>
               )}
+            </div>
+          </div>
+
+          {/* ── Emotion ── */}
+          <div className="jm-field" style={{ marginBottom:'14px' }}>
+            <label>Mindset / emotion</label>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:'6px', marginTop:'6px' }}>
+              {EMOTIONS.map(e => {
+                const active = form.emotion === e.key;
+                return (
+                  <button key={e.key} onClick={() => set('emotion', active ? '' : e.key)} style={{
+                    display:'flex', alignItems:'center', gap:'5px',
+                    padding:'5px 10px', borderRadius:'20px', fontSize:'11px', fontWeight:600,
+                    border: active ? 'none' : '0.5px solid rgba(255,255,255,0.1)',
+                    background: active ? `${e.color}22` : 'rgba(255,255,255,0.04)',
+                    color: active ? e.color : '#6B6760',
+                    cursor:'pointer', transition:'all 0.15s',
+                    outline: active ? `1px solid ${e.color}55` : 'none',
+                  }}>
+                    <span style={{ fontSize:'13px' }}>{e.icon}</span>
+                    {e.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

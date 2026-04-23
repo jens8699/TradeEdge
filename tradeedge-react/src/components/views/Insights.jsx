@@ -1,3 +1,4 @@
+// AI Insights — pattern engine, emotion tracking, coaching advice
 import { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { computeStats, filterPeriod, fmt } from '../../lib/utils';
@@ -30,7 +31,7 @@ function computePatterns(trades) {
       value: fmt(best[1].pnl / best[1].count), label: 'avg/trade',
     });
     if (worst[1].pnl < 0 && parseInt(worst[0]) !== parseInt(best[0])) patterns.push({
-      type: 'warning', icon: '⚠️',
+      type: 'warning', icon: '\u26A0\uFE0F',
       title: `${dayNames[worst[0]]}s are hurting you`,
       body: `You lose an average of ${fmt(Math.abs(worst[1].pnl / worst[1].count))} per trade on ${dayNames[worst[0]]}s. Consider reducing size or skipping ${dayNames[worst[0]]}s entirely.`,
       value: fmt(worst[1].pnl / worst[1].count), label: 'avg/trade',
@@ -78,7 +79,7 @@ function computePatterns(trades) {
       value: `${rr.toFixed(1)}:1`, label: 'R:R',
     });
     if (rr < 1) patterns.push({
-      type: 'warning', icon: '⚖️',
+      type: 'warning', icon: '\u2696\uFE0F',
       title: 'Losses are bigger than wins',
       body: `Your average loss (${fmt(avgLoss)}) is larger than your average win (${fmt(avgWin)}). You need a win rate above ${(avgLoss/(avgWin+avgLoss)*100).toFixed(0)}% just to break even. Cut losses sooner.`,
       value: `${rr.toFixed(2)}:1`, label: 'R:R',
@@ -148,7 +149,7 @@ function computePatterns(trades) {
       const better = longWR > shortWR ? 'Long' : 'Short';
       const betterWR = Math.max(longWR, shortWR);
       patterns.push({
-        type: 'info', icon: '↕️',
+        type: 'info', icon: '\u2195\uFE0F',
         title: `You trade ${better}s significantly better`,
         body: `Your ${better} trades have a ${(betterWR*100).toFixed(0)}% win rate vs ${((Math.min(longWR,shortWR))*100).toFixed(0)}% for ${better === 'Long' ? 'Short' : 'Long'}s. Consider focusing on your stronger direction.`,
         value: `${(betterWR*100).toFixed(0)}%`, label: `${better} WR`,
@@ -183,6 +184,79 @@ function computePatterns(trades) {
     });
   }
 
+  // ── Emotion / mindset patterns ──
+  const EMOTION_LABELS = { calm: 'Calm', confident: 'Confident', fomo: 'FOMO', anxious: 'Anxious', revenge: 'Revenge', overconfident: 'Overconfident', bored: 'Bored', focused: 'Focused' };
+  const byEmotion = {};
+  trades.forEach(t => {
+    if (!t.emotion) return;
+    if (!byEmotion[t.emotion]) byEmotion[t.emotion] = { pnl: 0, count: 0, wins: 0 };
+    byEmotion[t.emotion].pnl += t.pnl;
+    byEmotion[t.emotion].count++;
+    if (t.pnl > 0) byEmotion[t.emotion].wins++;
+  });
+  const emotionEntries = Object.entries(byEmotion).filter(([,v]) => v.count >= 2);
+  if (emotionEntries.length >= 2) {
+    const bestEmo  = emotionEntries.reduce((a,b) => (a[1].wins/a[1].count) > (b[1].wins/b[1].count) ? a : b);
+    const worstEmo = emotionEntries.reduce((a,b) => (a[1].wins/a[1].count) < (b[1].wins/b[1].count) ? a : b);
+    const bestLabel  = EMOTION_LABELS[bestEmo[0]]  || bestEmo[0];
+    const worstLabel = EMOTION_LABELS[worstEmo[0]] || worstEmo[0];
+    if (bestEmo[1].pnl > 0) patterns.push({
+      type: 'strength', icon: '\uD83E\uDDD8',
+      title: `You trade best when ${bestLabel}`,
+      body: `Your "${bestLabel}" trades have a ${(bestEmo[1].wins/bestEmo[1].count*100).toFixed(0)}% win rate and ${fmt(bestEmo[1].pnl)} total P&L across ${bestEmo[1].count} trades. This emotional state is your edge — find ways to replicate it consistently.`,
+      value: `${(bestEmo[1].wins/bestEmo[1].count*100).toFixed(0)}%`, label: `${bestLabel} WR`,
+    });
+    if (worstEmo[0] !== bestEmo[0] && worstEmo[1].wins/worstEmo[1].count < 0.45) patterns.push({
+      type: 'warning', icon: '\u26A0\uFE0F',
+      title: `${worstLabel} state hurts your trading`,
+      body: `When feeling "${worstLabel}", your win rate drops to ${(worstEmo[1].wins/worstEmo[1].count*100).toFixed(0)}% with ${fmt(worstEmo[1].pnl)} total across ${worstEmo[1].count} trades. Step away from the screen in this state.`,
+      value: `${(worstEmo[1].wins/worstEmo[1].count*100).toFixed(0)}%`, label: `${worstLabel} WR`,
+    });
+  }
+  // Revenge trades specifically
+  const revengeTrades = trades.filter(t => t.emotion === 'revenge');
+  if (revengeTrades.length >= 2) {
+    const revengeWins = revengeTrades.filter(t => t.pnl > 0).length;
+    const revengePnl  = revengeTrades.reduce((s,t) => s + t.pnl, 0);
+    patterns.push({
+      type: 'warning', icon: '\uD83D\uDE24',
+      title: `${revengeTrades.length} revenge trades logged — ${(revengeWins/revengeTrades.length*100).toFixed(0)}% WR`,
+      body: `Your revenge trades show a ${(revengeWins/revengeTrades.length*100).toFixed(0)}% win rate and ${fmt(revengePnl)} total P&L. Set a rule: mandatory 30-minute break after any losing trade before re-entering.`,
+      value: fmt(revengePnl), label: 'revenge P&L',
+    });
+  }
+
+  // ── Bounce-back pattern (day after a loss) ──
+  const sortedDates = [...new Set(trades.map(t => t.date))].sort();
+  if (sortedDates.length >= 6) {
+    const dayPnl = {};
+    trades.forEach(t => { dayPnl[t.date] = (dayPnl[t.date] || 0) + t.pnl; });
+    let afterLossWins = 0, afterLossTotal = 0;
+    for (let i = 1; i < sortedDates.length; i++) {
+      if (dayPnl[sortedDates[i-1]] < 0) {
+        const nextDayTrades = trades.filter(t => t.date === sortedDates[i]);
+        afterLossTotal += nextDayTrades.length;
+        afterLossWins  += nextDayTrades.filter(t => t.pnl > 0).length;
+      }
+    }
+    if (afterLossTotal >= 5) {
+      const afterLossWR = afterLossWins / afterLossTotal;
+      const overallWR   = trades.filter(t => t.pnl > 0).length / trades.length;
+      if (afterLossWR < overallWR - 0.1) patterns.push({
+        type: 'warning', icon: '\uD83D\uDCC9',
+        title: 'Performance drops the day after a loss',
+        body: `After losing days, your win rate falls to ${(afterLossWR*100).toFixed(0)}% vs your overall ${(overallWR*100).toFixed(0)}%. Stick strictly to your plan the morning after a red day — no revenge sizing.`,
+        value: `${(afterLossWR*100).toFixed(0)}%`, label: 'post-loss WR',
+      });
+      if (afterLossWR > overallWR + 0.1) patterns.push({
+        type: 'strength', icon: '\uD83D\uDCAA',
+        title: 'You bounce back well after losing days',
+        body: `After losing days, your win rate rises to ${(afterLossWR*100).toFixed(0)}% vs your overall ${(overallWR*100).toFixed(0)}%. You show strong mental resilience — keep using this as confidence after tough sessions.`,
+        value: `${(afterLossWR*100).toFixed(0)}%`, label: 'post-loss WR',
+      });
+    }
+  }
+
   // ── Rating analysis ──
   const byRating = {};
   trades.forEach(t => {
@@ -199,7 +273,7 @@ function computePatterns(trades) {
       const aWR = (aR.wins / aR.count * 100).toFixed(0);
       const dWR = (dR.wins / dR.count * 100).toFixed(0);
       patterns.push({
-        type: 'info', icon: '⭐',
+        type: 'info', icon: '\u2B50',
         title: `A-trades: ${aWR}% WR vs D-trades: ${dWR}% WR`,
         body: `Your best-execution (A) trades win ${aWR}% of the time averaging ${fmt(aR.pnl / aR.count)}. Poor execution (D) trades win only ${dWR}% averaging ${fmt(dR.pnl / dR.count)}. Discipline directly impacts results.`,
         value: aWR + '%', label: 'A-trade WR',
@@ -285,7 +359,7 @@ function PatternCard({ pattern }) {
   };
   const c = colors[pattern.type] || colors.info;
   return (
-    <div style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: '14px', padding: '14px 16px' }}>
+    <div style={{ background: c.bg, border: `0.5px solid ${c.border}`, borderRadius: '14px', padding: '14px 16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '16px' }}>{pattern.icon}</span>
@@ -318,8 +392,6 @@ function StatBar({ label, value, max, color, fmt: fmtFn }) {
 
 // ── Main View ─────────────────────────────────────────────────────────────────
 
-function getClaudeKey() { return localStorage.getItem('jens_claude_key') || ''; }
-
 export default function Insights({ showToast }) {
   const { trades } = useApp();
   const [period, setPeriod]   = useState('all');
@@ -331,7 +403,6 @@ export default function Insights({ showToast }) {
   const s       = computeStats(list);
   const score   = useMemo(() => computeScore(s, list), [list]);
   const patterns = useMemo(() => computePatterns(list), [list]);
-  const hasKey   = !!getClaudeKey();
 
   // ── Symbol breakdown for bars ──
   const bySym = useMemo(() => {
@@ -362,6 +433,20 @@ export default function Insights({ showToast }) {
   }, [list]);
   const maxSessPnl = bySessArr.length ? Math.max(...bySessArr.map(([,v]) => Math.abs(v.pnl)), 1) : 1;
 
+  // ── Emotion bars ──
+  const EMOTION_ICONS = { calm: '😌', confident: '💪', fomo: '😰', anxious: '😬', revenge: '😤', overconfident: '🤑', bored: '😑', focused: '🎯' };
+  const EMOTION_COLORS = { calm: '#5DCAA5', confident: '#85B7EB', fomo: '#EFC97A', anxious: '#EFC97A', revenge: '#F09595', overconfident: '#F09595', bored: '#8B8882', focused: '#5DCAA5' };
+  const byEmotionArr = useMemo(() => {
+    const m = {};
+    list.forEach(t => {
+      if (!t.emotion) return;
+      if (!m[t.emotion]) m[t.emotion] = { pnl: 0, count: 0, wins: 0 };
+      m[t.emotion].pnl += t.pnl; m[t.emotion].count++; if (t.pnl > 0) m[t.emotion].wins++;
+    });
+    return Object.entries(m).sort((a,b) => b[1].pnl - a[1].pnl);
+  }, [list]);
+  const maxEmotionPnl = byEmotionArr.length ? Math.max(...byEmotionArr.map(([,v]) => Math.abs(v.pnl)), 1) : 1;
+
   // ── Rating bars ──
   const byRatingArr = useMemo(() => {
     const m = {};
@@ -390,8 +475,6 @@ export default function Insights({ showToast }) {
   const maxDayPnl = byDayArr.length ? Math.max(...byDayArr.map(d => Math.abs(d.pnl)), 1) : 1;
 
   const analyze = async () => {
-    const key = getClaudeKey();
-    if (!key) { showToast('Add Claude API key in Settings first', 'warn'); return; }
     setAiLoading(true); setAiResult('');
     const wins = list.filter(t => t.pnl > 0);
     const losses = list.filter(t => t.pnl < 0);
@@ -422,9 +505,9 @@ Provide a deep coaching analysis:
 Format with HTML tags. Be direct, honest, specific. No generic advice.`;
 
     try {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      const resp = await fetch('/api/claude', {
         method: 'POST',
-        headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
       });
       if (!resp.ok) { const err = await resp.json(); throw new Error(err.error?.message || resp.status); }
@@ -438,13 +521,13 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
 
   const FAQ = [
     { icon: '📊', title: 'What is a good win rate?', badge: 'Stats', badgeColor: 'rgba(133,183,235,0.15)', badgeText: '#85B7EB',
-      body: '<p>Most professional traders operate with a <strong>40–60% win rate</strong>. What matters more is your <strong>Profit Factor</strong> (target >1.5) and <strong>R:R ratio</strong> (target >1.5:1). A 40% win rate with 2:1 R:R is more profitable than a 70% win rate with 0.5:1 R:R.</p>' },
+      body: '<p>Most professional traders operate with a <strong>40\u201360% win rate</strong>. What matters more is your <strong>Profit Factor</strong> (target >1.5) and <strong>R:R ratio</strong> (target >1.5:1). A 40% win rate with 2:1 R:R is more profitable than a 70% win rate with 0.5:1 R:R.</p>' },
     { icon: '📉', title: 'How to handle losing streaks?', badge: 'Psychology', badgeColor: 'rgba(232,114,74,0.15)', badgeText: '#E8724A',
-      body: '<p>During a losing streak: <ul><li>Reduce position size by 50%</li><li>Step back and review your last 10 trades</li><li>Check if you\'re deviating from your rules</li><li>Take a 1-day break if you have 3+ consecutive losses</li><li>Never revenge trade — it compounds losses</li></ul></p>' },
+      body: '<p>During a losing streak: <ul><li>Reduce position size by 50%</li><li>Step back and review your last 10 trades</li><li>Check if you\'re deviating from your rules</li><li>Take a 1-day break if you have 3+ consecutive losses</li><li>Never revenge trade \u2014 it compounds losses</li></ul></p>' },
     { icon: '💰', title: 'What is Risk-to-Reward ratio?', badge: 'Basics', badgeColor: 'rgba(93,202,165,0.15)', badgeText: '#5DCAA5',
-      body: '<p>R:R compares your potential profit vs. potential loss. A <strong>2:1 R:R</strong> means you risk $100 to make $200. Higher R:R means you need a lower win rate to be profitable. Formula: <strong>Reward ÷ Risk</strong>. Aim for at least 1.5:1.</p>' },
+      body: '<p>R:R compares your potential profit vs. potential loss. A <strong>2:1 R:R</strong> means you risk $100 to make $200. Higher R:R means you need a lower win rate to be profitable. Formula: <strong>Reward \u00F7 Risk</strong>. Aim for at least 1.5:1.</p>' },
     { icon: '⚡', title: 'How to build consistency?', badge: 'Mindset', badgeColor: 'rgba(239,201,122,0.15)', badgeText: '#EFC97A',
-      body: '<p>Consistency comes from: <ul><li>Trading the <strong>same 1–3 setups</strong> until mastered</li><li>Always using a <strong>stop loss</strong></li><li>Journaling every trade with a reason</li><li>Reviewing weekly — what worked, what didn\'t</li><li>Never risking more than <strong>1–2% per trade</strong></li></ul></p>' },
+      body: '<p>Consistency comes from: <ul><li>Trading the <strong>same 1\u20133 setups</strong> until mastered</li><li>Always using a <strong>stop loss</strong></li><li>Journaling every trade with a reason</li><li>Reviewing weekly \u2014 what worked, what didn\'t</li><li>Never risking more than <strong>1\u20132% per trade</strong></li></ul></p>' },
   ];
 
   return (
@@ -474,13 +557,13 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
         <>
           {/* ── Score + Key Stats ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '20px', marginBottom: '20px',
-            background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: '18px', padding: '20px' }}>
+            background: 'var(--c-surface)', border: '0.5px solid var(--c-border)', borderRadius: '18px', padding: '20px' }}>
             <ScoreRing score={score} />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', alignContent: 'center' }}>
               {[
-                { label: 'Net P&L',        value: fmt(s.totalPnl),            color: s.totalPnl >= 0 ? '#5DCAA5' : '#E8724A' },
+                { label: 'Net P&L',        value: fmt(s.totalPnl),           color: s.totalPnl >= 0 ? '#5DCAA5' : '#E8724A' },
                 { label: 'Win Rate',       value: `${s.winRate.toFixed(1)}%`, color: s.winRate >= 50 ? '#5DCAA5' : '#E8724A' },
-                { label: 'Profit Factor',  value: isFinite(s.pf) ? s.pf.toFixed(2) : '∞, color: s.pf >= 1.5 ? '#5DCAA5' : s.pf >= 1 ? '#EFC97A' : '#E8724A' },
+                { label: 'Profit Factor',  value: isFinite(s.pf) ? s.pf.toFixed(2) : '\u221E', color: s.pf >= 1.5 ? '#5DCAA5' : s.pf >= 1 ? '#EFC97A' : '#E8724A' },
                 { label: 'Avg Win',        value: fmt(s.avgWin),             color: '#5DCAA5' },
                 { label: 'Avg Loss',       value: fmt(Math.abs(s.avgLoss)),  color: '#E8724A' },
                 { label: 'R:R',            value: `${s.rr.toFixed(2)}:1`,    color: s.rr >= 1.5 ? '#5DCAA5' : s.rr >= 1 ? '#EFC97A' : '#E8724A' },
@@ -510,7 +593,7 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
 
             {/* Symbol P&L */}
             {bySym.length > 0 && (
-              <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: '14px', padding: '16px' }}>
+              <div style={{ background: 'var(--c-surface)', border: '0.5px solid var(--c-border)', borderRadius: '14px', padding: '16px' }}>
                 <h3 style={{ margin: '0 0 14px', fontSize: '12px', fontWeight: 700, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>P&amp;L by Instrument</h3>
                 {bySym.map(([sym, v]) => (
                   <StatBar key={sym} label={sym} value={v.pnl} max={maxSymPnl}
@@ -520,7 +603,7 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
             )}
 
             {/* Day of week */}
-            <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: '14px', padding: '16px' }}>
+            <div style={{ background: 'var(--c-surface)', border: '0.5px solid var(--c-border)', borderRadius: '14px', padding: '16px' }}>
               <h3 style={{ margin: '0 0 14px', fontSize: '12px', fontWeight: 700, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>P&amp;L by Day</h3>
               {byDayArr.map(d => (
                 <StatBar key={d.day} label={`${d.day}${d.count ? ` (${d.count})` : ''}`}
@@ -531,7 +614,7 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
 
             {/* Session P&L */}
             {bySessArr.length > 0 && (
-              <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: '14px', padding: '16px' }}>
+              <div style={{ background: 'var(--c-surface)', border: '0.5px solid var(--c-border)', borderRadius: '14px', padding: '16px' }}>
                 <h3 style={{ margin: '0 0 14px', fontSize: '12px', fontWeight: 700, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>P&amp;L by Session</h3>
                 {bySessArr.map(([sess, v]) => (
                   <StatBar key={sess} label={`${sess} (${v.count})`} value={v.pnl} max={maxSessPnl}
@@ -542,7 +625,7 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
 
             {/* Rating P&L */}
             {byRatingArr.length > 0 && (
-              <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: '14px', padding: '16px' }}>
+              <div style={{ background: 'var(--c-surface)', border: '0.5px solid var(--c-border)', borderRadius: '14px', padding: '16px' }}>
                 <h3 style={{ margin: '0 0 14px', fontSize: '12px', fontWeight: 700, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>P&amp;L by Rating</h3>
                 {byRatingArr.map(([r, v]) => (
                   <StatBar key={r} label={`${r}-rated (${v.count}t · ${v.count ? (v.wins/v.count*100).toFixed(0) : 0}% WR)`}
@@ -551,25 +634,36 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
                 ))}
               </div>
             )}
+
+            {/* Mindset / Emotion P&L */}
+            {byEmotionArr.length > 0 && (
+              <div style={{ background: 'var(--c-surface)', border: '0.5px solid var(--c-border)', borderRadius: '14px', padding: '16px' }}>
+                <h3 style={{ margin: '0 0 14px', fontSize: '12px', fontWeight: 700, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>P&amp;L by Mindset</h3>
+                {byEmotionArr.map(([em, v]) => (
+                  <StatBar
+                    key={em}
+                    label={`${EMOTION_ICONS[em] || ''} ${em.charAt(0).toUpperCase() + em.slice(1)} (${v.count}t · ${v.count ? (v.wins/v.count*100).toFixed(0) : 0}% WR)`}
+                    value={v.pnl} max={maxEmotionPnl}
+                    color={EMOTION_COLORS[em] || (v.pnl >= 0 ? '#5DCAA5' : '#E8724A')} fmt={fmt} />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ── AI Analysis ── */}
-          <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: '18px', padding: '20px', marginBottom: '20px' }}>
+          <div style={{ background: 'var(--c-surface)', border: '0.5px solid var(--c-border)', borderRadius: '18px', padding: '20px', marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--c-text)' }}>Deep AI Coaching</h3>
                 <p style={{ margin: '3px 0 0', fontSize: '12px', color: 'var(--c-text-2)' }}>
-                  {hasKey ? 'Claude analyses your data and gives personalised coaching advice.' : 'Add a Claude API key in Settings to unlock deep analysis.'}
+                  Claude analyses your data and gives personalised coaching advice.
                 </p>
               </div>
-              <button className="jm-btn" disabled={aiLoading || !hasKey} onClick={analyze} style={{ flexShrink: 0 }}>
-                {aiLoading ? '◌ Analysing…' : '◇ Analyse Now'}
+              <button className="jm-btn" disabled={aiLoading} onClick={analyze} style={{ flexShrink: 0 }}>
+                {aiLoading ? '\u25CC Analysing\u2026' : '\u25C7 Analyse Now'}
               </button>
             </div>
-            {!hasKey && (
-              <div style={{ fontSize: '12px', color: 'var(--c-text-2)', background: 'var(--c-bg)', borderRadius: '8px', padding: '10px 12px' }}>
-                Go to <strong style={{ color: 'var(--c-text)' }}>Settings → Claude API Key</strong> to enable this feature. Your key stays in your browser and is never sent to our servers.
-              </div>
+            {false && (
             )}
             {aiResult && (
               <div className="jm-insight-result" dangerouslySetInnerHTML={{ __html: aiResult }} />

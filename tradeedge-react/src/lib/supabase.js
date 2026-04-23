@@ -31,6 +31,7 @@ export function tradeToDb(t, userId) {
     qty:         t.qty         || null,
     session:     t.session     || null,
     rating:      t.rating      || null,
+    emotion:     t.emotion     || null,
   };
 }
 
@@ -48,6 +49,7 @@ export function dbToTrade(r) {
     qty:         r.qty         || null,
     session:     r.session     || null,
     rating:      r.rating      || null,
+    emotion:     r.emotion     || null,
   };
 }
 
