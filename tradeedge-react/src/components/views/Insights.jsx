@@ -322,9 +322,9 @@ function computeScore(stats, trades) {
 
 function scoreLabel(score) {
   if (score >= 80) return { label: 'Elite', color: '#F4A460' };
-  if (score >= 65) return { label: 'Strong', color: '#5DCAA5' };
+  if (score >= 65) return { label: 'Strong', color: '#E07A3B' };
   if (score >= 50) return { label: 'Developing', color: '#EFC97A' };
-  if (score >= 35) return { label: 'Struggling', color: '#E8724A' };
+  if (score >= 35) return { label: 'Struggling', color: '#E07A3B' };
   return { label: 'Critical', color: '#EF4444' };
 }
 
@@ -353,8 +353,8 @@ function ScoreRing({ score }) {
 
 function PatternCard({ pattern }) {
   const colors = {
-    strength: { bg: 'rgba(93,202,165,0.06)', border: 'rgba(93,202,165,0.2)', badge: '#5DCAA5', badgeBg: 'rgba(93,202,165,0.1)' },
-    warning:  { bg: 'rgba(232,114,74,0.06)', border: 'rgba(232,114,74,0.2)',  badge: '#E8724A', badgeBg: 'rgba(232,114,74,0.1)'  },
+    strength: { bg: 'rgba(224,122,59,0.06)', border: 'rgba(224,122,59,0.2)', badge: '#E07A3B', badgeBg: 'rgba(224,122,59,0.1)' },
+    warning:  { bg: 'rgba(224,122,59,0.06)', border: 'rgba(224,122,59,0.2)',  badge: '#E07A3B', badgeBg: 'rgba(224,122,59,0.1)'  },
     info:     { bg: 'rgba(78,154,241,0.06)',  border: 'rgba(78,154,241,0.2)',  badge: '#4E9AF1', badgeBg: 'rgba(78,154,241,0.1)'  },
   };
   const c = colors[pattern.type] || colors.info;
@@ -420,8 +420,8 @@ export default function Insights({ showToast }) {
   const maxSymPnl = bySym.length ? Math.max(...bySym.map(([,v]) => Math.abs(v.pnl))) : 1;
 
   // ── Session bars ──
-  const SESSION_COLORS_I = { Sydney: '#85B7EB', Tokyo: '#A78BFA', London: '#5DCAA5', 'New York': '#E8724A', Premarket: '#EFC97A', 'After Hours': '#8B8882' };
-  const RATING_COLORS_I  = { A: '#5DCAA5', B: '#85B7EB', C: '#EFC97A', D: '#F09595' };
+  const SESSION_COLORS_I = { Sydney: '#A89687', Tokyo: '#A78BFA', London: '#E07A3B', 'New York': '#E07A3B', Premarket: '#EFC97A', 'After Hours': '#8B8882' };
+  const RATING_COLORS_I  = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#F09595' };
   const bySessArr = useMemo(() => {
     const m = {};
     list.forEach(t => {
@@ -435,7 +435,7 @@ export default function Insights({ showToast }) {
 
   // ── Emotion bars ──
   const EMOTION_ICONS = { calm: '😌', confident: '💪', fomo: '😰', anxious: '😬', revenge: '😤', overconfident: '🤑', bored: '😑', focused: '🎯' };
-  const EMOTION_COLORS = { calm: '#5DCAA5', confident: '#85B7EB', fomo: '#EFC97A', anxious: '#EFC97A', revenge: '#F09595', overconfident: '#F09595', bored: '#8B8882', focused: '#5DCAA5' };
+  const EMOTION_COLORS = { calm: '#E07A3B', confident: '#A89687', fomo: '#EFC97A', anxious: '#EFC97A', revenge: '#F09595', overconfident: '#F09595', bored: '#8B8882', focused: '#E07A3B' };
   const byEmotionArr = useMemo(() => {
     const m = {};
     list.forEach(t => {
@@ -520,11 +520,11 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
   };
 
   const FAQ = [
-    { icon: '📊', title: 'What is a good win rate?', badge: 'Stats', badgeColor: 'rgba(133,183,235,0.15)', badgeText: '#85B7EB',
+    { icon: '📊', title: 'What is a good win rate?', badge: 'Stats', badgeColor: 'rgba(168,150,135,0.15)', badgeText: '#A89687',
       body: '<p>Most professional traders operate with a <strong>40\u201360% win rate</strong>. What matters more is your <strong>Profit Factor</strong> (target >1.5) and <strong>R:R ratio</strong> (target >1.5:1). A 40% win rate with 2:1 R:R is more profitable than a 70% win rate with 0.5:1 R:R.</p>' },
-    { icon: '📉', title: 'How to handle losing streaks?', badge: 'Psychology', badgeColor: 'rgba(232,114,74,0.15)', badgeText: '#E8724A',
+    { icon: '📉', title: 'How to handle losing streaks?', badge: 'Psychology', badgeColor: 'rgba(224,122,59,0.15)', badgeText: '#E07A3B',
       body: '<p>During a losing streak: <ul><li>Reduce position size by 50%</li><li>Step back and review your last 10 trades</li><li>Check if you\'re deviating from your rules</li><li>Take a 1-day break if you have 3+ consecutive losses</li><li>Never revenge trade \u2014 it compounds losses</li></ul></p>' },
-    { icon: '💰', title: 'What is Risk-to-Reward ratio?', badge: 'Basics', badgeColor: 'rgba(93,202,165,0.15)', badgeText: '#5DCAA5',
+    { icon: '💰', title: 'What is Risk-to-Reward ratio?', badge: 'Basics', badgeColor: 'rgba(224,122,59,0.15)', badgeText: '#E07A3B',
       body: '<p>R:R compares your potential profit vs. potential loss. A <strong>2:1 R:R</strong> means you risk $100 to make $200. Higher R:R means you need a lower win rate to be profitable. Formula: <strong>Reward \u00F7 Risk</strong>. Aim for at least 1.5:1.</p>' },
     { icon: '⚡', title: 'How to build consistency?', badge: 'Mindset', badgeColor: 'rgba(239,201,122,0.15)', badgeText: '#EFC97A',
       body: '<p>Consistency comes from: <ul><li>Trading the <strong>same 1\u20133 setups</strong> until mastered</li><li>Always using a <strong>stop loss</strong></li><li>Journaling every trade with a reason</li><li>Reviewing weekly \u2014 what worked, what didn\'t</li><li>Never risking more than <strong>1\u20132% per trade</strong></li></ul></p>' },
@@ -561,14 +561,14 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
             <ScoreRing score={score} />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', alignContent: 'center' }}>
               {[
-                { label: 'Net P&L',        value: fmt(s.totalPnl),           color: s.totalPnl >= 0 ? '#5DCAA5' : '#E8724A' },
-                { label: 'Win Rate',       value: `${s.winRate.toFixed(1)}%`, color: s.winRate >= 50 ? '#5DCAA5' : '#E8724A' },
-                { label: 'Profit Factor',  value: isFinite(s.pf) ? s.pf.toFixed(2) : '\u221E', color: s.pf >= 1.5 ? '#5DCAA5' : s.pf >= 1 ? '#EFC97A' : '#E8724A' },
-                { label: 'Avg Win',        value: fmt(s.avgWin),             color: '#5DCAA5' },
-                { label: 'Avg Loss',       value: fmt(Math.abs(s.avgLoss)),  color: '#E8724A' },
-                { label: 'R:R',            value: `${s.rr.toFixed(2)}:1`,    color: s.rr >= 1.5 ? '#5DCAA5' : s.rr >= 1 ? '#EFC97A' : '#E8724A' },
+                { label: 'Net P&L',        value: fmt(s.totalPnl),           color: s.totalPnl >= 0 ? '#E07A3B' : '#E07A3B' },
+                { label: 'Win Rate',       value: `${s.winRate.toFixed(1)}%`, color: s.winRate >= 50 ? '#E07A3B' : '#E07A3B' },
+                { label: 'Profit Factor',  value: isFinite(s.pf) ? s.pf.toFixed(2) : '\u221E', color: s.pf >= 1.5 ? '#E07A3B' : s.pf >= 1 ? '#EFC97A' : '#E07A3B' },
+                { label: 'Avg Win',        value: fmt(s.avgWin),             color: '#E07A3B' },
+                { label: 'Avg Loss',       value: fmt(Math.abs(s.avgLoss)),  color: '#E07A3B' },
+                { label: 'R:R',            value: `${s.rr.toFixed(2)}:1`,    color: s.rr >= 1.5 ? '#E07A3B' : s.rr >= 1 ? '#EFC97A' : '#E07A3B' },
               ].map(stat => (
-                <div key={stat.label} style={{ background: 'var(--c-bg)', borderRadius: '10px', padding: '10px 12px' }}>
+                <div key={stat.label} style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '10px 12px' }}>
                   <div style={{ fontSize: '16px', fontWeight: 700, color: stat.color, marginBottom: '2px' }}>{stat.value}</div>
                   <div style={{ fontSize: '10px', color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</div>
                 </div>
@@ -597,7 +597,7 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
                 <h3 style={{ margin: '0 0 14px', fontSize: '12px', fontWeight: 700, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>P&amp;L by Instrument</h3>
                 {bySym.map(([sym, v]) => (
                   <StatBar key={sym} label={sym} value={v.pnl} max={maxSymPnl}
-                    color={v.pnl >= 0 ? '#5DCAA5' : '#E8724A'} fmt={fmt} />
+                    color={v.pnl >= 0 ? '#E07A3B' : '#E07A3B'} fmt={fmt} />
                 ))}
               </div>
             )}
@@ -608,7 +608,7 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
               {byDayArr.map(d => (
                 <StatBar key={d.day} label={`${d.day}${d.count ? ` (${d.count})` : ''}`}
                   value={d.pnl} max={maxDayPnl}
-                  color={d.pnl >= 0 ? '#5DCAA5' : '#E8724A'} fmt={fmt} />
+                  color={d.pnl >= 0 ? '#E07A3B' : '#E07A3B'} fmt={fmt} />
               ))}
             </div>
 
@@ -618,7 +618,7 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
                 <h3 style={{ margin: '0 0 14px', fontSize: '12px', fontWeight: 700, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>P&amp;L by Session</h3>
                 {bySessArr.map(([sess, v]) => (
                   <StatBar key={sess} label={`${sess} (${v.count})`} value={v.pnl} max={maxSessPnl}
-                    color={SESSION_COLORS_I[sess] || (v.pnl >= 0 ? '#5DCAA5' : '#E8724A')} fmt={fmt} />
+                    color={SESSION_COLORS_I[sess] || (v.pnl >= 0 ? '#E07A3B' : '#E07A3B')} fmt={fmt} />
                 ))}
               </div>
             )}
@@ -644,7 +644,7 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
                     key={em}
                     label={`${EMOTION_ICONS[em] || ''} ${em.charAt(0).toUpperCase() + em.slice(1)} (${v.count}t · ${v.count ? (v.wins/v.count*100).toFixed(0) : 0}% WR)`}
                     value={v.pnl} max={maxEmotionPnl}
-                    color={EMOTION_COLORS[em] || (v.pnl >= 0 ? '#5DCAA5' : '#E8724A')} fmt={fmt} />
+                    color={EMOTION_COLORS[em] || (v.pnl >= 0 ? '#E07A3B' : '#E07A3B')} fmt={fmt} />
                 ))}
               </div>
             )}

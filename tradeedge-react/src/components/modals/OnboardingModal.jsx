@@ -52,7 +52,7 @@ function Dots({ total, current }) {
           width: i === current ? '20px' : '6px',
           height: '6px',
           borderRadius: '100px',
-          background: i === current ? '#E8724A' : i < current ? '#E8724A66' : 'var(--c-border)',
+          background: i === current ? '#E07A3B' : i < current ? '#E07A3B66' : 'var(--c-border)',
           transition: 'all 0.3s ease',
         }} />
       ))}
@@ -170,8 +170,8 @@ function StepWelcome({ name, setName, onNext, totalSteps, step }) {
       <div style={{ textAlign: 'center', marginBottom: '28px' }}>
         <div style={{
           width: '64px', height: '64px', borderRadius: '18px',
-          background: 'rgba(232,114,74,0.12)',
-          border: '1px solid rgba(232,114,74,0.25)',
+          background: 'rgba(224,122,59,0.12)',
+          border: '1px solid rgba(224,122,59,0.25)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 16px',
           fontSize: '28px',
@@ -214,7 +214,7 @@ function StepWelcome({ name, setName, onNext, totalSteps, step }) {
             transition: 'border-color 0.15s',
             fontFamily: 'inherit',
           }}
-          onFocus={e => e.target.style.borderColor = '#E8724A'}
+          onFocus={e => e.target.style.borderColor = '#E07A3B'}
           onBlur={e => e.target.style.borderColor = 'var(--c-border)'}
         />
       </div>
@@ -224,7 +224,7 @@ function StepWelcome({ name, setName, onNext, totalSteps, step }) {
         disabled={!name.trim()}
         style={{
           width: '100%', padding: '13px',
-          background: name.trim() ? '#E8724A' : 'var(--c-border)',
+          background: name.trim() ? '#E07A3B' : 'var(--c-border)',
           color: name.trim() ? '#fff' : 'var(--c-text-2)',
           border: 'none', borderRadius: '12px',
           fontSize: '14px', fontWeight: 700, cursor: name.trim() ? 'pointer' : 'default',
@@ -258,8 +258,8 @@ function StepStyle({ selected, setSelected, onNext, onBack, totalSteps, step }) 
             key={s.id}
             onClick={() => setSelected(s.id)}
             style={{
-              background: selected === s.id ? 'rgba(232,114,74,0.1)' : 'var(--c-bg)',
-              border: selected === s.id ? '1.5px solid #E8724A' : '1.5px solid var(--c-border)',
+              background: selected === s.id ? 'rgba(224,122,59,0.1)' : 'var(--c-bg)',
+              border: selected === s.id ? '1.5px solid #E07A3B' : '1.5px solid var(--c-border)',
               borderRadius: '12px',
               padding: '14px 12px',
               cursor: 'pointer',
@@ -289,7 +289,7 @@ function StepStyle({ selected, setSelected, onNext, onBack, totalSteps, step }) 
           onClick={onNext}
           style={{
             flex: 1, padding: '13px',
-            background: '#E8724A', color: '#fff',
+            background: '#E07A3B', color: '#fff',
             border: 'none', borderRadius: '12px',
             fontSize: '14px', fontWeight: 700, cursor: 'pointer',
           }}
@@ -336,7 +336,7 @@ function StepStart({ name, onPick, onBack, saving, totalSteps, step }) {
               transition: 'all 0.15s',
               opacity: saving ? 0.6 : 1,
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#E8724A'; e.currentTarget.style.background = 'rgba(232,114,74,0.05)'; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#E07A3B'; e.currentTarget.style.background = 'rgba(224,122,59,0.05)'; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--c-border)'; e.currentTarget.style.background = 'var(--c-bg)'; }}
           >
             <span style={{ fontSize: '24px', flexShrink: 0 }}>{opt.emoji}</span>

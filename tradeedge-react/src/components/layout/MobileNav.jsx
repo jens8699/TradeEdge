@@ -10,7 +10,7 @@ const SESSIONS = [
   { id: 'newyork', label: 'New York', open: 13, close: 21 },
 ];
 const SESSION_COLORS = {
-  sydney: '#85B7EB', tokyo: '#A78BFA', london: '#5DCAA5', newyork: '#E8724A',
+  sydney: '#A89687', tokyo: '#A78BFA', london: '#E07A3B', newyork: '#E07A3B',
 };
 function isActive(s) {
   const h = new Date().getUTCHours();

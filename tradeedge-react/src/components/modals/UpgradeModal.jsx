@@ -32,7 +32,7 @@ export default function UpgradeModal({ onClose }) {
         {/* Header */}
         <div style={{
           padding: '24px 24px 0',
-          background: 'radial-gradient(ellipse at top right, rgba(232,114,74,0.15) 0%, transparent 60%)',
+          background: 'radial-gradient(ellipse at top right, rgba(224,122,59,0.15) 0%, transparent 60%)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
             <div>
@@ -47,19 +47,19 @@ export default function UpgradeModal({ onClose }) {
 
           {/* Price */}
           <div style={{
-            background: 'rgba(232,114,74,0.08)', border: '1px solid rgba(232,114,74,0.2)',
+            background: 'rgba(224,122,59,0.08)', border: '1px solid rgba(224,122,59,0.2)',
             borderRadius: '14px', padding: '16px 20px', marginBottom: '20px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <span style={{ fontSize: '32px', fontWeight: 800, color: '#E8724A', letterSpacing: '-1px' }}>$19</span>
+                <span style={{ fontSize: '32px', fontWeight: 800, color: '#E07A3B', letterSpacing: '-1px' }}>$19</span>
                 <span style={{ fontSize: '14px', color: 'var(--c-text-2)' }}>/month</span>
               </div>
               <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--c-text-2)' }}>Cancel any time · No lock-in</p>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '11px', color: '#5DCAA5', fontWeight: 600, background: 'rgba(93,202,165,0.1)', padding: '4px 10px', borderRadius: '100px', marginBottom: '4px' }}>
+              <div style={{ fontSize: '11px', color: '#E07A3B', fontWeight: 600, background: 'rgba(224,122,59,0.1)', padding: '4px 10px', borderRadius: '100px', marginBottom: '4px' }}>
                 Founding rate
               </div>
               <div style={{ fontSize: '11px', color: 'var(--c-text-2)' }}>Locks in forever</div>
@@ -72,7 +72,7 @@ export default function UpgradeModal({ onClose }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '0', marginBottom: '8px' }}>
             <div style={{ fontSize: '11px', color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Feature</div>
             <div style={{ fontSize: '11px', color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center', minWidth: '48px' }}>Free</div>
-            <div style={{ fontSize: '11px', color: '#E8724A', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center', minWidth: '48px', fontWeight: 700 }}>Pro</div>
+            <div style={{ fontSize: '11px', color: '#E07A3B', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center', minWidth: '48px', fontWeight: 700 }}>Pro</div>
           </div>
           {FEATURES.map((f, i) => (
             <div key={i} style={{
@@ -82,10 +82,10 @@ export default function UpgradeModal({ onClose }) {
             }}>
               <span style={{ fontSize: '12px', color: 'var(--c-text)' }}>{f.label}</span>
               <div style={{ textAlign: 'center', minWidth: '48px', fontSize: '14px' }}>
-                {f.free ? <span style={{ color: '#5DCAA5' }}>✓</span> : <span style={{ color: 'var(--c-border)' }}>–</span>}
+                {f.free ? <span style={{ color: '#E07A3B' }}>✓</span> : <span style={{ color: 'var(--c-border)' }}>–</span>}
               </div>
               <div style={{ textAlign: 'center', minWidth: '48px', fontSize: '14px' }}>
-                {f.pro ? <span style={{ color: '#E8724A', fontWeight: 700 }}>✓</span> : <span style={{ color: 'var(--c-border)' }}>–</span>}
+                {f.pro ? <span style={{ color: '#E07A3B', fontWeight: 700 }}>✓</span> : <span style={{ color: 'var(--c-border)' }}>–</span>}
               </div>
             </div>
           ))}
@@ -96,16 +96,16 @@ export default function UpgradeModal({ onClose }) {
           {!submitted ? (
             <>
               <div style={{
-                background: 'rgba(93,202,165,0.06)', border: '1px solid rgba(93,202,165,0.15)',
+                background: 'rgba(224,122,59,0.06)', border: '1px solid rgba(224,122,59,0.15)',
                 borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
                 fontSize: '12px', color: 'var(--c-text-2)', lineHeight: 1.5,
               }}>
-                <strong style={{ color: '#5DCAA5' }}>Early access:</strong> Pro is launching soon. Join the waitlist and lock in the founding rate before public launch.
+                <strong style={{ color: '#E07A3B' }}>Early access:</strong> Pro is launching soon. Join the waitlist and lock in the founding rate before public launch.
               </div>
               <button
                 onClick={() => setSubmitted(true)}
                 style={{
-                  width: '100%', padding: '13px', background: '#E8724A',
+                  width: '100%', padding: '13px', background: '#E07A3B',
                   color: '#fff', border: 'none', borderRadius: '12px',
                   fontSize: '14px', fontWeight: 700, cursor: 'pointer',
                   letterSpacing: '-0.2px',

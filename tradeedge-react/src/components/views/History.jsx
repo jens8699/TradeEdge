@@ -5,10 +5,10 @@ import EditTradeModal from '../modals/EditTradeModal';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const SESSION_COLORS = {
-  Sydney: '#85B7EB', Tokyo: '#A78BFA', London: '#5DCAA5',
-  'New York': '#E8724A', Premarket: '#EFC97A', 'After Hours': '#8B8882',
+  Sydney: '#A89687', Tokyo: '#A78BFA', London: '#E07A3B',
+  'New York': '#E07A3B', Premarket: '#EFC97A', 'After Hours': '#8B8882',
 };
-const RATING_COLORS = { A: '#5DCAA5', B: '#85B7EB', C: '#EFC97A', D: '#F09595' };
+const RATING_COLORS = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#F09595' };
 const RATING_LABELS = { A: 'Perfect', B: 'Good', C: 'Average', D: 'Poor' };
 
 // ── Trade Detail Modal ────────────────────────────────────────────────────────
@@ -16,7 +16,7 @@ const RATING_LABELS = { A: 'Perfect', B: 'Good', C: 'Average', D: 'Poor' };
 function TradeDetailModal({ trade: t, onClose, onEdit, onDelete }) {
   const [imgOpen, setImgOpen] = useState(false);
   if (!t) return null;
-  const pnlColor = t.pnl > 0 ? '#5DCAA5' : t.pnl < 0 ? '#E8724A' : 'var(--c-text-2)';
+  const pnlColor = t.pnl > 0 ? '#E07A3B' : t.pnl < 0 ? '#C65A45' : 'var(--c-text-2)';
 
   return (
     <div style={{
@@ -36,8 +36,8 @@ function TradeDetailModal({ trade: t, onClose, onEdit, onDelete }) {
               <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--c-text)' }}>{t.symbol}</span>
               <span style={{
                 fontSize: '11px', padding: '2px 8px', borderRadius: '100px', fontWeight: 600,
-                background: (t.direction === 'Long' || t.direction === 'long') ? 'rgba(93,202,165,0.12)' : 'rgba(232,114,74,0.12)',
-                color:       (t.direction === 'Long' || t.direction === 'long') ? '#5DCAA5' : '#E8724A',
+                background: (t.direction === 'Long' || t.direction === 'long') ? 'rgba(224,122,59,0.12)' : 'rgba(224,122,59,0.12)',
+                color:       (t.direction === 'Long' || t.direction === 'long') ? '#E07A3B' : '#E07A3B',
               }}>
                 {t.direction}
               </span>
@@ -58,9 +58,9 @@ function TradeDetailModal({ trade: t, onClose, onEdit, onDelete }) {
             {t.pnl > 0 ? '+' : ''}{fmt(t.pnl)}
           </div>
           {t.pnl > 0
-            ? <div style={{ fontSize: '12px', color: '#5DCAA5', marginTop: '2px' }}>Win</div>
+            ? <div style={{ fontSize: '12px', color: '#E07A3B', marginTop: '2px' }}>Win</div>
             : t.pnl < 0
-            ? <div style={{ fontSize: '12px', color: '#E8724A', marginTop: '2px' }}>Loss</div>
+            ? <div style={{ fontSize: '12px', color: '#E07A3B', marginTop: '2px' }}>Loss</div>
             : <div style={{ fontSize: '12px', color: 'var(--c-text-2)', marginTop: '2px' }}>Breakeven</div>}
         </div>
 
@@ -100,7 +100,7 @@ function TradeDetailModal({ trade: t, onClose, onEdit, onDelete }) {
             { label: 'Risk',  value: t.risk  ? fmt(t.risk)   : '—' },
             { label: 'Target', value: t.reward ? fmt(t.reward) : '—' },
           ].map(d => (
-            <div key={d.label} style={{ background: 'var(--c-bg)', borderRadius: '8px', padding: '8px 12px' }}>
+            <div key={d.label} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '8px 12px' }}>
               <div style={{ fontSize: '10px', color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>{d.label}</div>
               <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-text)' }}>{d.value}</div>
             </div>
@@ -109,7 +109,7 @@ function TradeDetailModal({ trade: t, onClose, onEdit, onDelete }) {
 
         {/* Notes */}
         {t.notes && (
-          <div style={{ margin: '0 20px 16px', background: 'var(--c-bg)', borderRadius: '10px', padding: '12px 14px' }}>
+          <div style={{ margin: '0 20px 16px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', padding: '12px 14px' }}>
             <div style={{ fontSize: '10px', color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Notes</div>
             <p style={{ margin: 0, fontSize: '13px', color: 'var(--c-text)', lineHeight: 1.6 }}>{t.notes}</p>
           </div>
@@ -129,7 +129,7 @@ function TradeDetailModal({ trade: t, onClose, onEdit, onDelete }) {
 
         {/* Actions */}
         <div style={{ padding: '0 20px 20px', display: 'flex', gap: '8px' }}>
-          <button onClick={() => { onEdit(t); onClose(); }} style={btnStyle('#E8724A', 'rgba(232,114,74,0.08)')}>
+          <button onClick={() => { onEdit(t); onClose(); }} style={btnStyle('#E07A3B', 'rgba(224,122,59,0.08)')}>
             Edit Trade
           </button>
           <button onClick={() => { onDelete(t.id); onClose(); }} style={btnStyle('#EF4444', 'rgba(239,68,68,0.06)')}>
@@ -139,9 +139,16 @@ function TradeDetailModal({ trade: t, onClose, onEdit, onDelete }) {
 
         {/* Fullscreen image */}
         {imgOpen && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}
             onClick={() => setImgOpen(false)}>
-            <img src={t.imageUrl || t.image} alt="chart" style={{ maxWidth: '92vw', maxHeight: '90vh', borderRadius: '12px' }} onClick={e => e.stopPropagation()} />
+            <button onClick={() => setImgOpen(false)} style={{
+              position: 'fixed', top: '20px', right: '20px',
+              background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+              width: '40px', height: '40px', fontSize: '18px', color: '#fff',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 10001,
+            }}>✕</button>
+            <img src={t.imageUrl || t.image} alt="chart" style={{ maxWidth: '92vw', maxHeight: '88vh', borderRadius: '12px', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
           </div>
         )}
       </div>
@@ -159,7 +166,7 @@ function btnStyle(color, bg) {
 // ── Trade Row Card ────────────────────────────────────────────────────────────
 
 function TradeRow({ trade: t, onClick }) {
-  const pnlColor = t.pnl > 0 ? '#5DCAA5' : t.pnl < 0 ? '#E8724A' : 'var(--c-text-2)';
+  const pnlColor = t.pnl > 0 ? '#E07A3B' : t.pnl < 0 ? '#C65A45' : 'var(--c-text-2)';
   const isLong   = t.direction === 'Long' || t.direction === 'long';
 
   return (
@@ -179,8 +186,8 @@ function TradeRow({ trade: t, onClick }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', minWidth: 0 }}>
         <div style={{
           width: '32px', height: '32px', borderRadius: '8px', flexShrink: 0,
-          background: isLong ? 'rgba(93,202,165,0.1)' : 'rgba(232,114,74,0.1)',
-          color: isLong ? '#5DCAA5' : '#E8724A',
+          background: isLong ? 'rgba(224,122,59,0.1)' : 'rgba(224,122,59,0.1)',
+          color: isLong ? '#E07A3B' : '#E07A3B',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '11px', fontWeight: 700,
         }}>
@@ -253,7 +260,7 @@ function DateGroup({ date, trades, onSelect }) {
           </span>
           <span style={{ fontSize: '11px', color: 'var(--c-text-2)' }}>{trades.length} trade{trades.length !== 1 ? 's' : ''} · {wins}W/{trades.length - wins}L</span>
         </div>
-        <span style={{ fontSize: '13px', fontWeight: 700, color: dayPnl >= 0 ? '#5DCAA5' : '#E8724A' }}>
+        <span style={{ fontSize: '13px', fontWeight: 700, color: dayPnl >= 0 ? '#E07A3B' : '#E07A3B' }}>
           {dayPnl >= 0 ? '+' : ''}{fmt(dayPnl)}
         </span>
       </div>
@@ -355,16 +362,16 @@ export default function History({ showToast }) {
           className="jm-filter-toggle"
           onClick={() => setFiltersOpen(o => !o)}
           style={{
-            background: filtersOpen ? 'rgba(232,114,74,0.12)' : 'var(--c-surface)',
-            border: `1px solid ${filtersOpen ? 'rgba(232,114,74,0.3)' : 'var(--c-border)'}`,
-            color: filtersOpen ? '#E8724A' : 'var(--c-text-2)',
+            background: filtersOpen ? 'rgba(224,122,59,0.12)' : 'var(--c-surface)',
+            border: `1px solid ${filtersOpen ? 'rgba(224,122,59,0.3)' : 'var(--c-border)'}`,
+            color: filtersOpen ? '#E07A3B' : 'var(--c-text-2)',
             padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 600,
             cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0,
           }}
         >
           {filtersOpen ? '✕ Close' : '⊞ Filters'}
           {(symbolFilter || setupFilter || outcomeFilter || sourceFilter || sessionFilter || ratingFilter)
-            ? <span style={{ marginLeft: '6px', background: '#E8724A', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 800 }}>
+            ? <span style={{ marginLeft: '6px', background: '#E07A3B', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 800 }}>
                 {[symbolFilter, setupFilter, outcomeFilter, sourceFilter, sessionFilter, ratingFilter].filter(Boolean).length}
               </span>
             : null}
@@ -427,7 +434,7 @@ export default function History({ showToast }) {
           {[
             { label: 'Trades', value: filtered.length },
             { label: 'Win Rate', value: `${filtered.length ? (wins/filtered.length*100).toFixed(0) : 0}%` },
-            { label: 'Net P&L', value: fmt(totalPnl), color: totalPnl >= 0 ? '#5DCAA5' : '#E8724A' },
+            { label: 'Net P&L', value: fmt(totalPnl), color: totalPnl >= 0 ? '#E07A3B' : '#E07A3B' },
           ].map(s => (
             <div key={s.label} style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: '10px', padding: '8px 14px', display: 'flex', gap: '8px', alignItems: 'center' }}>
               <span style={{ fontSize: '13px', fontWeight: 700, color: s.color || 'var(--c-text)' }}>{s.value}</span>

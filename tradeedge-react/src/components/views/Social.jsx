@@ -9,7 +9,7 @@ function Avatar({ name, color, size = 40 }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%',
-      background: color || '#E8724A',
+      background: color || '#E07A3B',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: size * 0.38, fontWeight: 800, color: '#fff',
       flexShrink: 0, letterSpacing: '-0.5px', userSelect: 'none',
@@ -35,7 +35,7 @@ function ProfileCard({ p, isFollowing, onToggleFollow, isSelf, followerCount }) 
   return (
     <div className="jm-card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', animation: 'fadeSlideUp 0.3s ease both' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-        <Avatar name={p.name} color={p.avatar_color || '#E8724A'} size={46} />
+        <Avatar name={p.name} color={p.avatar_color || '#E07A3B'} size={46} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#F5F3ED', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -48,7 +48,7 @@ function ProfileCard({ p, isFollowing, onToggleFollow, isSelf, followerCount }) 
             )}
           </div>
           {p.username && (
-            <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#E8724A', fontWeight: 600 }}>@{p.username}</p>
+            <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#E07A3B', fontWeight: 600 }}>@{p.username}</p>
           )}
           {p.bio && (
             <p style={{ margin: '5px 0 0', fontSize: '12px', color: '#8B8882', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
@@ -62,7 +62,7 @@ function ProfileCard({ p, isFollowing, onToggleFollow, isSelf, followerCount }) 
             onMouseLeave={() => setHov(false)}
             onClick={() => onToggleFollow(p.id)}
             style={{
-              background: isFollowing ? 'transparent' : '#E8724A',
+              background: isFollowing ? 'transparent' : '#E07A3B',
               border: isFollowing ? `0.5px solid ${hov ? '#E24B4A' : '#4D4A42'}` : 'none',
               color: isFollowing ? (hov ? '#E24B4A' : '#8B8882') : '#17150F',
               padding: '7px 14px', borderRadius: '10px', fontSize: '12px',
@@ -79,16 +79,16 @@ function ProfileCard({ p, isFollowing, onToggleFollow, isSelf, followerCount }) 
       <div style={{ display: 'flex', gap: '6px', borderTop: '0.5px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
         <StatBubble label="Trades" val={p.trade_count ?? '—'} />
         <div style={{ width: '0.5px', background: 'rgba(255,255,255,0.06)' }} />
-        <StatBubble label="Win Rate" val={p.win_rate != null ? p.win_rate.toFixed(0) + '%' : '—'} color={p.win_rate >= 50 ? '#5DCAA5' : '#F09595'} />
+        <StatBubble label="Win Rate" val={p.win_rate != null ? p.win_rate.toFixed(0) + '%' : '—'} color={p.win_rate >= 50 ? '#E07A3B' : '#F09595'} />
         <div style={{ width: '0.5px', background: 'rgba(255,255,255,0.06)' }} />
-        <StatBubble label="P&L" val={p.total_pnl != null ? fmt(p.total_pnl) : '—'} color={p.total_pnl >= 0 ? '#5DCAA5' : '#F09595'} />
+        <StatBubble label="P&L" val={p.total_pnl != null ? fmt(p.total_pnl) : '—'} color={p.total_pnl >= 0 ? '#E07A3B' : '#F09595'} />
       </div>
     </div>
   );
 }
 
 // ── Main Social View ───────────────────────────────────────────────────────────
-const COLORS = ['#E8724A','#5DCAA5','#85B7EB','#EFC97A','#F09595','#A78BFA','#34D399','#FB923C'];
+const COLORS = ['#E07A3B','#E07A3B','#A89687','#EFC97A','#F09595','#A78BFA','#34D399','#FB923C'];
 const SORT_OPTIONS = [
   { value: 'default',   label: 'Default' },
   { value: 'win_rate',  label: 'Win Rate' },
@@ -113,7 +113,7 @@ export default function Social({ user, profile, showToast }) {
   const [username,    setUsername]    = useState(profile?.username || '');
   const [bio,         setBio]         = useState(profile?.bio || '');
   const [isPublic,    setIsPublic]    = useState(profile?.is_public || false);
-  const [avatarColor, setAvatarColor] = useState(profile?.avatar_color || '#E8724A');
+  const [avatarColor, setAvatarColor] = useState(profile?.avatar_color || '#E07A3B');
   const [profileMsg,  setProfileMsg]  = useState('');
   const [saving,      setSaving]      = useState(false);
 
@@ -263,7 +263,7 @@ export default function Social({ user, profile, showToast }) {
           <p className="jm-hello">Community</p>
           <h1 className="jm-page-title">Social <span>Hub</span></h1>
         </div>
-        <div className="jm-card" style={{ marginTop: '12px', borderColor: 'rgba(232,114,74,0.3)', background: 'rgba(232,114,74,0.06)' }}>
+        <div className="jm-card" style={{ marginTop: '12px', borderColor: 'rgba(224,122,59,0.3)', background: 'rgba(224,122,59,0.06)' }}>
           <p style={{ margin: '0 0 6px', fontSize: '18px' }}>⚙️</p>
           <p style={{ margin: '0 0 8px', fontSize: '14px', fontWeight: 700, color: '#F5F3ED' }}>One-time setup needed</p>
           <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#8B8882', lineHeight: 1.6 }}>
@@ -275,7 +275,7 @@ export default function Social({ user, profile, showToast }) {
             rel="noopener noreferrer"
             style={{
               display: 'inline-block', padding: '9px 18px', borderRadius: '10px',
-              background: '#E8724A', color: '#fff', fontSize: '13px',
+              background: '#E07A3B', color: '#fff', fontSize: '13px',
               fontWeight: 600, textDecoration: 'none', marginRight: '8px',
             }}
           >
@@ -418,12 +418,12 @@ export default function Social({ user, profile, showToast }) {
         {tab === 'profile' && (
           <div>
             {/* Live preview */}
-            <div className="jm-card" style={{ marginBottom: '12px', background: 'radial-gradient(ellipse at top right, rgba(232,114,74,0.1) 0%, transparent 60%), var(--c-surface)' }}>
+            <div className="jm-card" style={{ marginBottom: '12px', background: 'radial-gradient(ellipse at top right, rgba(224,122,59,0.1) 0%, transparent 60%), var(--c-surface)' }}>
               <p className="jm-card-title" style={{ marginBottom: '16px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#6B6760' }}>Preview</p>
               <ProfileCard p={myCard} isFollowing={false} onToggleFollow={() => {}} isSelf />
               <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isPublic ? '#5DCAA5' : '#4D4A42', boxShadow: isPublic ? '0 0 6px rgba(93,202,165,0.6)' : 'none', flexShrink: 0 }} />
-                <p style={{ margin: 0, fontSize: '11px', color: isPublic ? '#5DCAA5' : '#6B6760', fontWeight: 500 }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isPublic ? '#E07A3B' : '#4D4A42', boxShadow: isPublic ? '0 0 6px rgba(224,122,59,0.6)' : 'none', flexShrink: 0 }} />
+                <p style={{ margin: 0, fontSize: '11px', color: isPublic ? '#E07A3B' : '#6B6760', fontWeight: 500 }}>
                   {isPublic ? 'Visible in Discover · Other traders can find and follow you' : 'Profile is private · Only you can see this'}
                 </p>
               </div>
@@ -489,7 +489,7 @@ export default function Social({ user, profile, showToast }) {
             </div>
 
             {profileMsg && (
-              <p style={{ fontSize: '12px', fontWeight: 600, color: profileMsg.startsWith('✓') ? '#5DCAA5' : '#F09595', marginBottom: '12px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: profileMsg.startsWith('✓') ? '#E07A3B' : '#F09595', marginBottom: '12px' }}>
                 {profileMsg}
               </p>
             )}

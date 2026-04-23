@@ -8,7 +8,7 @@ function loadChallenges() { try { return JSON.parse(localStorage.getItem(CK) || 
 function saveChallenges(list) { localStorage.setItem(CK, JSON.stringify(list)); }
 function cuid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
-const FIRM_COLORS = ['#E8724A','#5DCAA5','#85B7EB','#EFC97A','#B085EB','#EB85B3'];
+const FIRM_COLORS = ['#E07A3B','#E07A3B','#A89687','#EFC97A','#B085EB','#EB85B3'];
 const EMPTY_FORM = { firm: '', accountSize: '', profitTarget: 10, dailyLossLimit: 5, maxDrawdown: 10, startDate: new Date().toISOString().slice(0, 10) };
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -49,7 +49,7 @@ export default function Payouts({ showToast }) {
       sorted.forEach(p => { cum += p.amount; labels.push(p.date); data.push(Math.round(cum * 100) / 100); });
       chartInst.current = new Chart(ctx, {
         type: 'line',
-        data: { labels, datasets: [{ data, borderColor: '#5DCAA5', backgroundColor: 'rgba(93,202,165,0.12)', fill: true, tension: 0.35, pointRadius: 4, pointBackgroundColor: '#5DCAA5', pointBorderColor: '#17150F', pointBorderWidth: 2, borderWidth: 2.5 }] },
+        data: { labels, datasets: [{ data, borderColor: '#E07A3B', backgroundColor: 'rgba(224,122,59,0.12)', fill: true, tension: 0.35, pointRadius: 4, pointBackgroundColor: '#E07A3B', pointBorderColor: '#17150F', pointBorderWidth: 2, borderWidth: 2.5 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0E0C08', titleColor: '#F5F3ED', bodyColor: '#E8E6E1', borderColor: '#2A2720', borderWidth: 1, padding: 10, cornerRadius: 8, callbacks: { label: c => '$' + c.raw.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) } } }, scales: { y: { ticks: { color: '#8B8882', callback: v => '$' + v }, grid: { color: 'rgba(255,255,255,0.04)' } }, x: { ticks: { color: '#8B8882' }, grid: { display: false } } } }
       });
     });
@@ -141,7 +141,7 @@ export default function Payouts({ showToast }) {
         <h2 className="jm-card-title" style={{ margin: 0 }}>Active Challenges</h2>
         <button
           onClick={() => setShowAddChal(true)}
-          style={{ fontSize: '12px', fontWeight: 700, color: '#E8724A', background: 'rgba(232,114,74,0.1)', border: '1px solid rgba(232,114,74,0.25)', borderRadius: '8px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit' }}
+          style={{ fontSize: '12px', fontWeight: 700, color: '#E07A3B', background: 'rgba(224,122,59,0.1)', border: '1px solid rgba(224,122,59,0.25)', borderRadius: '8px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit' }}
         >
           + Add challenge
         </button>
@@ -157,11 +157,11 @@ export default function Payouts({ showToast }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
         {challenges.map(ch => {
           const s = getChallengeStats(ch);
-          const statusColor = s.passed ? '#5DCAA5' : s.failed ? '#E24B4A' : ch.color;
+          const statusColor = s.passed ? '#E07A3B' : s.failed ? '#E24B4A' : ch.color;
           const statusLabel = s.passed ? '✓ PASSED' : s.failed ? '✗ FAILED' : '● ACTIVE';
           return (
             <div key={ch.id} style={{
-              background: 'var(--c-surface)', border: `1px solid ${s.failed ? 'rgba(226,75,74,0.4)' : s.passed ? 'rgba(93,202,165,0.4)' : 'var(--c-border)'}`,
+              background: 'var(--c-surface)', border: `1px solid ${s.failed ? 'rgba(226,75,74,0.4)' : s.passed ? 'rgba(224,122,59,0.4)' : 'var(--c-border)'}`,
               borderRadius: '16px', padding: '18px', position: 'relative', overflow: 'hidden'
             }}>
               {/* Top accent bar */}
@@ -181,7 +181,7 @@ export default function Payouts({ showToast }) {
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                  <span style={{ fontSize: '20px', fontWeight: 900, color: s.pnl >= 0 ? '#5DCAA5' : '#F09595' }}>
+                  <span style={{ fontSize: '20px', fontWeight: 900, color: s.pnl >= 0 ? '#E07A3B' : '#F09595' }}>
                     {s.pnl >= 0 ? '+' : ''}{fmt(s.pnl)}
                   </span>
                   <button onClick={() => setConfirmDelChal(ch.id)} style={{ background: 'transparent', border: 'none', color: '#5F5C56', fontSize: '16px', cursor: 'pointer', padding: '2px 4px', lineHeight: 1 }} title="Remove challenge">×</button>
@@ -196,7 +196,7 @@ export default function Payouts({ showToast }) {
                   value={s.pnl}
                   target={s.profitTarget}
                   pct={s.profitPct}
-                  color={s.passed ? '#5DCAA5' : ch.color}
+                  color={s.passed ? '#E07A3B' : ch.color}
                   valueStr={`${fmt(s.pnl)} / ${fmt(s.profitTarget)}`}
                   suffix={`${(s.profitPct * 100).toFixed(1)}%`}
                 />
@@ -207,7 +207,7 @@ export default function Payouts({ showToast }) {
                   value={Math.abs(Math.min(0, s.todayPnl))}
                   target={s.dailyLimit}
                   pct={s.dailyUsedPct}
-                  color={s.dailyUsedPct > 0.75 ? '#F09595' : s.dailyUsedPct > 0.5 ? '#EFC97A' : '#5DCAA5'}
+                  color={s.dailyUsedPct > 0.75 ? '#F09595' : s.dailyUsedPct > 0.5 ? '#EFC97A' : '#E07A3B'}
                   valueStr={s.todayPnl < 0 ? `${fmt(Math.abs(s.todayPnl))} used of ${fmt(s.dailyLimit)}` : `${fmt(0)} used today`}
                   suffix={`${(s.dailyUsedPct * 100).toFixed(1)}%`}
                   danger={s.failedDailyLimit}
@@ -219,7 +219,7 @@ export default function Payouts({ showToast }) {
                   value={Math.abs(Math.min(0, s.pnl))}
                   target={s.maxDD}
                   pct={s.ddPct}
-                  color={s.ddPct > 0.75 ? '#F09595' : s.ddPct > 0.5 ? '#EFC97A' : '#85B7EB'}
+                  color={s.ddPct > 0.75 ? '#F09595' : s.ddPct > 0.5 ? '#EFC97A' : '#A89687'}
                   valueStr={s.pnl < 0 ? `${fmt(Math.abs(s.pnl))} / ${fmt(s.maxDD)}` : `No drawdown`}
                   suffix={`${(s.ddPct * 100).toFixed(1)}%`}
                   danger={s.failedDrawdown}
@@ -243,7 +243,7 @@ export default function Payouts({ showToast }) {
 
       {/* Hero total */}
       {payouts.length > 0 && (
-        <div className="jm-hero" style={{ background: 'radial-gradient(ellipse at top right, rgba(93,202,165,0.2) 0%, rgba(93,202,165,0.04) 50%, #1E1C16 100%)', borderColor: 'rgba(93,202,165,0.35)', marginBottom: '12px' }}>
+        <div className="jm-hero" style={{ background: 'radial-gradient(ellipse at top right, rgba(224,122,59,0.2) 0%, rgba(224,122,59,0.04) 50%, #1E1C16 100%)', borderColor: 'rgba(224,122,59,0.35)', marginBottom: '12px' }}>
           <p className="jm-hero-label">Total withdrawn</p>
           <p className="jm-hero-val" style={{ color: '#B6EBD8' }}>{fmt(total)}</p>
           <p className="jm-hero-meta">{payouts.length} payout{payouts.length === 1 ? '' : 's'} across {byFirm.length} firm{byFirm.length === 1 ? '' : 's'}</p>
@@ -261,10 +261,10 @@ export default function Payouts({ showToast }) {
                 <div key={firm}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-text)' }}>{firm}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#5DCAA5' }}>{fmt(amt)}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#E07A3B' }}>{fmt(amt)}</span>
                   </div>
                   <div style={{ height: '4px', borderRadius: '2px', background: 'var(--c-border)' }}>
-                    <div style={{ height: '100%', borderRadius: '2px', background: '#5DCAA5', width: `${pct * 100}%`, transition: 'width 0.6s ease' }} />
+                    <div style={{ height: '100%', borderRadius: '2px', background: '#E07A3B', width: `${pct * 100}%`, transition: 'width 0.6s ease' }} />
                   </div>
                 </div>
               );
@@ -328,7 +328,7 @@ export default function Payouts({ showToast }) {
                   <span style={{ fontSize: '12px', color: '#6B6862', marginLeft: '10px' }}>{p.date}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '16px', fontWeight: 600, color: '#5DCAA5' }}>{fmt(p.amount)}</span>
+                  <span style={{ fontSize: '16px', fontWeight: 600, color: '#E07A3B' }}>{fmt(p.amount)}</span>
                   <button onClick={() => setConfirmDel(p.id)} style={{ background: 'transparent', border: '0.5px solid #2A2720', color: '#8B8882', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(226,75,74,0.5)'; e.currentTarget.style.color = '#F09595'; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = '#2A2720'; e.currentTarget.style.color = '#8B8882'; }}>

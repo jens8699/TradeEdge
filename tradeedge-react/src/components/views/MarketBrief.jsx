@@ -74,7 +74,7 @@ export default function MarketBrief({ showToast }) {
     if (!key) return;
     setTopicLoading(true);
     const today = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
-    const prompt = `Today is ${today}. You are a financial markets assistant for a day trader. Generate 4 brief, current market topics that a day trader might want to know about today. Cover: macro/Fed, one equity sector, one technical pattern or market structure observation, and one volatility/risk factor. For each topic return JSON with: "category" (10 chars max), "title" (6-10 words), "teaser" (20-30 words), "color" (one of: #E8724A, #5DCAA5, #85B7EB, #EFC97A). Return only a JSON array, no markdown.`;
+    const prompt = `Today is ${today}. You are a financial markets assistant for a day trader. Generate 4 brief, current market topics that a day trader might want to know about today. Cover: macro/Fed, one equity sector, one technical pattern or market structure observation, and one volatility/risk factor. For each topic return JSON with: "category" (10 chars max), "title" (6-10 words), "teaser" (20-30 words), "color" (one of: #E07A3B, #E07A3B, #A89687, #EFC97A). Return only a JSON array, no markdown.`;
     try {
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -161,7 +161,7 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
       const data = await resp.json();
       const text = data.content?.[0]?.text || '';
       rawBriefText.current = text.replace(/<[^>]+>/g,'');
-      setBriefHtml(prev => prev + `<div class="jm-brief-section" style="margin-top:10px;"><h3 style="color:#85B7EB;">❓ ${customQuestion}</h3>${text}</div>`);
+      setBriefHtml(prev => prev + `<div class="jm-brief-section" style="margin-top:10px;"><h3 style="color:#A89687;">❓ ${customQuestion}</h3>${text}</div>`);
       setCustomQuestion('');
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
     setGenerating(false);
@@ -240,7 +240,7 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
         }}>
           {[
             { label: 'Trades', val: todayStats.count, color:'var(--c-text)' },
-            { label: 'P&L', val: `${todayStats.totalPnl >= 0 ? '+' : ''}$${todayStats.totalPnl.toFixed(0)}`, color: todayStats.totalPnl >= 0 ? '#5DCAA5' : '#F09595' },
+            { label: 'P&L', val: `${todayStats.totalPnl >= 0 ? '+' : ''}$${todayStats.totalPnl.toFixed(0)}`, color: todayStats.totalPnl >= 0 ? '#E07A3B' : '#F09595' },
             { label: 'Win Rate', val: `${todayStats.winRate.toFixed(0)}%`, color:'var(--c-text)' },
             { label: 'W/L', val: `${todayStats.wins}/${todayStats.losses}`, color:'var(--c-text)' },
           ].map(s => (
@@ -286,7 +286,7 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
         </button>
         {briefHtml && (
           <button onClick={speakBrief}
-            style={{ background:'transparent', border:'0.5px solid #2A2720', color: ttsPlaying ? '#E8724A' : '#8B8882', padding:'11px 18px', borderRadius:'16px', fontSize:'13px', fontWeight:500, cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s' }}>
+            style={{ background:'transparent', border:'0.5px solid #2A2720', color: ttsPlaying ? '#E07A3B' : '#8B8882', padding:'11px 18px', borderRadius:'16px', fontSize:'13px', fontWeight:500, cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s' }}>
             {ttsPlaying ? '⏸ Stop' : '▶ Listen'}
           </button>
         )}

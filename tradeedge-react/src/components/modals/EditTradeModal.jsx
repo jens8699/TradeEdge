@@ -5,16 +5,16 @@ const SETUPS = ['', 'Breakout', 'Pullback', 'Reversal', 'Range', 'Trend continua
 const SESSION_LIST = ['', 'Sydney', 'Tokyo', 'London', 'New York', 'Premarket', 'After Hours'];
 const RATINGS = ['A', 'B', 'C', 'D'];
 const RATING_LABELS = { A: 'Perfect execution', B: 'Good trade', C: 'Average', D: 'Poor execution' };
-const RATING_COLORS = { A: '#5DCAA5', B: '#85B7EB', C: '#EFC97A', D: '#F09595' };
+const RATING_COLORS = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#F09595' };
 const EMOTIONS = [
-  { key: 'calm',          label: 'Calm',          icon: '😌', color: '#5DCAA5' },
-  { key: 'confident',     label: 'Confident',     icon: '💪', color: '#85B7EB' },
+  { key: 'calm',          label: 'Calm',          icon: '😌', color: '#E07A3B' },
+  { key: 'confident',     label: 'Confident',     icon: '💪', color: '#A89687' },
   { key: 'fomo',          label: 'FOMO',           icon: '😰', color: '#EFC97A' },
   { key: 'anxious',       label: 'Anxious',        icon: '😬', color: '#EFC97A' },
   { key: 'revenge',       label: 'Revenge',        icon: '😤', color: '#F09595' },
   { key: 'overconfident', label: 'Overconfident',  icon: '🤑', color: '#F09595' },
   { key: 'bored',         label: 'Bored',          icon: '😑', color: '#8B8882' },
-  { key: 'focused',       label: 'Focused',        icon: '🎯', color: '#5DCAA5' },
+  { key: 'focused',       label: 'Focused',        icon: '🎯', color: '#E07A3B' },
 ];
 
 export default function EditTradeModal({ trade, onClose, showToast }) {
@@ -149,7 +149,7 @@ export default function EditTradeModal({ trade, onClose, showToast }) {
             </div>
           </div>
           {rr && (
-            <p style={{ fontSize:'11px', color:'#5DCAA5', margin:'0 0 14px', textAlign:'right', fontWeight:600 }}>
+            <p style={{ fontSize:'11px', color:'#E07A3B', margin:'0 0 14px', textAlign:'right', fontWeight:600 }}>
               R:R ratio → 1 : {rr}
             </p>
           )}

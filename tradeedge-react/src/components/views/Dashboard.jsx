@@ -4,10 +4,10 @@ import { filterPeriod, computeStats, fmt, getGreeting, getStreak, animateCount }
 
 // ── Session / Rating constants ──────────────────────────────────────────────
 const SESSION_COLORS = {
-  Sydney: '#85B7EB', Tokyo: '#A78BFA', London: '#5DCAA5',
-  'New York': '#E8724A', Premarket: '#EFC97A', 'After Hours': '#8B8882',
+  Sydney: '#A89687', Tokyo: '#A78BFA', London: '#E07A3B',
+  'New York': '#E07A3B', Premarket: '#EFC97A', 'After Hours': '#8B8882',
 };
-const RATING_COLORS = { A: '#5DCAA5', B: '#85B7EB', C: '#EFC97A', D: '#F09595' };
+const RATING_COLORS = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#F09595' };
 
 // ── Monthly goal helpers ──────────────────────────────────────────────────────
 const GOAL_KEY = 'te_monthly_goal';
@@ -63,17 +63,17 @@ export default function Dashboard({ user, profile }) {
   const winRateDash = (month.winRate / 100) * circumference;
 
   function getInsight() {
-    if (!trades.length) return { msg: "Log your first trade to get started. Every pro started at zero.", icon: '✦', color: '#E8724A' };
+    if (!trades.length) return { msg: "Log your first trade to get started. Every pro started at zero.", icon: '✦', color: '#E07A3B' };
     if (streak >= 5)    return { msg: `${streak}-trade win streak — you're locked in. Stay disciplined.`, icon: '🔥', color: '#F4A460' };
-    if (week.winRate >= 70) return { msg: `${week.winRate.toFixed(0)}% win rate this week. That edge is sharp.`, icon: '📈', color: '#5DCAA5' };
+    if (week.winRate >= 70) return { msg: `${week.winRate.toFixed(0)}% win rate this week. That edge is sharp.`, icon: '📈', color: '#E07A3B' };
     if (week.winRate > 0 && week.winRate < 40) return { msg: "Tough week. Review your setups — protect the capital first.", icon: '🛡', color: '#E24B4A' };
     if (today.count === 0 && new Date().getHours() >= 9) return { msg: "No trades yet today. Wait for your setup — patience is alpha.", icon: '⏳', color: '#8B8882' };
-    return { msg: `${month.count} trades this month. Win rate: ${month.winRate.toFixed(0)}%. Keep building consistency.`, icon: '◈', color: '#E8724A' };
+    return { msg: `${month.count} trades this month. Win rate: ${month.winRate.toFixed(0)}%. Keep building consistency.`, icon: '◈', color: '#E07A3B' };
   }
 
   const insight = getInsight();
   const todayPos = today.totalPnl >= 0;
-  const todayColor = todayPos ? '#5DCAA5' : '#E24B4A';
+  const todayColor = todayPos ? '#E07A3B' : '#E24B4A';
 
   return (
     <div className="jm-view" style={{ paddingBottom: '24px' }}>
@@ -86,7 +86,7 @@ export default function Dashboard({ user, profile }) {
         <div>
           <p style={{ margin: 0, fontSize: '11px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--c-text-2)', marginBottom: '2px' }}>{time}</p>
           <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--c-text)', letterSpacing: '-0.5px', lineHeight: 1.1 }}>
-            Hey, <span style={{ color: '#E8724A' }}>{firstName}</span> 👋
+            Hey, <span style={{ color: '#E07A3B' }}>{firstName}</span> 👋
           </h1>
         </div>
         <div style={{
@@ -106,9 +106,9 @@ export default function Dashboard({ user, profile }) {
         {/* Today P&L hero */}
         <div style={{
           background: todayPos
-            ? 'radial-gradient(ellipse at top left, rgba(93,202,165,0.18) 0%, rgba(93,202,165,0.04) 55%, var(--c-surface) 100%)'
+            ? 'radial-gradient(ellipse at top left, rgba(224,122,59,0.18) 0%, rgba(224,122,59,0.04) 55%, var(--c-surface) 100%)'
             : 'radial-gradient(ellipse at top left, rgba(226,75,74,0.22) 0%, rgba(226,75,74,0.04) 55%, var(--c-surface) 100%)',
-          border: `1px solid ${todayPos ? 'rgba(93,202,165,0.35)' : 'rgba(226,75,74,0.35)'}`,
+          border: `1px solid ${todayPos ? 'rgba(224,122,59,0.35)' : 'rgba(226,75,74,0.35)'}`,
           borderRadius: '16px', padding: '18px', position: 'relative', overflow: 'hidden',
           gridColumn: '1 / 2'
         }}>
@@ -116,7 +116,7 @@ export default function Dashboard({ user, profile }) {
           <div style={{
             position: 'absolute', top: '-20px', right: '-20px',
             width: '80px', height: '80px', borderRadius: '50%',
-            background: todayPos ? 'rgba(93,202,165,0.2)' : 'rgba(226,75,74,0.2)',
+            background: todayPos ? 'rgba(224,122,59,0.2)' : 'rgba(226,75,74,0.2)',
             filter: 'blur(24px)', pointerEvents: 'none'
           }} />
 
@@ -141,8 +141,8 @@ export default function Dashboard({ user, profile }) {
             <svg width="180" height="44" viewBox="0 0 180 44" style={{ display: 'block', overflow: 'visible' }}>
               <defs>
                 <linearGradient id="spark-grad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor={sparkData.isUp ? '#5DCAA5' : '#E24B4A'} stopOpacity="0.3" />
-                  <stop offset="100%" stopColor={sparkData.isUp ? '#5DCAA5' : '#E24B4A'} stopOpacity="1" />
+                  <stop offset="0%" stopColor={sparkData.isUp ? '#E07A3B' : '#E24B4A'} stopOpacity="0.3" />
+                  <stop offset="100%" stopColor={sparkData.isUp ? '#E07A3B' : '#E24B4A'} stopOpacity="1" />
                 </linearGradient>
               </defs>
               <polyline
@@ -168,15 +168,15 @@ export default function Dashboard({ user, profile }) {
             <p style={{ margin: '0 0 4px', fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--c-text-2)' }}>This Week</p>
             <p style={{
               margin: '0 0 4px', fontSize: '22px', fontWeight: 800,
-              color: week.totalPnl >= 0 ? '#5DCAA5' : '#E24B4A',
+              color: week.totalPnl >= 0 ? '#E07A3B' : '#E24B4A',
               letterSpacing: '-0.5px', fontVariantNumeric: 'tabular-nums'
             }}>
               {fmt(week.totalPnl)}
             </p>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <Tag color="#5DCAA5">{week.wins}W</Tag>
+              <Tag color="#E07A3B">{week.wins}W</Tag>
               <Tag color="#E24B4A">{week.losses}L</Tag>
-              <Tag color="#E8724A">{week.winRate.toFixed(0)}% WR</Tag>
+              <Tag color="#E07A3B">{week.winRate.toFixed(0)}% WR</Tag>
             </div>
           </div>
 
@@ -190,7 +190,7 @@ export default function Dashboard({ user, profile }) {
               <circle cx="36" cy="36" r={ringRadius} fill="none" stroke="var(--c-border)" strokeWidth="6" />
               <circle
                 cx="36" cy="36" r={ringRadius} fill="none"
-                stroke={month.winRate >= 60 ? '#5DCAA5' : month.winRate >= 40 ? '#E8724A' : '#E24B4A'}
+                stroke={month.winRate >= 60 ? '#E07A3B' : month.winRate >= 40 ? '#E07A3B' : '#E24B4A'}
                 strokeWidth="6" strokeLinecap="round"
                 strokeDasharray={`${winRateDash} ${circumference}`}
                 transform="rotate(-90 36 36)"
@@ -213,14 +213,14 @@ export default function Dashboard({ user, profile }) {
 
       {/* ── ROW 2: Insight ────────────────────────────── */}
       <div style={{
-        background: `linear-gradient(135deg, rgba(232,114,74,0.12) 0%, var(--c-surface) 60%)`,
-        border: '1px solid rgba(232,114,74,0.3)',
+        background: `linear-gradient(135deg, rgba(224,122,59,0.12) 0%, var(--c-surface) 60%)`,
+        border: '1px solid rgba(224,122,59,0.3)',
         borderRadius: '16px', padding: '16px 18px', marginBottom: '10px',
         display: 'flex', alignItems: 'center', gap: '14px'
       }}>
         <span style={{ fontSize: '28px', lineHeight: 1, flexShrink: 0 }}>{insight.icon}</span>
         <div>
-          <p style={{ margin: '0 0 2px', fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#E8724A' }}>Today's Insight</p>
+          <p style={{ margin: '0 0 2px', fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#E07A3B' }}>Today's Insight</p>
           <p style={{ margin: 0, fontSize: '13px', color: 'var(--c-text)', lineHeight: 1.6, fontWeight: 500 }}>{insight.msg}</p>
         </div>
       </div>
@@ -242,7 +242,7 @@ export default function Dashboard({ user, profile }) {
         });
         const fillPoints = `0,${h} ${points.join(' ')} ${w},${h}`;
         const isUp = cum >= 0;
-        const stroke = isUp ? '#5DCAA5' : '#E24B4A';
+        const stroke = isUp ? '#E07A3B' : '#E24B4A';
         const zeroY = (h - padY) - ((0 - min) / range) * (h - padY * 2);
         return (
           <div style={{
@@ -262,7 +262,7 @@ export default function Dashboard({ user, profile }) {
               {/* Zero line */}
               <line x1="0" y1={zeroY} x2={w} y2={zeroY} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="4 4" />
               {/* Fill */}
-              <polygon points={fillPoints} fill={isUp ? 'rgba(93,202,165,0.1)' : 'rgba(226,75,74,0.1)'} />
+              <polygon points={fillPoints} fill={isUp ? 'rgba(224,122,59,0.1)' : 'rgba(226,75,74,0.1)'} />
               {/* Line */}
               <polyline points={points.join(' ')} fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               {/* End dot */}
@@ -285,8 +285,8 @@ export default function Dashboard({ user, profile }) {
           <button
             onClick={() => setActiveTab('history')}
             style={{
-              fontSize: '11px', fontWeight: 600, color: '#E8724A', background: 'rgba(232,114,74,0.1)',
-              border: '1px solid rgba(232,114,74,0.25)', borderRadius: '8px',
+              fontSize: '11px', fontWeight: 600, color: '#E07A3B', background: 'rgba(224,122,59,0.1)',
+              border: '1px solid rgba(224,122,59,0.25)', borderRadius: '8px',
               cursor: 'pointer', padding: '5px 10px', letterSpacing: '0.3px'
             }}
           >
@@ -307,7 +307,7 @@ export default function Dashboard({ user, profile }) {
             {recentTrades.map((t, i) => {
               const isWin = t.pnl > 0;
               const isLoss = t.pnl < 0;
-              const barColor = isWin ? '#5DCAA5' : isLoss ? '#E24B4A' : '#8B8882';
+              const barColor = isWin ? '#E07A3B' : isLoss ? '#E24B4A' : '#8B8882';
               return (
                 <div key={t.id} style={{
                   display: 'flex', alignItems: 'center', gap: '10px',
@@ -328,8 +328,8 @@ export default function Dashboard({ user, profile }) {
                       {t.direction && (
                         <span style={{
                           fontSize: '9px', fontWeight: 700, padding: '2px 5px', borderRadius: '4px', letterSpacing: '0.8px',
-                          background: t.direction === 'Long' ? 'rgba(93,202,165,0.15)' : 'rgba(232,114,74,0.15)',
-                          color: t.direction === 'Long' ? '#5DCAA5' : '#E8724A', textTransform: 'uppercase'
+                          background: t.direction === 'Long' ? 'rgba(224,122,59,0.15)' : 'rgba(224,122,59,0.15)',
+                          color: t.direction === 'Long' ? '#E07A3B' : '#E07A3B', textTransform: 'uppercase'
                         }}>
                           {t.direction}
                         </span>
@@ -384,7 +384,7 @@ export default function Dashboard({ user, profile }) {
           icon="✦"
           label="Log Trade"
           desc="New entry"
-          accent="#E8724A"
+          accent="#E07A3B"
           onClick={() => setActiveTab('entry')}
           primary
         />
@@ -392,7 +392,7 @@ export default function Dashboard({ user, profile }) {
           icon="◈"
           label="Stats"
           desc="Analytics"
-          accent="#5DCAA5"
+          accent="#E07A3B"
           onClick={() => setActiveTab('stats')}
         />
         <ActionBtn
@@ -416,7 +416,7 @@ export default function Dashboard({ user, profile }) {
         const pct = goalSet ? Math.min(1, Math.max(0, monthPnl / goal)) : 0;
         const smashed = goalSet && monthPnl >= goal;
         const onPace = goalSet && !smashed && projectedPnl >= goal;
-        const barColor = smashed ? '#F4A460' : onPace ? '#5DCAA5' : '#E8724A';
+        const barColor = smashed ? '#F4A460' : onPace ? '#E07A3B' : '#E07A3B';
 
         return (
           <div style={{
@@ -429,7 +429,7 @@ export default function Dashboard({ user, profile }) {
                 {smashed
                   ? <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#F4A460' }}>🏆 Goal smashed!</p>
                   : onPace
-                    ? <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#5DCAA5' }}>✓ On pace</p>
+                    ? <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#E07A3B' }}>✓ On pace</p>
                     : goalSet
                       ? <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, color: 'var(--c-text-2)' }}>Behind pace — keep pushing</p>
                       : <p style={{ margin: 0, fontSize: '12px', color: 'var(--c-text-2)' }}>Set a goal to track progress</p>}
@@ -458,7 +458,7 @@ export default function Dashboard({ user, profile }) {
                   />
                   <button
                     onClick={() => { const v = parseFloat(goalInput) || 0; saveGoal(v); setGoal(v); setEditingGoal(false); }}
-                    style={{ padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: '#E8724A', color: '#fff', border: 'none', cursor: 'pointer' }}
+                    style={{ padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: '#E07A3B', color: '#fff', border: 'none', cursor: 'pointer' }}
                   >Save</button>
                 </div>
               ) : (
@@ -466,8 +466,8 @@ export default function Dashboard({ user, profile }) {
                   onClick={() => { setGoalInput(goal > 0 ? String(goal) : ''); setEditingGoal(true); }}
                   style={{
                     padding: '6px 12px', borderRadius: '9px', fontSize: '11px', fontWeight: 600,
-                    background: 'rgba(232,114,74,0.12)', color: '#E8724A',
-                    border: '1px solid rgba(232,114,74,0.25)', cursor: 'pointer', letterSpacing: '0.3px'
+                    background: 'rgba(224,122,59,0.12)', color: '#E07A3B',
+                    border: '1px solid rgba(224,122,59,0.25)', cursor: 'pointer', letterSpacing: '0.3px'
                   }}
                 >
                   {goalSet ? 'Edit' : '+ Set Goal'}
@@ -478,7 +478,7 @@ export default function Dashboard({ user, profile }) {
             {goalSet && (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: monthPnl >= 0 ? '#5DCAA5' : '#E24B4A', fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: monthPnl >= 0 ? '#E07A3B' : '#E24B4A', fontVariantNumeric: 'tabular-nums' }}>
                     {monthPnl >= 0 ? '+' : ''}{fmt(monthPnl)}
                   </span>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-text-2)', fontVariantNumeric: 'tabular-nums' }}>
@@ -490,7 +490,7 @@ export default function Dashboard({ user, profile }) {
                     height: '100%', borderRadius: '6px',
                     width: `${(pct * 100).toFixed(1)}%`,
                     background: smashed
-                      ? 'linear-gradient(90deg, #E8724A, #F4A460)'
+                      ? 'linear-gradient(90deg, #E07A3B, #F4A460)'
                       : `linear-gradient(90deg, ${barColor}99, ${barColor})`,
                     transition: 'width 0.5s ease'
                   }} />

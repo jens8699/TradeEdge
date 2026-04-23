@@ -62,10 +62,10 @@ function getConsistencyScore(s) {
 }
 
 function scoreLabel(n) {
-  if (n >= 85) return { label: 'Elite', color: '#5DCAA5' };
-  if (n >= 70) return { label: 'Strong', color: '#E8724A' };
+  if (n >= 85) return { label: 'Elite', color: '#E07A3B' };
+  if (n >= 70) return { label: 'Strong', color: '#E07A3B' };
   if (n >= 55) return { label: 'Developing', color: '#EFC97A' };
-  if (n >= 40) return { label: 'Inconsistent', color: '#85B7EB' };
+  if (n >= 40) return { label: 'Inconsistent', color: '#A89687' };
   return { label: 'Needs work', color: '#F09595' };
 }
 
@@ -111,8 +111,8 @@ export default function Stats() {
       let cum = 0;
       const labels = [], data = [];
       sorted.forEach(t => { cum += t.pnl; labels.push(t.date.slice(5)); data.push(+(cum.toFixed(2))); });
-      const lineColor = cum >= 0 ? '#E8724A' : '#E24B4A';
-      const fillColor = cum >= 0 ? 'rgba(232,114,74,0.15)' : 'rgba(226,75,74,0.12)';
+      const lineColor = cum >= 0 ? '#E07A3B' : '#E24B4A';
+      const fillColor = cum >= 0 ? 'rgba(224,122,59,0.15)' : 'rgba(226,75,74,0.12)';
       pnlChart.current = new Chart(ctx, {
         type: 'line',
         data: { labels, datasets: [{ data, borderColor: lineColor, backgroundColor: fillColor, fill: true, tension: 0.35, pointRadius: sorted.length < 20 ? 4 : 0, pointBackgroundColor: lineColor, pointBorderColor: '#17150F', pointBorderWidth: 2, borderWidth: 2.5 }] },
@@ -126,7 +126,7 @@ export default function Stats() {
         const be = s.count - s.wins - s.losses;
         wlChart.current = new Chart(wlCtx, {
           type: 'bar',
-          data: { labels: ['Wins', 'Losses', 'B/E'], datasets: [{ data: [s.wins, s.losses, be], backgroundColor: ['rgba(93,202,165,0.75)', 'rgba(226,75,74,0.75)', 'rgba(139,136,130,0.4)'], borderRadius: 8, borderWidth: 0 }] },
+          data: { labels: ['Wins', 'Losses', 'B/E'], datasets: [{ data: [s.wins, s.losses, be], backgroundColor: ['rgba(224,122,59,0.75)', 'rgba(226,75,74,0.75)', 'rgba(139,136,130,0.4)'], borderRadius: 8, borderWidth: 0 }] },
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0E0C08', titleColor: '#F5F3ED', bodyColor: '#E8E6E1', borderColor: '#2A2720', borderWidth: 1, padding: 10, cornerRadius: 8 } }, scales: { y: { ticks: { color: '#8B8882' }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { display: false } }, x: { ticks: { color: '#E8E6E1' }, grid: { display: false }, border: { display: false } } } },
         });
       }
@@ -135,7 +135,7 @@ export default function Stats() {
       if (dowChart.current) { dowChart.current.destroy(); dowChart.current = null; }
       const dowCtx = dowRef.current;
       if (dowCtx && dowStats.length) {
-        const colors = dowStats.map(d => d.pnl >= 0 ? 'rgba(232,114,74,0.75)' : 'rgba(226,75,74,0.7)');
+        const colors = dowStats.map(d => d.pnl >= 0 ? 'rgba(224,122,59,0.75)' : 'rgba(226,75,74,0.7)');
         dowChart.current = new Chart(dowCtx, {
           type: 'bar',
           data: { labels: dowStats.map(d => d.label), datasets: [{ data: dowStats.map(d => +(d.pnl.toFixed(2))), backgroundColor: colors, borderRadius: 8, borderWidth: 0 }] },
@@ -190,16 +190,16 @@ export default function Stats() {
 
         {/* Core metrics row */}
         <div className="stats-rings-row" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'10px', marginBottom:'10px' }}>
-          <MetricRing label="Win Rate" value={s.winRate.toFixed(1) + '%'} pct={s.winRate} color="#E8724A" foot={`${s.wins}W / ${s.losses}L`} />
-          <MetricRing label="Profit Factor" value={isFinite(s.pf) ? s.pf.toFixed(2) : '∞'} pct={Math.min((isFinite(s.pf)?s.pf:3)/3*100,100)} color="#5DCAA5" foot={s.pf >= 1.5 ? '✓ Good edge' : s.pf >= 1 ? 'Breakeven zone' : '⚠ Below B/E'} />
-          <MetricRing label="Avg R:R" value={s.rr.toFixed(2)} pct={Math.min(s.rr/3*100,100)} color="#85B7EB" foot={s.rr >= 1.5 ? '✓ Healthy R:R' : s.rr >= 1 ? 'Needs improvement' : '⚠ Risk > Reward'} />
+          <MetricRing label="Win Rate" value={s.winRate.toFixed(1) + '%'} pct={s.winRate} color="#5DCAA5" foot={`${s.wins}W / ${s.losses}L`} />
+          <MetricRing label="Profit Factor" value={isFinite(s.pf) ? s.pf.toFixed(2) : '∞'} pct={Math.min((isFinite(s.pf)?s.pf:3)/3*100,100)} color="#E07A3B" foot={s.pf >= 1.5 ? '✓ Good edge' : s.pf >= 1 ? 'Breakeven zone' : '⚠ Below B/E'} />
+          <MetricRing label="Avg R:R" value={s.losses === 0 ? '—' : s.rr.toFixed(2)} pct={Math.min(s.rr/3*100,100)} color="#A89687" foot={s.losses === 0 ? 'No losses yet' : s.rr >= 1.5 ? '✓ Healthy R:R' : s.rr >= 1 ? 'Needs improvement' : '⚠ Risk > Reward'} />
         </div>
 
         {/* Secondary metrics */}
         <div className="stats-small-cards" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'10px', marginBottom:'10px' }}>
-          <SmallCard label="Avg Win" val={fmt(s.avgWin)} color="#5DCAA5" />
+          <SmallCard label="Avg Win" val={fmt(s.avgWin)} color="#E07A3B" />
           <SmallCard label="Avg Loss" val={fmt(s.avgLoss)} color="#F09595" />
-          <SmallCard label="Best Trade" val={fmt(s.best)} color="#5DCAA5" />
+          <SmallCard label="Best Trade" val={fmt(s.best)} color="#E07A3B" />
           <SmallCard label="Worst Trade" val={fmt(s.worst)} color="#F09595" />
         </div>
 
@@ -227,14 +227,14 @@ export default function Stats() {
                     <span style={{ fontSize:'13px', fontWeight:600, color:'#E8E6E1' }}>{ss.name}</span>
                     <div style={{ display:'flex', gap:'12px', alignItems:'center' }}>
                       <span style={{ fontSize:'11px', color:'#8B8882' }}>{ss.count} trades · {ss.wr}% WR</span>
-                      <span style={{ fontSize:'13px', fontWeight:700, color: ss.pnl >= 0 ? '#5DCAA5' : '#F09595' }}>{fmt(ss.pnl)}</span>
+                      <span style={{ fontSize:'13px', fontWeight:700, color: ss.pnl >= 0 ? '#E07A3B' : '#F09595' }}>{fmt(ss.pnl)}</span>
                     </div>
                   </div>
                   <div style={{ height:'5px', borderRadius:'3px', background:'rgba(255,255,255,0.06)', overflow:'hidden' }}>
                     <div style={{
                       height:'100%', borderRadius:'3px',
                       width: `${Math.abs(ss.pnl) / maxSetupPnl * 100}%`,
-                      background: ss.pnl >= 0 ? 'linear-gradient(90deg,#E8724A,#F0A67A)' : 'linear-gradient(90deg,#E24B4A,#F09595)',
+                      background: ss.pnl >= 0 ? 'linear-gradient(90deg,#E07A3B,#F0A67A)' : 'linear-gradient(90deg,#E24B4A,#F09595)',
                       transition: 'width 0.6s ease',
                     }} />
                   </div>
@@ -272,7 +272,7 @@ export default function Stats() {
               const worst = [...dowStats].sort((a,b) => a.pnl - b.pnl)[0];
               return best && best !== worst ? (
                 <p style={{ fontSize:'12px', color:'#8B8882', margin:'10px 0 0', lineHeight:1.6 }}>
-                  <span style={{ color:'#5DCAA5', fontWeight:600 }}>{best.label}</span> is your best day ({fmt(best.pnl)}) ·&nbsp;
+                  <span style={{ color:'#E07A3B', fontWeight:600 }}>{best.label}</span> is your best day ({fmt(best.pnl)}) ·&nbsp;
                   <span style={{ color:'#F09595', fontWeight:600 }}>{worst.label}</span> is your worst day ({fmt(worst.pnl)})
                 </p>
               ) : null;
@@ -285,7 +285,7 @@ export default function Stats() {
           <div className="stats-charts-row" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'10px' }}>
             {topWins.length > 0 && (
               <div className="jm-card">
-                <h2 className="jm-card-title" style={{ marginBottom:'12px', color:'#5DCAA5' }}>🏆 Top Wins</h2>
+                <h2 className="jm-card-title" style={{ marginBottom:'12px', color:'#E07A3B' }}>🏆 Top Wins</h2>
                 {topWins.map((t, i) => (
                   <div key={t.id || i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 0', borderBottom: i < topWins.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none' }}>
                     <div>
@@ -293,7 +293,7 @@ export default function Stats() {
                       <span style={{ fontSize:'11px', color:'#8B8882', marginLeft:'8px' }}>{t.date}</span>
                       {t.setup && <span style={{ fontSize:'10px', color:'#6B6760', marginLeft:'6px' }}>{t.setup}</span>}
                     </div>
-                    <span style={{ fontSize:'13px', fontWeight:700, color:'#5DCAA5' }}>{fmt(t.pnl)}</span>
+                    <span style={{ fontSize:'13px', fontWeight:700, color:'#E07A3B' }}>{fmt(t.pnl)}</span>
                   </div>
                 ))}
               </div>
@@ -344,15 +344,17 @@ function MetricRing({ label, value, pct, color, foot }) {
   const dash = (Math.max(0, Math.min(100, pct)) / 100) * circ;
   return (
     <div className="jm-card" style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'18px 12px', gap:'6px' }}>
-      <svg width="68" height="68" style={{ overflow:'visible' }}>
-        <circle cx="34" cy="34" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
-        <circle cx="34" cy="34" r={r} fill="none" stroke={color} strokeWidth="5"
-          strokeDasharray={`${dash} ${circ}`} strokeLinecap="butt"
-          transform="rotate(-90 34 34)" style={{ transition:'stroke-dasharray 0.6s ease' }} />
-      </svg>
-      <p style={{ fontSize:'20px', fontWeight:800, color, margin:'-48px 0 0', letterSpacing:'-0.5px' }}>{value}</p>
-      <p style={{ fontSize:'11px', color:'#8B8882', margin:'46px 0 0', textTransform:'uppercase', letterSpacing:'0.5px' }}>{label}</p>
-      {foot && <p style={{ fontSize:'11px', color:'#6B6760', textAlign:'center', lineHeight:1.4 }}>{foot}</p>}
+      <div style={{ position:'relative', width:'68px', height:'68px', flexShrink:0 }}>
+        <svg width="68" height="68" style={{ overflow:'visible', display:'block' }}>
+          <circle cx="34" cy="34" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
+          <circle cx="34" cy="34" r={r} fill="none" stroke={color} strokeWidth="5"
+            strokeDasharray={`${dash} ${circ}`} strokeLinecap="butt"
+            transform="rotate(-90 34 34)" style={{ transition:'stroke-dasharray 0.6s ease' }} />
+        </svg>
+        <p style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', margin:0, fontSize:'16px', fontWeight:800, color, letterSpacing:'-0.5px' }}>{value}</p>
+      </div>
+      <p style={{ fontSize:'11px', color:'#8B8882', margin:0, textTransform:'uppercase', letterSpacing:'0.5px' }}>{label}</p>
+      {foot && <p style={{ fontSize:'11px', color:'#6B6760', textAlign:'center', lineHeight:1.4, margin:0 }}>{foot}</p>}
     </div>
   );
 }
@@ -367,7 +369,7 @@ function SmallCard({ label, val, color }) {
 }
 
 function StreakCol({ label, value, type, icon, sub }) {
-  const color = type === 'win' ? '#5DCAA5' : type === 'loss' ? '#F09595' : '#8B8882';
+  const color = type === 'win' ? '#E07A3B' : type === 'loss' ? '#F09595' : '#8B8882';
   return (
     <div style={{ textAlign:'center' }}>
       <p style={{ fontSize:'11px', color:'#8B8882', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'6px' }}>{label}</p>
@@ -411,7 +413,7 @@ function MonthlyBars({ trades }) {
           const pct = Math.abs(m.pnl) / maxAbs;
           const isPos = m.pnl >= 0;
           const barH = Math.max(4, pct * 88);
-          const color = isPos ? '#5DCAA5' : '#E24B4A';
+          const color = isPos ? '#E07A3B' : '#E24B4A';
           return (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', height: '100%', justifyContent: 'flex-end' }}>
               <span style={{ fontSize: '10px', fontWeight: 700, color, opacity: m.count ? 1 : 0 }}>
@@ -454,8 +456,8 @@ function SetupBreakdown({ trades }) {
         {setups.map((s, i) => {
           const pct = Math.abs(s.pnl) / maxPnl;
           const isPos = s.pnl >= 0;
-          const color = isPos ? '#5DCAA5' : '#E24B4A';
-          const wrColor = s.wr >= 60 ? '#5DCAA5' : s.wr >= 40 ? '#EFC97A' : '#F09595';
+          const color = isPos ? '#E07A3B' : '#E24B4A';
+          const wrColor = s.wr >= 60 ? '#E07A3B' : s.wr >= 40 ? '#EFC97A' : '#F09595';
           return (
             <div key={i}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center' }}>
@@ -482,7 +484,7 @@ function SetupBreakdown({ trades }) {
 }
 
 // ── Session breakdown ─────────────────────────────────────────────────────────
-const SESSION_COLORS = { Sydney: '#85B7EB', Tokyo: '#A78BFA', London: '#5DCAA5', 'New York': '#E8724A', Premarket: '#EFC97A', 'After Hours': '#8B8882' };
+const SESSION_COLORS = { Sydney: '#A89687', Tokyo: '#A78BFA', London: '#E07A3B', 'New York': '#E07A3B', Premarket: '#EFC97A', 'After Hours': '#8B8882' };
 
 function SessionBreakdown({ trades }) {
   const stats = useMemo(() => {
@@ -508,7 +510,7 @@ function SessionBreakdown({ trades }) {
         {stats.map((s, i) => {
           const color = SESSION_COLORS[s.name] || '#8B8882';
           const pct = Math.abs(s.pnl) / maxPnl;
-          const wrColor = s.wr >= 60 ? '#5DCAA5' : s.wr >= 40 ? '#EFC97A' : '#F09595';
+          const wrColor = s.wr >= 60 ? '#E07A3B' : s.wr >= 40 ? '#EFC97A' : '#F09595';
           return (
             <div key={i}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center' }}>
@@ -519,7 +521,7 @@ function SessionBreakdown({ trades }) {
                 </div>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                   <span style={{ fontSize: '11px', fontWeight: 700, color: wrColor }}>{s.wr.toFixed(0)}% WR</span>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color: s.pnl >= 0 ? '#5DCAA5' : '#E24B4A', minWidth: '60px', textAlign: 'right' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: s.pnl >= 0 ? '#E07A3B' : '#E24B4A', minWidth: '60px', textAlign: 'right' }}>
                     {s.pnl >= 0 ? '+' : ''}{fmt(s.pnl)}
                   </span>
                 </div>
@@ -536,7 +538,7 @@ function SessionBreakdown({ trades }) {
 }
 
 // ── Rating breakdown ──────────────────────────────────────────────────────────
-const RATING_COLORS_STATS = { A: '#5DCAA5', B: '#85B7EB', C: '#EFC97A', D: '#F09595' };
+const RATING_COLORS_STATS = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#F09595' };
 const RATING_LABELS_STATS = { A: 'Perfect execution', B: 'Good trade', C: 'Average', D: 'Poor execution' };
 
 function RatingBreakdown({ trades }) {
@@ -563,7 +565,7 @@ function RatingBreakdown({ trades }) {
         {stats.map(s => {
           const color = RATING_COLORS_STATS[s.rating];
           const pct = Math.abs(s.pnl) / maxPnl;
-          const wrColor = s.wr >= 60 ? '#5DCAA5' : s.wr >= 40 ? '#EFC97A' : '#F09595';
+          const wrColor = s.wr >= 60 ? '#E07A3B' : s.wr >= 40 ? '#EFC97A' : '#F09595';
           return (
             <div key={s.rating}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center' }}>
@@ -574,7 +576,7 @@ function RatingBreakdown({ trades }) {
                 </div>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                   <span style={{ fontSize: '11px', fontWeight: 700, color: wrColor }}>{s.wr.toFixed(0)}% WR</span>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color: s.pnl >= 0 ? '#5DCAA5' : '#E24B4A', minWidth: '60px', textAlign: 'right' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: s.pnl >= 0 ? '#E07A3B' : '#E24B4A', minWidth: '60px', textAlign: 'right' }}>
                     {s.pnl >= 0 ? '+' : ''}{fmt(s.pnl)}
                   </span>
                 </div>
@@ -618,8 +620,8 @@ function DayOfWeek({ trades }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
         {stats.map((s, i) => {
           const isPos = s && s.avgPnl >= 0;
-          const color = s ? (isPos ? '#5DCAA5' : '#E24B4A') : '#2A2720';
-          const wrColor = s ? (s.wr >= 60 ? '#5DCAA5' : s.wr >= 40 ? '#EFC97A' : '#F09595') : '#6B6760';
+          const color = s ? (isPos ? '#E07A3B' : '#E24B4A') : '#2A2720';
+          const wrColor = s ? (s.wr >= 60 ? '#E07A3B' : s.wr >= 40 ? '#EFC97A' : '#F09595') : '#6B6760';
           const intensity = s ? Math.max(0.08, (Math.abs(s.avgPnl) / maxAbsAvg) * 0.25) : 0.04;
           return (
             <div key={i} style={{

@@ -1215,7 +1215,7 @@ const styles = {
     marginBottom: '6px', fontWeight: 500,
   },
   input: {
-    width: '100%', background: 'var(--c-bg)', border: '1px solid var(--c-border)',
+    width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--c-border)',
     borderRadius: '8px', padding: '9px 12px', color: 'var(--c-text)',
     fontSize: '13px', marginBottom: '12px', boxSizing: 'border-box',
     outline: 'none',

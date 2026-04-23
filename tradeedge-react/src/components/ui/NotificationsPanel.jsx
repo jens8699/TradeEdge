@@ -176,12 +176,12 @@ function relativeTime(iso) {
 
 // ── Type colours ───────────────────────────────────────────────────────────────
 const TYPE_COLOR = {
-  milestone: '#E8724A',
+  milestone: '#E07A3B',
   streak:    '#F59E0B',
-  best_day:  '#5DCAA5',
-  insight:   '#85B7EB',
+  best_day:  '#E07A3B',
+  insight:   '#A89687',
   import:    '#A78BFA',
-  welcome:   '#5DCAA5',
+  welcome:   '#E07A3B',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -276,7 +276,7 @@ export default function NotificationsPanel({ trades, isOpen, onClose }) {
             {unreadCount > 0 && (
               <span style={{
                 fontSize: '10px', fontWeight: 700,
-                background: '#E8724A', color: '#fff',
+                background: '#E07A3B', color: '#fff',
                 borderRadius: '100px', padding: '1px 6px',
                 minWidth: '18px', textAlign: 'center',
               }}>
@@ -290,7 +290,7 @@ export default function NotificationsPanel({ trades, isOpen, onClose }) {
                 onClick={markAllRead}
                 style={{
                   background: 'none', border: 'none',
-                  fontSize: '11px', color: '#E8724A',
+                  fontSize: '11px', color: '#E07A3B',
                   cursor: 'pointer', fontWeight: 600, padding: '2px 4px',
                 }}
               >
@@ -370,7 +370,7 @@ function NotifCard({ notif, color, onRead }) {
         cursor: notif.read ? 'default' : 'pointer',
         background: hovered && !notif.read
           ? 'rgba(255,255,255,0.03)'
-          : notif.read ? 'transparent' : 'rgba(232,114,74,0.03)',
+          : notif.read ? 'transparent' : 'rgba(224,122,59,0.03)',
         borderBottom: '1px solid var(--c-border)',
         transition: 'background 0.12s',
         position: 'relative',
@@ -386,7 +386,7 @@ function NotifCard({ notif, color, onRead }) {
           width: '6px',
           height: '6px',
           borderRadius: '50%',
-          background: '#E8724A',
+          background: '#E07A3B',
           flexShrink: 0,
         }} />
       )}
@@ -457,13 +457,13 @@ export function NotificationsBell({ trades, onClick, isOpen }) {
       title="Notifications"
       style={{
         position: 'relative',
-        background: isOpen ? 'rgba(232,114,74,0.12)' : 'none',
-        border: isOpen ? '1px solid rgba(232,114,74,0.3)' : '1px solid transparent',
+        background: isOpen ? 'rgba(224,122,59,0.12)' : 'none',
+        border: isOpen ? '1px solid rgba(224,122,59,0.3)' : '1px solid transparent',
         borderRadius: '8px',
         cursor: 'pointer',
         padding: '5px 7px',
         fontSize: '15px',
-        color: isOpen ? '#E8724A' : 'var(--c-text-2)',
+        color: isOpen ? '#E07A3B' : 'var(--c-text-2)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -480,7 +480,7 @@ export function NotificationsBell({ trades, onClick, isOpen }) {
           minWidth: '15px',
           height: '15px',
           borderRadius: '100px',
-          background: '#E8724A',
+          background: '#E07A3B',
           color: '#fff',
           fontSize: '9px',
           fontWeight: 800,
