@@ -16,7 +16,7 @@ export async function onRequestPost(context) {
     const body = await request.json();
     const {
       messages,
-      model      = 'claude-3-haiku-20240307',
+      model      = 'claude-haiku-4-5-20251001',
       max_tokens = 1024,
       system,
     } = body;
