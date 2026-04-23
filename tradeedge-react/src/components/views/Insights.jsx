@@ -508,7 +508,7 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
       const resp = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-3-5-sonnet-20241022', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
+        body: JSON.stringify({ model: 'claude-3-haiku-20240307', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
       });
       if (!resp.ok) {
         let errMsg = `HTTP ${resp.status}`;
