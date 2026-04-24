@@ -9,7 +9,7 @@ const PLATFORMS = [
   {
     id: 'tradovate',
     name: 'Tradovate',
-    logo: '⬡',
+    logo: 'TV',
     color: '#00C2E0',
     description: 'Futures trading — used by Apex, TopStep, Earn2Trade',
     status: 'available',
@@ -18,7 +18,7 @@ const PLATFORMS = [
   {
     id: 'rithmic',
     name: 'Rithmic',
-    logo: '◈',
+    logo: 'Ri',
     color: '#7C5CFC',
     description: 'Futures & options — used by many prop firms',
     status: 'coming_soon',
@@ -27,7 +27,7 @@ const PLATFORMS = [
   {
     id: 'tradestation',
     name: 'TradeStation',
-    logo: '◇',
+    logo: 'TS',
     color: '#E07A3B',
     description: 'Stocks, options & futures broker',
     status: 'coming_soon',
@@ -36,7 +36,7 @@ const PLATFORMS = [
   {
     id: 'ibkr',
     name: 'Interactive Brokers',
-    logo: '⬛',
+    logo: 'IB',
     color: '#C41230',
     description: 'Multi-asset broker with global reach',
     status: 'coming_soon',
@@ -45,7 +45,7 @@ const PLATFORMS = [
   {
     id: 'alpaca',
     name: 'Alpaca',
-    logo: '⬟',
+    logo: '🦙',
     color: '#FFCE00',
     description: 'Commission-free stocks & crypto API',
     status: 'coming_soon',
@@ -54,7 +54,7 @@ const PLATFORMS = [
   {
     id: 'mt4mt5',
     name: 'MT4 / MT5',
-    logo: '⬢',
+    logo: 'MT',
     color: '#4E9AF1',
     description: 'MetaTrader — Forex & CFD platforms',
     status: 'guide',
@@ -63,7 +63,7 @@ const PLATFORMS = [
   {
     id: 'ninjatrader',
     name: 'NinjaTrader',
-    logo: '◎',
+    logo: 'NT',
     color: '#F4A460',
     description: 'Advanced futures & forex platform',
     status: 'coming_soon',
@@ -72,7 +72,7 @@ const PLATFORMS = [
   {
     id: 'thinkorswim',
     name: 'thinkorswim',
-    logo: '◉',
+    logo: 'ToS',
     color: '#00A651',
     description: 'TD Ameritrade / Schwab flagship platform',
     status: 'coming_soon',
@@ -280,7 +280,7 @@ function TradovateModal({ onClose, onConnected, existingAccount }) {
         {/* Header */}
         <div style={styles.modalHeader}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ ...styles.platformIcon, background: 'rgba(0,194,224,0.12)', color: '#00C2E0', fontSize: '20px' }}>⬡</div>
+            <div style={{ ...styles.platformIcon, background: 'rgba(0,194,224,0.12)', color: '#00C2E0', fontSize: '13px', fontWeight: 800 }}>TV</div>
             <div>
               <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--c-text)' }}>Tradovate</h3>
               <p style={{ margin: 0, fontSize: '12px', color: 'var(--c-text-2)' }}>Live &amp; Demo accounts</p>
@@ -1035,7 +1035,8 @@ export default function Connections({ user, showToast }) {
                     background: `${platform.color}18`,
                     color: platform.color,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '18px',
+                    fontSize: platform.logo.length > 2 ? '11px' : platform.logo.length > 1 ? '13px' : '20px',
+                    fontWeight: 800, letterSpacing: '-0.5px',
                   }}>
                     {platform.logo}
                   </div>
