@@ -1223,7 +1223,7 @@ const styles = {
   },
   toggleRow: {
     display: 'flex', gap: '6px', marginBottom: '16px',
-    background: 'var(--c-bg)', border: '1px solid var(--c-border)',
+    background: 'rgba(0,0,0,0.08)', border: '1px solid var(--c-border)',
     borderRadius: '8px', padding: '3px',
   },
   envBtn: {
@@ -1232,7 +1232,7 @@ const styles = {
     background: 'transparent', color: 'var(--c-text-2)',
   },
   envBtnActive: {
-    background: 'var(--c-surface)', color: 'var(--c-text)',
+    background: '#E07A3B', color: '#fff',
     boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
   },
   primaryBtn: {
