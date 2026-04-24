@@ -695,6 +695,9 @@ html[data-theme="light"] body { background:#E8E2D6; color:#0D0C09; }
 .dash-trade-row:hover { background: #2B211B; }
 [data-theme="light"] .dash-trade-row { background: #EDE8DC; border-color: #B8B3A8; }
 [data-theme="light"] .dash-trade-row:hover { background: #E4DED2; }
+
+/* Light mode: fix date group header in history */
+[data-theme="light"] .jm-date-group-header { background: rgba(0,0,0,0.04) !important; }
 .dash-trade-dot {
   width: 8px;
   height: 8px;

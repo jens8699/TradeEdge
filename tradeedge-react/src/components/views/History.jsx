@@ -253,7 +253,7 @@ function DateGroup({ date, trades, onSelect }) {
   return (
     <div style={{ marginBottom: '8px', background: 'var(--c-surface)', borderRadius: '14px', border: '1px solid var(--c-border)', overflow: 'hidden' }}>
       {/* Day header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid var(--c-border)', background: 'rgba(255,255,255,0.04)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--c-text)' }}>
             {new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
