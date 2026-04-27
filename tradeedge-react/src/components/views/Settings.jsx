@@ -2,9 +2,71 @@ import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { sb } from '../../lib/supabase';
 
+// ── Layout helpers ────────────────────────────────────────────────────────────
+
+function HR() {
+  return <div style={{ height: 1, background: 'var(--c-border)', margin: '28px 0' }} />;
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 18 }}>
+      {children}
+    </div>
+  );
+}
+
+function Field({ label, hint, children }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 12, color: 'var(--c-text-2)', marginBottom: 6 }}>{label}</div>
+      {hint && <div style={{ fontSize: 11, color: 'var(--c-text-2)', opacity: 0.6, marginBottom: 8, lineHeight: 1.5 }}>{hint}</div>}
+      {children}
+    </div>
+  );
+}
+
+function SaveMsg({ msg }) {
+  if (!msg) return null;
+  const ok = msg.startsWith('✓');
+  return <div style={{ fontSize: 11, marginTop: 6, color: ok ? 'var(--c-accent)' : '#C65A45' }}>{msg}</div>;
+}
+
+const inputStyle = {
+  width: '100%', maxWidth: 360, boxSizing: 'border-box',
+  background: 'transparent', border: '1px solid var(--c-border)', borderRadius: 8,
+  padding: '9px 12px', fontSize: 13, color: 'var(--c-text)', fontFamily: "'Inter', sans-serif",
+  outline: 'none', display: 'block',
+};
+
+function ActionButton({ onClick, children, variant = 'primary', disabled }) {
+  const styles = {
+    primary: { background: 'rgba(224,122,59,0.1)', border: '1px solid rgba(224,122,59,0.35)', color: 'var(--c-accent)' },
+    ghost:   { background: 'transparent', border: '1px solid var(--c-border)', color: 'var(--c-text-2)' },
+    danger:  { background: 'transparent', border: '1px solid rgba(198,90,69,0.35)', color: '#C65A45' },
+  };
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        padding: '9px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+        cursor: disabled ? 'default' : 'pointer', fontFamily: "'Inter', sans-serif",
+        opacity: disabled ? 0.6 : 1, transition: 'opacity 0.15s',
+        ...styles[variant],
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function Settings({ user, profile, showToast, onUpgrade }) {
   const { exportData, importData, isOnline, syncPending, doSync, offlineQueueCount, theme, toggleTheme } = useApp();
-  const [name,        setName]        = useState((profile?.name) || user?.user_metadata?.name || '');
+
+  const [name,        setName]        = useState(profile?.name || user?.user_metadata?.name || '');
   const [nameMsg,     setNameMsg]     = useState('');
   const [pass,        setPass]        = useState('');
   const [passConfirm, setPassConfirm] = useState('');
@@ -17,7 +79,6 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
   const [limitMsg,    setLimitMsg]    = useState('');
   const fileRef = useRef(null);
 
-  // Show saved status on load
   useEffect(() => {
     if (claudeKey) setClaudeMsg('✓ Key saved');
     if (elKey)     setElMsg('✓ Key saved');
@@ -29,33 +90,33 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
     if (error) { setNameMsg(error.message); return; }
     setNameMsg('✓ Name updated');
     setTimeout(() => setNameMsg(''), 3000);
-    showToast('Display name updated', 'success');
+    showToast('Display name updated');
   };
 
   const savePass = async () => {
     setPassMsg('');
-    if (pass.length < 6) { setPassMsg('Min. 6 characters.'); return; }
-    if (pass !== passConfirm) { setPassMsg('Passwords do not match.'); return; }
+    if (pass.length < 6)        { setPassMsg('Min. 6 characters.'); return; }
+    if (pass !== passConfirm)   { setPassMsg('Passwords do not match.'); return; }
     const { error } = await sb.auth.updateUser({ password: pass });
     if (error) { setPassMsg(error.message); return; }
     setPassMsg('✓ Password updated');
     setPass(''); setPassConfirm('');
     setTimeout(() => setPassMsg(''), 3000);
-    showToast('Password updated', 'success');
+    showToast('Password updated');
   };
 
   const saveClaudeKey = () => {
     if (!claudeKey.startsWith('sk-ant-')) { setClaudeMsg('Key should start with sk-ant-'); return; }
     localStorage.setItem('jens_claude_key', claudeKey);
     setClaudeMsg('✓ Key saved');
-    showToast('Claude key saved', 'success');
+    showToast('Claude key saved');
   };
 
   const saveElKey = () => {
     if (!elKey.trim()) { setElMsg('Please enter a key.'); return; }
     localStorage.setItem('jens_el_key', elKey);
     setElMsg('✓ Key saved');
-    showToast('ElevenLabs key saved', 'success');
+    showToast('ElevenLabs key saved');
   };
 
   const saveDailyLimit = () => {
@@ -64,7 +125,7 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
     localStorage.setItem('te_daily_loss_limit', dailyLimit);
     setLimitMsg('✓ Saved');
     setTimeout(() => setLimitMsg(''), 2500);
-    showToast('Daily loss limit saved', 'success');
+    showToast('Daily loss limit saved');
   };
 
   const handleImport = async (e) => {
@@ -72,198 +133,199 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
     if (!file) return;
     try {
       await importData(file);
-      showToast('Data imported', 'success');
-    } catch(err) {
-      showToast('Import failed: ' + err.message, 'error');
+      showToast('Data imported');
+    } catch (err) {
+      showToast('Import failed: ' + err.message);
     }
     e.target.value = '';
   };
 
+  const isPro = profile?.plan === 'pro';
+
   return (
-    <div className="jm-view">
-      <div className="jm-greeting">
-        <p className="jm-hello">Manage your account</p>
-        <h1 className="jm-page-title">⚙ <span>Settings</span></h1>
+    <div style={{ padding: '36px 44px', maxWidth: 760, paddingBottom: 64 }}>
+
+      {/* ── Header ── */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
+          Settings
+        </div>
+        <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 34, letterSpacing: '-0.03em', color: 'var(--c-text)', lineHeight: 1.1 }}>
+          Your account<span style={{ color: 'var(--c-accent)' }}>.</span>
+        </div>
       </div>
 
-      {/* Appearance */}
-      <div className="set-section">
-        <p className="set-section-title">Appearance</p>
-        <div className="set-row theme-toggle-row">
-          <div>
-            <span style={{ fontSize:'13px', color:'#C8C4BC', fontWeight:500 }}>Light mode</span>
-            <p style={{ fontSize:'12px', color:'#6B6862', margin:'2px 0 0' }}>Switch between dark and light theme</p>
+      <HR />
+
+      {/* ── Appearance ── */}
+      <SectionLabel>Appearance</SectionLabel>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--c-text)', marginBottom: 3 }}>
+            {theme === 'light' ? 'Light mode' : 'Dark mode'}
           </div>
-          <label className="theme-switch">
-            <input type="checkbox" checked={theme === 'light'} onChange={toggleTheme} />
-            <span className="theme-track"></span>
-            <span className="theme-thumb"></span>
-          </label>
+          <div style={{ fontSize: 12, color: 'var(--c-text-2)' }}>Switch between dark and light theme</div>
         </div>
-      </div>
-
-      {/* Profile */}
-      <div className="set-section">
-        <p className="set-section-title">Profile</p>
-        <div className="set-row">
-          <label>Display name</label>
-          <input type="text" className="jm-in" value={name} onChange={e => setName(e.target.value)} />
-          <p className="set-msg" style={{ color: nameMsg.startsWith('✓') ? '#E07A3B' : '#F09595' }}>{nameMsg}</p>
-        </div>
-        <div className="set-row" style={{ marginBottom:0 }}>
-          <label>Email</label>
-          <input type="email" className="jm-in" value={user?.email || ''} disabled style={{ opacity:0.5 }} />
-        </div>
-        <button className="jm-btn" style={{ marginTop:'14px' }} onClick={saveName}>Save name</button>
-      </div>
-
-      {/* Password */}
-      <div className="set-section">
-        <p className="set-section-title">Change password</p>
-        <div className="set-row">
-          <label>New password</label>
-          <input type="password" className="jm-in" placeholder="Min. 6 characters" value={pass} onChange={e => setPass(e.target.value)} />
-        </div>
-        <div className="set-row" style={{ marginBottom:0 }}>
-          <label>Confirm password</label>
-          <input type="password" className="jm-in" placeholder="Repeat password" value={passConfirm} onChange={e => setPassConfirm(e.target.value)} />
-          <p className="set-msg" style={{ color: passMsg.startsWith('✓') ? '#E07A3B' : '#F09595' }}>{passMsg}</p>
-        </div>
-        <button className="jm-btn" style={{ marginTop:'14px' }} onClick={savePass}>Update password</button>
-      </div>
-
-      {/* Claude API key */}
-      <div className="set-section">
-        <p className="set-section-title">Claude API Key</p>
-        <p style={{ fontSize:'12px', color:'#6B6862', margin:'0 0 12px', lineHeight:1.6 }}>
-          Required for Market Brief and AI Insights. Get your key at{' '}
-          <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{ color:'#8B8882' }}>console.anthropic.com</a>.
-        </p>
-        <div className="set-row" style={{ marginBottom:0 }}>
-          <label>API key (sk-ant-…)</label>
-          <input type="password" className="jm-in" placeholder="sk-ant-api03-…" value={claudeKey} onChange={e => setClaudeKey(e.target.value)} />
-          <p className="set-msg" style={{ color: claudeMsg.startsWith('✓') ? '#E07A3B' : '#F09595' }}>{claudeMsg}</p>
-        </div>
-        <button className="jm-btn" style={{ marginTop:'14px' }} onClick={saveClaudeKey}>Save Claude key</button>
-      </div>
-
-      {/* ElevenLabs key */}
-      <div className="set-section">
-        <p className="set-section-title">ElevenLabs API Key</p>
-        <p style={{ fontSize:'12px', color:'#6B6862', margin:'0 0 12px', lineHeight:1.6 }}>
-          Optional — enables voice narration for Market Brief. Get your key at{' '}
-          <a href="https://elevenlabs.io" target="_blank" rel="noreferrer" style={{ color:'#8B8882' }}>elevenlabs.io</a>.
-        </p>
-        <div className="set-row" style={{ marginBottom:0 }}>
-          <label>API key</label>
-          <input type="password" className="jm-in" placeholder="Paste your ElevenLabs key…" value={elKey} onChange={e => setElKey(e.target.value)} />
-          <p className="set-msg" style={{ color: elMsg.startsWith('✓') ? '#E07A3B' : '#F09595' }}>{elMsg}</p>
-        </div>
-        <button className="jm-btn" style={{ marginTop:'14px' }} onClick={saveElKey}>Save ElevenLabs key</button>
-      </div>
-
-      {/* Risk management */}
-      <div className="set-section">
-        <p className="set-section-title">Risk Management</p>
-        <div className="set-row" style={{ marginBottom:0 }}>
-          <label>Daily loss limit ($) — triggers a warning banner when reached</label>
-          <input type="number" className="jm-in" placeholder="e.g. 200 (leave blank to disable)" step="0.01" value={dailyLimit} onChange={e => setDailyLimit(e.target.value)} />
-          <p className="set-msg" style={{ color: limitMsg.startsWith('✓') ? '#E07A3B' : '#F09595' }}>{limitMsg}</p>
-        </div>
-        <button className="jm-btn" style={{ marginTop:'14px' }} onClick={saveDailyLimit}>Save limit</button>
-      </div>
-
-      {/* Data */}
-      <div className="set-section">
-        <p className="set-section-title">Data</p>
-
-        <div className="set-sync-row">
-          <div className={`set-sync-indicator ${isOnline ? (syncPending ? 'pending' : 'online') : ''}`} />
-          <span className="set-sync-text">
-            {isOnline
-              ? syncPending
-                ? `Syncing ${offlineQueueCount} item${offlineQueueCount !== 1 ? 's' : ''}…`
-                : 'All synced'
-              : `Offline — ${offlineQueueCount || 0} item${offlineQueueCount !== 1 ? 's' : ''} queued`
-            }
-          </span>
-          {isOnline && syncPending && (
-            <button onClick={doSync} style={{ background:'transparent', border:'0.5px solid #2A2720', color:'��8B8882', padding:'4px 12px', borderRadius:'8px', fontSize:'11px', cursor:'pointer', fontFamily:'inherit' }}>
-              Sync now
-            </button>
-          )}
-        </div>
-
-        <p style={{ fontSize:'12px', color:'#6B6862', margin:'0 0 14px', lineHeight:1.6 }}>
-          Export a backup of all your trades and payouts as a JSON file. Import from a previous backup to restore data.
-        </p>
-        <div style={{ display:'flex', gap:'10px', flexWrap:'wrap' }}>
-          <button className="jm-btn" onClick={exportData}>Export backup</button>
-          <button className="btn-ghost" onClick={() => fileRef.current?.click()}>Import backup</button>
-          <input ref={fileRef} type="file" accept=".json" style={{ display:'none' }} onChange={handleImport} />
-        </div>
-      </div>
-
-      {/* Subscription */}
-      <div className="set-section">
-        <p className="set-section-title">Subscription</p>
-        {(profile?.plan === 'pro') ? (
+        {/* Toggle switch */}
+        <div
+          onClick={toggleTheme}
+          style={{
+            width: 44, height: 24, borderRadius: 12, cursor: 'pointer',
+            background: theme === 'light' ? 'var(--c-accent)' : 'rgba(255,255,255,0.12)',
+            border: '1px solid var(--c-border)',
+            position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+          }}
+        >
           <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 16px', borderRadius: '12px',
-            background: 'rgba(224,122,59,0.06)', border: '1px solid rgba(224,122,59,0.2)',
-          }}>
-            <div>
-              <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#E07A3B' }}>⚡ TradeEdge Pro</p>
-              <p style={{ margin: '3px 0 0', fontSize: '12px', color: 'var(--c-text-2)' }}>All features unlocked · Founding rate locked in</p>
-            </div>
-            <span style={{
-              fontSize: '11px', fontWeight: 700, color: '#E07A3B',
-              background: 'rgba(224,122,59,0.1)', padding: '4px 10px', borderRadius: '100px',
-            }}>Active</span>
-          </div>
-        ) : (
-          <>
-            <div style={{
-              padding: '14px 16px', borderRadius: '12px', marginBottom: '12px',
-              background: 'var(--c-bg)', border: '1px solid var(--c-border)',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--c-text)' }}>Free Plan</p>
-                <span style={{ fontSize: '11px', color: 'var(--c-text-2)', background: 'var(--c-surface)', padding: '3px 8px', borderRadius: '100px', border: '1px solid var(--c-border)' }}>Current</span>
-              </div>
-              <p style={{ margin: 0, fontSize: '12px', color: 'var(--c-text-2)', lineHeight: 1.6 }}>
-                You have access to the journal, stats, AI insights, and 1 connected account.
-                Upgrade to Pro to unlock unlimited connected accounts, AI Deep Coaching, weekly reports, and more.
-              </p>
-            </div>
-            <button
-              onClick={onUpgrade}
-              style={{
-                width: '100%', padding: '12px', background: '#E07A3B',
-                color: '#fff', border: 'none', borderRadius: '10px',
-                fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              }}
-            >
-              ⚡ Upgrade to Pro — $19/month
-            </button>
-            <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--c-text-2)', textAlign: 'center' }}>
-              Founding rate · No lock-in · Cancel any time
-            </p>
-          </>
+            width: 18, height: 18, borderRadius: '50%', background: '#fff',
+            position: 'absolute', top: 2,
+            left: theme === 'light' ? 22 : 2,
+            transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+          }} />
+        </div>
+      </div>
+
+      <HR />
+
+      {/* ── Profile ── */}
+      <SectionLabel>Profile</SectionLabel>
+      <Field label="Display name">
+        <input type="text" style={inputStyle} value={name} onChange={e => setName(e.target.value)} />
+        <SaveMsg msg={nameMsg} />
+      </Field>
+      <Field label="Email">
+        <input type="email" style={{ ...inputStyle, opacity: 0.5 }} value={user?.email || ''} disabled />
+      </Field>
+      <ActionButton onClick={saveName}>Save name</ActionButton>
+
+      <HR />
+
+      {/* ── Password ── */}
+      <SectionLabel>Change password</SectionLabel>
+      <Field label="New password">
+        <input type="password" style={inputStyle} placeholder="Min. 6 characters" value={pass} onChange={e => setPass(e.target.value)} />
+      </Field>
+      <Field label="Confirm password">
+        <input type="password" style={inputStyle} placeholder="Repeat password" value={passConfirm} onChange={e => setPassConfirm(e.target.value)} />
+        <SaveMsg msg={passMsg} />
+      </Field>
+      <ActionButton onClick={savePass}>Update password</ActionButton>
+
+      <HR />
+
+      {/* ── API Keys ── */}
+      <SectionLabel>API Keys</SectionLabel>
+      <Field
+        label="Claude API key"
+        hint={<>Required for Market Brief and AI Insights. Get yours at <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{ color: 'var(--c-text-2)', textDecoration: 'underline' }}>console.anthropic.com</a>.</>}
+      >
+        <input type="password" style={inputStyle} placeholder="sk-ant-api03-…" value={claudeKey} onChange={e => setClaudeKey(e.target.value)} />
+        <SaveMsg msg={claudeMsg} />
+      </Field>
+      <div style={{ marginBottom: 24 }}>
+        <ActionButton onClick={saveClaudeKey}>Save Claude key</ActionButton>
+      </div>
+
+      <Field
+        label="ElevenLabs API key"
+        hint={<>Optional — enables voice narration in Market Brief. Get yours at <a href="https://elevenlabs.io" target="_blank" rel="noreferrer" style={{ color: 'var(--c-text-2)', textDecoration: 'underline' }}>elevenlabs.io</a>.</>}
+      >
+        <input type="password" style={inputStyle} placeholder="Paste your ElevenLabs key…" value={elKey} onChange={e => setElKey(e.target.value)} />
+        <SaveMsg msg={elMsg} />
+      </Field>
+      <ActionButton onClick={saveElKey}>Save ElevenLabs key</ActionButton>
+
+      <HR />
+
+      {/* ── Risk management ── */}
+      <SectionLabel>Risk management</SectionLabel>
+      <Field label="Daily loss limit ($)" hint="Shows a warning banner when you hit this amount on a trading day. Leave blank to disable.">
+        <input type="number" style={{ ...inputStyle, maxWidth: 200 }} placeholder="e.g. 200" step="0.01" value={dailyLimit} onChange={e => setDailyLimit(e.target.value)} />
+        <SaveMsg msg={limitMsg} />
+      </Field>
+      <ActionButton onClick={saveDailyLimit}>Save limit</ActionButton>
+
+      <HR />
+
+      {/* ── Data ── */}
+      <SectionLabel>Data</SectionLabel>
+
+      {/* Sync status */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <div style={{
+          width: 7, height: 7, borderRadius: '50%',
+          background: isOnline ? (syncPending ? '#EFC97A' : 'var(--c-accent)') : '#A89687',
+          boxShadow: isOnline && !syncPending ? '0 0 5px var(--c-accent)' : 'none',
+        }} />
+        <span style={{ fontSize: 12, color: 'var(--c-text-2)' }}>
+          {isOnline
+            ? syncPending
+              ? `Syncing ${offlineQueueCount} item${offlineQueueCount !== 1 ? 's' : ''}…`
+              : 'All synced'
+            : `Offline — ${offlineQueueCount || 0} item${offlineQueueCount !== 1 ? 's' : ''} queued`
+          }
+        </span>
+        {isOnline && syncPending && (
+          <button onClick={doSync} style={{ fontSize: 11, color: 'var(--c-accent)', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0, textDecoration: 'underline' }}>
+            Sync now
+          </button>
         )}
       </div>
 
-      {/* Danger zone */}
-      <div className="set-danger-zone">
-        <p className="set-danger-title">Danger zone</p>
-        <p className="set-danger-desc">Sign out of your account on this device.</p>
-        <button style={{ background:'transparent', border:'0.5px solid rgba(226,75,74,0.4)', color:'#F09595', padding:'9px 20px', borderRadius:'12px', fontSize:'13px', fontWeight:500, cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s' }}
-          onClick={async () => { try { await sb.auth.signOut(); } catch(e) {} window.location.href = '/'; }}>
-          Sign out
-        </button>
+      <div style={{ fontSize: 12, color: 'var(--c-text-2)', marginBottom: 16, lineHeight: 1.7 }}>
+        Export a backup of all your trades and payouts as JSON. Import to restore from a backup.
       </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <ActionButton onClick={exportData}>Export backup</ActionButton>
+        <ActionButton variant="ghost" onClick={() => fileRef.current?.click()}>Import backup</ActionButton>
+        <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
+      </div>
+
+      <HR />
+
+      {/* ── Subscription ── */}
+      <SectionLabel>Subscription</SectionLabel>
+      {isPro ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', borderRadius: 12, background: 'rgba(224,122,59,0.06)', border: '1px solid rgba(224,122,59,0.2)' }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-accent)', marginBottom: 4 }}>TradeEdge Pro</div>
+            <div style={{ fontSize: 12, color: 'var(--c-text-2)' }}>All features unlocked · Founding rate locked in</div>
+          </div>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-accent)', background: 'rgba(224,122,59,0.1)', padding: '4px 10px', borderRadius: 100 }}>Active</span>
+        </div>
+      ) : (
+        <>
+          <div style={{ padding: '14px 18px', borderRadius: 12, border: '1px solid var(--c-border)', marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text)' }}>Free plan</span>
+              <span style={{ fontSize: 11, color: 'var(--c-text-2)', background: 'rgba(255,255,255,0.05)', padding: '3px 8px', borderRadius: 100, border: '1px solid var(--c-border)' }}>Current</span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--c-text-2)', lineHeight: 1.7 }}>
+              Journal, stats, AI Insights, and one connected account. Upgrade to Pro for unlimited accounts, AI Deep Coaching, weekly reports, and more.
+            </div>
+          </div>
+          <button
+            onClick={onUpgrade}
+            style={{ width: '100%', maxWidth: 360, padding: '12px', background: 'var(--c-accent)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter', sans-serif" }}
+          >
+            Upgrade to Pro — $19 / month
+          </button>
+          <div style={{ fontSize: 11, color: 'var(--c-text-2)', marginTop: 8, opacity: 0.7 }}>
+            Founding rate · No lock-in · Cancel any time
+          </div>
+        </>
+      )}
+
+      <HR />
+
+      {/* ── Danger zone ── */}
+      <SectionLabel>Danger zone</SectionLabel>
+      <div style={{ fontSize: 12, color: 'var(--c-text-2)', marginBottom: 14, lineHeight: 1.6 }}>
+        Sign out of your account on this device.
+      </div>
+      <ActionButton variant="danger" onClick={async () => { try { await sb.auth.signOut(); } catch (e) {} window.location.href = '/'; }}>
+        Sign out
+      </ActionButton>
     </div>
   );
 }
