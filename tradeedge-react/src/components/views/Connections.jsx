@@ -695,12 +695,27 @@ function TradovateCSVModal({ onClose, onImported }) {
     setError('');
     try {
       const { data: { user } } = await sb.auth.getUser();
-      // Strip entry/exit if columns don't exist in schema yet
-      const toInsert = preview.trades.map(({ entry, exit, ...t }) => ({ ...t, user_id: user.id }));
-      const { error: dbErr } = await sb.from('trades').upsert(toInsert, {
+      const toInsert = preview.trades.map(t => ({ ...t, user_id: user.id }));
+      // Try upsert first (requires unique constraint on user_id,external_id)
+      // Falls back to plain insert if constraint doesn't exist yet
+      let dbErr;
+      const upsertResult = await sb.from('trades').upsert(toInsert, {
         onConflict: 'user_id,external_id',
         ignoreDuplicates: true,
       });
+      if (upsertResult.error?.message?.includes('no unique or exclusion constraint')) {
+        // Schema not set up yet — plain insert, skipping duplicates manually
+        const ids = toInsert.map(t => t.external_id).filter(Boolean);
+        const { data: existing } = await sb.from('trades').select('external_id').eq('user_id', user.id).in('external_id', ids);
+        const existingIds = new Set((existing || []).map(r => r.external_id));
+        const newTrades = toInsert.filter(t => !existingIds.has(t.external_id));
+        if (newTrades.length) {
+          const insertResult = await sb.from('trades').insert(newTrades);
+          dbErr = insertResult.error;
+        }
+      } else {
+        dbErr = upsertResult.error;
+      }
       if (dbErr) throw new Error(dbErr.message);
       setDone(preview.trades.length);
       onImported?.(preview.trades.length);
