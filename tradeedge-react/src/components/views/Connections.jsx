@@ -655,12 +655,13 @@ function parseTradovateCSV(text) {
 }
 
 function TradovateCSVModal({ onClose, onImported }) {
-  const [file, setFile]       = useState(null);
-  const [preview, setPreview] = useState(null); // { trades, skipped }
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
-  const [done, setDone]       = useState(null);
+  const [file, setFile]         = useState(null);
+  const [preview, setPreview]   = useState(null); // { trades, skipped }
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
+  const [done, setDone]         = useState(null);
   const [dragging, setDragging] = useState(false);
+  const [multiplier, setMultiplier] = useState(1);
 
   function processFile(f) {
     if (!f) return;
@@ -695,9 +696,13 @@ function TradovateCSVModal({ onClose, onImported }) {
     setError('');
     try {
       const { data: { user } } = await sb.auth.getUser();
+      const mult = Math.max(1, parseInt(multiplier) || 1);
       const toInsert = preview.trades.map(t => ({
         id: crypto.randomUUID(),
         ...t,
+        pnl: parseFloat((t.pnl * mult).toFixed(2)),
+        qty: (t.qty || 1) * mult,
+        notes: mult > 1 ? `${t.notes} · ×${mult} accounts` : t.notes,
         user_id: user.id,
       }));
       // Try upsert first (requires unique constraint on user_id,external_id)
@@ -853,12 +858,43 @@ function TradovateCSVModal({ onClose, onImported }) {
 
               {error && <p style={styles.error}>{error}</p>}
 
+              {/* Account multiplier */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                background: 'rgba(255,255,255,0.04)', border: '1px solid var(--c-border)',
+                borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
+              }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 600, color: 'var(--c-text)' }}>Copytrade accounts</p>
+                  <p style={{ margin: 0, fontSize: '11px', color: 'var(--c-text-2)' }}>
+                    Running the same trades on multiple accounts? P&L and qty will be multiplied.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                  <button onClick={() => setMultiplier(m => Math.max(1, m - 1))} style={{
+                    width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--c-border)',
+                    background: 'var(--c-bg)', color: 'var(--c-text)', fontSize: '16px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>−</button>
+                  <span style={{ minWidth: '24px', textAlign: 'center', fontSize: '15px', fontWeight: 700, color: multiplier > 1 ? '#E07A3B' : 'var(--c-text)' }}>
+                    {multiplier}
+                  </span>
+                  <button onClick={() => setMultiplier(m => m + 1)} style={{
+                    width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--c-border)',
+                    background: 'var(--c-bg)', color: 'var(--c-text)', fontSize: '16px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>+</button>
+                </div>
+              </div>
+
               <button
                 style={{ ...styles.primaryBtn, opacity: (!preview?.trades?.length || loading) ? 0.5 : 1 }}
                 onClick={handleImport}
                 disabled={!preview?.trades?.length || loading}
               >
-                {loading ? 'Importing…' : preview ? `Import ${preview.trades.length} Trades →` : 'Select a file to continue'}
+                {loading ? 'Importing…' : preview
+                  ? `Import ${preview.trades.length} trades${multiplier > 1 ? ` × ${multiplier} accounts` : ''} →`
+                  : 'Select a file to continue'}
               </button>
             </>
           ) : (
