@@ -654,29 +654,39 @@ function parseTradovateCSV(text) {
   return { trades, skipped };
 }
 
-function TradovateCSSVModal({ onClose, onImported }) {
-  const [file, setFile] = useState(null);
+function TradovateCSVModal({ onClose, onImported }) {
+  const [file, setFile]       = useState(null);
   const [preview, setPreview] = useState(null); // { trades, skipped }
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [done, setDone] = useState(null);
+  const [error, setError]     = useState('');
+  const [done, setDone]       = useState(null);
+  const [dragging, setDragging] = useState(false);
 
-  function handleFile(e) {
-    const f = e.target.files[0];
+  function processFile(f) {
     if (!f) return;
+    if (!f.name.match(/\.(csv|txt)$/i)) { setError('Please upload a .csv file.'); return; }
     setFile(f);
     setError('');
     setPreview(null);
     const reader = new FileReader();
     reader.onload = ev => {
       try {
-        const result = parseTradovateCSSV(ev.target.result);
+        const result = parseTradovateCSV(ev.target.result);
+        if (!result.trades.length) throw new Error('No completed trades found in this file. Make sure you exported from the Performance → Fills tab, not Orders.');
         setPreview(result);
       } catch(err) {
         setError(err.message || 'Could not parse CSV.');
       }
     };
     reader.readAsText(f);
+  }
+
+  function handleFile(e) { processFile(e.target.files[0]); }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragging(false);
+    processFile(e.dataTransfer.files[0]);
   }
 
   async function handleImport() {
@@ -686,7 +696,7 @@ function TradovateCSSVModal({ onClose, onImported }) {
     try {
       const { data: { user } } = await sb.auth.getUser();
       const toInsert = preview.trades.map(t => ({ ...t, user_id: user.id }));
-      const { error: dbErr, data } = await sb.from('trades').upsert(toInsert, {
+      const { error: dbErr } = await sb.from('trades').upsert(toInsert, {
         onConflict: 'user_id,external_id',
         ignoreDuplicates: true,
       });
@@ -700,15 +710,22 @@ function TradovateCSSVModal({ onClose, onImported }) {
     }
   }
 
+  const steps = [
+    { n: '1', text: 'Go to', link: 'https://trader.tradovate.com', linkText: 'trader.tradovate.com' },
+    { n: '2', text: 'Click Account → Performance' },
+    { n: '3', text: 'Open the Fills tab' },
+    { n: '4', text: 'Click Export → Download CSV' },
+  ];
+
   return (
     <div style={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ ...styles.modal, maxWidth: '460px' }}>
+      <div style={{ ...styles.modal, maxWidth: '500px' }}>
         <div style={styles.modalHeader}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ ...styles.platformIcon, background: 'rgba(0,194,224,0.12)', color: '#00C2E0', fontSize: '18px' }}>↑</div>
+            <div style={{ ...styles.platformIcon, background: 'rgba(0,194,224,0.12)', color: '#00C2E0', fontSize: '13px', fontWeight: 800 }}>TV</div>
             <div>
               <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--c-text)' }}>Import Tradovate CSV</h3>
-              <p style={{ margin: 0, fontSize: '12px', color: 'var(--c-text-2)' }}>Upload your fills export</p>
+              <p style={{ margin: 0, fontSize: '12px', color: 'var(--c-text-2)' }}>Sync your trade history in seconds</p>
             </div>
           </div>
           <button onClick={onClose} style={styles.closeBtn}>✕</button>
@@ -717,85 +734,123 @@ function TradovateCSSVModal({ onClose, onImported }) {
         <div style={styles.modalBody}>
           {!done ? (
             <>
-              <div style={{
-                background: 'rgba(0,194,224,0.04)', border: '1px solid rgba(0,194,224,0.15)',
-                borderRadius: '10px', padding: '12px 14px', marginBottom: '16px',
-              }}>
-                <p style={{ margin: '0 0 6px', fontSize: '12px', fontWeight: 600, color: '#00C2E0' }}>How to export from Tradovate</p>
-                <ol style={{ margin: 0, paddingLeft: '16px', fontSize: '12px', color: 'var(--c-text-2)', lineHeight: 1.7 }}>
-                  <li>Open <strong style={{ color: 'var(--c-text)' }}>trader.tradovate.com</strong></li>
-                  <li>Go to <strong style={{ color: 'var(--c-text)' }}>Account → Performance</strong></li>
-                  <li>Click the <strong style={{ color: 'var(--c-text)' }}>Fills</strong> tab</li>
-                  <li>Click <strong style={{ color: 'var(--c-text)' }}>Export → CSV</strong></li>
-                </ol>
+              {/* Step guide */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '18px' }}>
+                {steps.map((s, i) => (
+                  <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+                    <div style={{
+                      width: '28px', height: '28px', borderRadius: '50%', margin: '0 auto 6px',
+                      background: 'rgba(0,194,224,0.12)', color: '#00C2E0',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '12px', fontWeight: 700,
+                    }}>{s.n}</div>
+                    <p style={{ margin: 0, fontSize: '10px', color: 'var(--c-text-2)', lineHeight: 1.4 }}>
+                      {s.text}{' '}
+                      {s.link && (
+                        <a href={s.link} target="_blank" rel="noreferrer"
+                          style={{ color: '#00C2E0', textDecoration: 'none', fontWeight: 600 }}>
+                          {s.linkText}
+                        </a>
+                      )}
+                    </p>
+                  </div>
+                ))}
               </div>
 
-              <label style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                border: `2px dashed ${file ? '#00C2E0' : 'var(--c-border)'}`,
-                borderRadius: '12px', padding: '24px 16px', cursor: 'pointer',
-                background: file ? 'rgba(0,194,224,0.04)' : 'var(--c-bg)',
-                transition: 'all 0.2s', marginBottom: '12px',
-              }}>
+              {/* Drop zone */}
+              <label
+                onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={handleDrop}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  border: `2px dashed ${dragging ? '#00C2E0' : file ? '#E07A3B' : 'var(--c-border)'}`,
+                  borderRadius: '14px', padding: '28px 16px', cursor: 'pointer',
+                  background: dragging ? 'rgba(0,194,224,0.04)' : file ? 'rgba(224,122,59,0.04)' : 'rgba(255,255,255,0.02)',
+                  transition: 'all 0.2s', marginBottom: '14px',
+                }}>
                 <input type="file" accept=".csv,.txt" onChange={handleFile} style={{ display: 'none' }} />
-                <span style={{ fontSize: '24px', marginBottom: '8px' }}>📄</span>
-                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--c-text)' }}>
-                  {file ? file.name : 'Click to select CSV file'}
+                <span style={{ fontSize: '28px', marginBottom: '8px' }}>{file ? '✓' : '📂'}</span>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: file ? '#E07A3B' : 'var(--c-text)' }}>
+                  {file ? file.name : 'Drop CSV here or click to browse'}
                 </span>
-                <span style={{ fontSize: '11px', color: 'var(--c-text-2)', marginTop: '3px' }}>
-                  {file ? 'Click to choose a different file' : '.csv files only'}
+                <span style={{ fontSize: '11px', color: 'var(--c-text-2)', marginTop: '4px' }}>
+                  {file ? `${(file.size / 1024).toFixed(1)} KB` : 'Supports Tradovate Performance export (.csv)'}
                 </span>
               </label>
 
+              {/* Preview table */}
               {preview && (
-                <div style={{
-                  background: 'rgba(224,122,59,0.06)', border: '1px solid rgba(224,122,59,0.2)',
-                  borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
-                }}>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#E07A3B', fontWeight: 600 }}>
-                    ✓ {preview.trades.length} trade{preview.trades.length !== 1 ? 's' : ''} ready to import
-                  </p>
-                  {preview.skipped.length > 0 && (
-                    <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--c-text-2)' }}>
-                      {preview.skipped.length} rows skipped (opening fills / no P&L)
-                    </p>
-                  )}
-                  {preview.trades.slice(0, 3).map((t, i) => (
-                    <div key={i} style={{ fontSize: '11px', color: 'var(--c-text-2)', marginTop: '4px' }}>
-                      {t.date} · {t.symbol} · {t.direction} · {t.pnl >= 0 ? '+' : ''}{t.pnl.toFixed(2)}
+                <div style={{ marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#E07A3B' }}>
+                      ✓ {preview.trades.length} trades ready
+                    </span>
+                    {preview.skipped.length > 0 && (
+                      <span style={{ fontSize: '11px', color: 'var(--c-text-2)' }}>
+                        {preview.skipped.length} rows skipped (no P&L)
+                      </span>
+                    )}
+                  </div>
+                  <div style={{
+                    borderRadius: '10px', overflow: 'hidden',
+                    border: '1px solid var(--c-border)',
+                  }}>
+                    {/* Table header */}
+                    <div style={{
+                      display: 'grid', gridTemplateColumns: '80px 1fr 60px 70px',
+                      padding: '7px 12px', background: 'rgba(255,255,255,0.04)',
+                      borderBottom: '1px solid var(--c-border)',
+                    }}>
+                      {['Date', 'Symbol', 'Side', 'P&L'].map(h => (
+                        <span key={h} style={{ fontSize: '10px', fontWeight: 600, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</span>
+                      ))}
                     </div>
-                  ))}
-                  {preview.trades.length > 3 && (
-                    <div style={{ fontSize: '11px', color: 'var(--c-text-2)', marginTop: '2px' }}>
-                      …and {preview.trades.length - 3} more
-                    </div>
-                  )}
+                    {/* Rows */}
+                    {preview.trades.slice(0, 6).map((t, i) => (
+                      <div key={i} style={{
+                        display: 'grid', gridTemplateColumns: '80px 1fr 60px 70px',
+                        padding: '7px 12px',
+                        borderBottom: i < Math.min(preview.trades.length, 6) - 1 ? '1px solid var(--c-border)' : 'none',
+                        background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
+                      }}>
+                        <span style={{ fontSize: '11px', color: 'var(--c-text-2)' }}>{t.date.slice(5)}</span>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--c-text)' }}>{t.symbol}</span>
+                        <span style={{ fontSize: '11px', color: t.direction === 'Long' ? '#5DCAA5' : '#E07A3B' }}>{t.direction}</span>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: t.pnl >= 0 ? '#5DCAA5' : '#C65A45' }}>
+                          {t.pnl >= 0 ? '+' : ''}{t.pnl.toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                    {preview.trades.length > 6 && (
+                      <div style={{ padding: '7px 12px', fontSize: '11px', color: 'var(--c-text-2)', textAlign: 'center', background: 'rgba(255,255,255,0.02)' }}>
+                        +{preview.trades.length - 6} more trades
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
               {error && <p style={styles.error}>{error}</p>}
 
               <button
-                style={{
-                  ...styles.primaryBtn,
-                  opacity: (!preview?.trades?.length || loading) ? 0.5 : 1,
-                }}
+                style={{ ...styles.primaryBtn, opacity: (!preview?.trades?.length || loading) ? 0.5 : 1 }}
                 onClick={handleImport}
                 disabled={!preview?.trades?.length || loading}
               >
-                {loading ? 'Importing…' : `Import ${preview?.trades?.length || ''} Trades`}
+                {loading ? 'Importing…' : preview ? `Import ${preview.trades.length} Trades →` : 'Select a file to continue'}
               </button>
             </>
           ) : (
-            <div style={{ textAlign: 'center', padding: '8px 0' }}>
-              <div style={{ fontSize: '40px', marginBottom: '12px' }}>🎉</div>
-              <p style={{ margin: '0 0 6px', fontWeight: 600, fontSize: '15px', color: 'var(--c-text)' }}>
+            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+              <div style={{ fontSize: '44px', marginBottom: '12px' }}>🎉</div>
+              <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: '18px', color: 'var(--c-text)' }}>
                 {done} trade{done !== 1 ? 's' : ''} imported!
               </p>
-              <p style={{ margin: '0 0 20px', fontSize: '12px', color: 'var(--c-text-2)' }}>
-                Your trades are now in your journal. Head to History or Stats to see them.
+              <p style={{ margin: '0 0 24px', fontSize: '12px', color: 'var(--c-text-2)', lineHeight: 1.6 }}>
+                Your journal is updated. Head to <strong style={{ color: 'var(--c-text)' }}>History</strong> or <strong style={{ color: 'var(--c-text)' }}>Stats</strong> to see your performance.
               </p>
-              <button style={styles.primaryBtn} onClick={onClose}>Done</button>
+              <button style={styles.primaryBtn} onClick={onClose}>View my trades →</button>
             </div>
           )}
         </div>
