@@ -173,7 +173,7 @@ export default function Stats() {
         borderColor: 'rgba(226,75,74,0.4)',
       } : {}}>
         <p className="jm-hero-label">Realized P/L</p>
-        <p className="jm-hero-val" style={{ color: s.totalPnl < 0 ? '#F7C1C1' : '#FAECE7' }} ref={heroRef}>$0.00</p>
+        <p className="jm-hero-val" style={{ color: s.totalPnl < 0 ? '#C65A45' : '#E07A3B' }} ref={heroRef}>$0.00</p>
         {list.length === 0
           ? <p className="jm-hero-meta">No trades in this period</p>
           : <p className="jm-hero-meta">{s.count} trade{s.count !== 1 ? 's' : ''} · {s.wins}W / {s.losses}L{consistencyInfo ? ` · ` : ''}
