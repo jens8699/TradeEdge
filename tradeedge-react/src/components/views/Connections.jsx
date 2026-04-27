@@ -873,16 +873,16 @@ function TradovateCSVModal({ onClose, onImported }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                   <button onClick={() => setMultiplier(m => Math.max(1, m - 1))} style={{
                     width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--c-border)',
-                    background: 'var(--c-bg)', color: 'var(--c-text)', fontSize: '16px', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--c-surface)', color: 'var(--c-text)', fontSize: '16px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                   }}>−</button>
                   <span style={{ minWidth: '24px', textAlign: 'center', fontSize: '15px', fontWeight: 700, color: multiplier > 1 ? '#E07A3B' : 'var(--c-text)' }}>
                     {multiplier}
                   </span>
                   <button onClick={() => setMultiplier(m => m + 1)} style={{
                     width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--c-border)',
-                    background: 'var(--c-bg)', color: 'var(--c-text)', fontSize: '16px', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--c-surface)', color: 'var(--c-text)', fontSize: '16px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                   }}>+</button>
                 </div>
               </div>
