@@ -335,11 +335,11 @@ function TradovateModal({ onClose, onConnected, existingAccount }) {
               <div style={{ flex: 1, height: '1px', background: 'var(--c-border)' }} />
             </div>
 
-            <label style={styles.label}>Email address</label>
+            <label style={styles.label}>Email or username</label>
             <input
               style={styles.input}
-              type="email"
-              placeholder="The email you use to log into Tradovate"
+              type="text"
+              placeholder="Email or username (e.g. jens8699 or you@email.com)"
               value={username}
               onChange={e => setUsername(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleConnect()}
