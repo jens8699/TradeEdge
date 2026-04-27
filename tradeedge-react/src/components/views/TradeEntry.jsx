@@ -178,179 +178,245 @@ export default function TradeEntry({ showToast }) {
     setPendingImage(null); setPreviewSrc(null);
   };
 
+  // ── Shared input style ──────────────────────────────────────────────────────
+  const inp = {
+    width: '100%', padding: '10px 13px', borderRadius: 10, fontSize: 14,
+    background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+    color: 'var(--c-text)', outline: 'none', fontFamily: "'Inter', sans-serif",
+    fontVariantNumeric: 'tabular-nums', boxSizing: 'border-box',
+    transition: 'border-color 0.15s',
+  };
+  const label = { fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--c-text-2)', display: 'block', marginBottom: 7 };
+  const field = { display: 'flex', flexDirection: 'column' };
+  const hr = { height: 1, background: 'var(--c-border)', margin: '28px 0' };
+
+  const outcomeActive = (v) => ({
+    flex: 1, padding: '14px', borderRadius: 12, fontSize: 15, fontWeight: 600,
+    fontFamily: "'Inter', sans-serif", cursor: 'pointer', transition: 'all 0.15s',
+    border: form.outcome === v
+      ? `1.5px solid ${v === 'win' ? 'var(--c-accent)' : '#C65A45'}`
+      : '1.5px solid var(--c-border)',
+    background: form.outcome === v
+      ? v === 'win' ? 'rgba(224,122,59,0.1)' : 'rgba(198,90,69,0.1)'
+      : 'transparent',
+    color: form.outcome === v
+      ? v === 'win' ? 'var(--c-accent)' : '#C65A45'
+      : 'var(--c-text-2)',
+  });
+
   return (
-    <div className="jm-view">
-      <div className="jm-greeting">
-        <p className="jm-hello">Ready to trade?</p>
-        <h1 className="jm-page-title">Log a <span>Trade</span></h1>
+    <div style={{ padding: '36px 44px', maxWidth: 820, paddingBottom: 48 }}>
+
+      {/* ── Editorial header ── */}
+      <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
+        Entry
+      </div>
+      <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 34, letterSpacing: '-0.03em', color: 'var(--c-text)', lineHeight: 1.1, marginBottom: 8 }}>
+        Log a <em style={{ fontStyle: 'italic', color: 'var(--c-accent)' }}>trade</em>.
+      </div>
+      <div style={{ fontSize: 13.5, color: 'var(--c-text-2)', lineHeight: 1.55, maxWidth: 480, marginBottom: 6 }}>
+        The trade is done — what matters now is what you record about it.
       </div>
 
+      {/* Banners */}
       {showDailyLoss && (
-        <div className="daily-loss-banner">
-          <span>⚠️</span>
-          <p>{dailyLossMsg}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(198,90,69,0.1)', border: '1px solid rgba(198,90,69,0.3)', borderRadius: 10, padding: '10px 16px', marginTop: 16, fontSize: 13, color: '#C65A45' }}>
+          <span>⚠</span><span>{dailyLossMsg}</span>
         </div>
       )}
-
       {showDraftBanner && (
-        <div className="draft-banner">
-          <span>📝 Draft restored</span>
-          <button onClick={clearDraft}>Discard draft</button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 10, padding: '10px 16px', marginTop: 16, fontSize: 12, color: 'var(--c-text-2)' }}>
+          <span>Draft restored</span>
+          <button onClick={clearDraft} style={{ fontSize: 11, color: 'var(--c-text-2)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>
+            Discard
+          </button>
         </div>
       )}
 
-      {preview && (
-        <div className="jm-preview">
-          Across <strong>{preview.accounts} account{preview.accounts === 1 ? '' : 's'}</strong>:
-          risk <strong>${preview.totalRisk.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> ·
-          target <strong>${preview.totalReward.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> ·
-          R:R <strong>{preview.rr}</strong> ·
-          <span style={{ color: preview.expectedPnl > 0 ? '#E07A3B' : preview.expectedPnl < 0 ? '#E24B4A' : 'var(--c-text-2)', fontWeight: 700 }}>
-            {' '}P&L will save as <strong>{preview.expectedPnl >= 0 ? '+' : ''}{preview.expectedPnl.toLocaleString(undefined,{style:'currency',currency:'USD'})}</strong>
-          </span>
+      <div style={hr} />
+
+      {/* ── Win / Loss toggle ── */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={label}>Outcome</div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {[['win', 'Win →'], ['loss', 'Loss →'], ['breakeven', 'Breakeven']].map(([v, lbl]) => (
+            <button key={v} onClick={() => set('outcome', v)} style={outcomeActive(v)}>
+              {lbl}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
-      <div className="jm-card">
-        <h2 className="jm-card-title">Trade details</h2>
-
-        <div className="jm-g2">
-          <div className="jm-field">
-            <label>Date</label>
-            <input type="date" className="jm-in" value={form.date} onChange={e => set('date', e.target.value)} />
+      {/* ── Trade details ── */}
+      <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '22px 24px', marginBottom: 24 }}>
+        <div style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--c-text-2)', marginBottom: 18 }}>Trade details</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+          <div style={field}>
+            <span style={label}>Symbol</span>
+            <input style={inp} type="text" placeholder="NQ, ES, AAPL…" value={form.symbol} onChange={e => set('symbol', e.target.value)} />
           </div>
-          <div className="jm-field">
-            <label>Symbol</label>
-            <input type="text" className="jm-in" placeholder="NQ, ES, AAPL…" value={form.symbol} onChange={e => set('symbol', e.target.value)} />
+          <div style={field}>
+            <span style={label}>Date</span>
+            <input style={inp} type="date" value={form.date} onChange={e => set('date', e.target.value)} />
           </div>
         </div>
-
-        <div className="jm-g3">
-          <div className="jm-field">
-            <label>Direction</label>
-            <select className="jm-in" value={form.direction} onChange={e => set('direction', e.target.value)}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 16 }}>
+          <div style={field}>
+            <span style={label}>Direction</span>
+            <select style={inp} value={form.direction} onChange={e => set('direction', e.target.value)}>
               <option value="long">Long</option>
               <option value="short">Short</option>
             </select>
           </div>
-          <div className="jm-field">
-            <label>Accounts</label>
-            <input type="number" className="jm-in" min="1" max="20" value={form.accounts} onChange={e => set('accounts', e.target.value)} />
+          <div style={field}>
+            <span style={label}>Entry price</span>
+            <input style={inp} type="number" placeholder="0.00" step="0.01" value={form.entry} onChange={e => set('entry', e.target.value)} />
           </div>
-          <div className="jm-field">
-            <label>Outcome</label>
-            <select className="jm-in" value={form.outcome} onChange={e => set('outcome', e.target.value)}>
-              <option value="win">Win</option>
-              <option value="loss">Loss</option>
-              <option value="breakeven">Breakeven</option>
-            </select>
+          <div style={field}>
+            <span style={label}>Exit price</span>
+            <input style={inp} type="number" placeholder="0.00" step="0.01" value={form.exit} onChange={e => set('exit', e.target.value)} />
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16 }}>
+          <div style={field}>
+            <span style={label}>Qty / contracts</span>
+            <input style={inp} type="number" placeholder="1" min="1" value={form.qty} onChange={e => set('qty', e.target.value)} />
+          </div>
+          <div style={field}>
+            <span style={label}>Accounts</span>
+            <input style={inp} type="number" min="1" max="20" value={form.accounts} onChange={e => set('accounts', e.target.value)} />
+          </div>
+          <div style={field}>
+            <span style={label}>Risk / acct ($)</span>
+            <input style={inp} type="number" placeholder="50" step="0.01" value={form.riskPer} onChange={e => set('riskPer', e.target.value)} />
+          </div>
+          <div style={field}>
+            <span style={label}>Actual P/L ($)</span>
+            <input style={inp} type="number" placeholder="auto" step="0.01" value={form.pnl} onChange={e => set('pnl', e.target.value)} />
           </div>
         </div>
 
-        <div className="jm-g3">
-          <div className="jm-field">
-            <label>Risk / account ($)</label>
-            <input type="number" className="jm-in" placeholder="50" step="0.01" value={form.riskPer} onChange={e => set('riskPer', e.target.value)} />
+        {/* R:R preview */}
+        {preview && (
+          <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--c-bg, #1C1613)', borderRadius: 8, fontSize: 12, color: 'var(--c-text-2)', display: 'flex', gap: 20, flexWrap: 'wrap', fontVariantNumeric: 'tabular-nums' }}>
+            <span>Risk: <strong style={{ color: 'var(--c-text)' }}>${preview.totalRisk.toFixed(2)}</strong></span>
+            <span>Target: <strong style={{ color: 'var(--c-text)' }}>${preview.totalReward.toFixed(2)}</strong></span>
+            <span>R:R: <strong style={{ color: 'var(--c-text)' }}>{preview.rr}</strong></span>
+            <span>P&L will save as: <strong style={{ color: preview.expectedPnl >= 0 ? 'var(--c-accent)' : '#C65A45' }}>{preview.expectedPnl >= 0 ? '+' : ''}${preview.expectedPnl.toFixed(2)}</strong></span>
           </div>
-          <div className="jm-field">
-            <label>Reward / account ($)</label>
-            <input type="number" className="jm-in" placeholder="100" step="0.01" value={form.rewardPer} onChange={e => set('rewardPer', e.target.value)} />
-          </div>
-          <div className="jm-field">
-            <label>Actual P/L ($)</label>
-            <input type="number" className="jm-in" placeholder="auto" step="0.01" value={form.pnl} onChange={e => set('pnl', e.target.value)} />
-          </div>
-        </div>
+        )}
+      </div>
 
-        {/* Entry / Exit / Qty */}
-        <div className="jm-g3">
-          <div className="jm-field">
-            <label>Entry price</label>
-            <input type="number" className="jm-in" placeholder="0.00" step="0.01" value={form.entry} onChange={e => set('entry', e.target.value)} />
-          </div>
-          <div className="jm-field">
-            <label>Exit price</label>
-            <input type="number" className="jm-in" placeholder="0.00" step="0.01" value={form.exit} onChange={e => set('exit', e.target.value)} />
-          </div>
-          <div className="jm-field">
-            <label>Qty / contracts</label>
-            <input type="number" className="jm-in" placeholder="1" min="1" value={form.qty} onChange={e => set('qty', e.target.value)} />
-          </div>
+      {/* ── Session & Setup ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <div style={field}>
+          <span style={label}>Session</span>
+          <select style={inp} value={form.session} onChange={e => set('session', e.target.value)}>
+            {SESSION_LIST.map(s => <option key={s} value={s}>{s || '— None —'}</option>)}
+          </select>
         </div>
-
-        {/* Session / Setup */}
-        <div className="jm-g2">
-          <div className="jm-field">
-            <label>Session</label>
-            <select className="jm-in" value={form.session} onChange={e => set('session', e.target.value)}>
-              {SESSION_LIST.map(s => <option key={s} value={s}>{s || '— None —'}</option>)}
-            </select>
-          </div>
-          <div className="jm-field">
-            <label>Setup tag</label>
-            <select className="jm-in" value={form.setup} onChange={e => set('setup', e.target.value)}>
-              {SETUPS.map(s => <option key={s} value={s}>{s || '— None —'}</option>)}
-            </select>
-          </div>
+        <div style={field}>
+          <span style={label}>Setup tag</span>
+          <select style={inp} value={form.setup} onChange={e => set('setup', e.target.value)}>
+            {SETUPS.map(s => <option key={s} value={s}>{s || '— None —'}</option>)}
+          </select>
         </div>
+      </div>
 
-        {/* Trade Rating */}
-        <div className="jm-field" style={{ marginBottom: '16px' }}>
-          <label>Trade rating</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-            {RATINGS.map(r => (
-              <button key={r} onClick={() => set('rating', form.rating === r ? '' : r)} style={{
-                width: '40px', height: '36px', borderRadius: '8px', fontWeight: 700, fontSize: '14px',
-                border: form.rating === r ? 'none' : '1px solid rgba(255,255,255,0.1)',
-                background: form.rating === r ? RATING_COLORS[r] : 'rgba(255,255,255,0.05)',
-                color: form.rating === r ? '#17150F' : '#6B6760',
-                cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0,
-              }}>{r}</button>
-            ))}
-            {form.rating && (
-              <span style={{ fontSize: '11px', color: RATING_COLORS[form.rating], fontWeight: 600, marginLeft: '4px' }}>
-                {RATING_LABELS[form.rating]}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="jm-field" style={{ marginBottom:'16px' }}>
-          <label>Notes</label>
-          <textarea className="jm-in" placeholder="What was your thesis? Any lessons?" rows={3}
-            value={form.notes} onChange={e => set('notes', e.target.value)} />
-        </div>
-
-        <div className="jm-field" style={{ marginBottom:'20px' }}>
-          <label>Screenshot (optional)</label>
-          <div
-            className="jm-drop"
-            style={isDragOver ? { borderColor:'#E07A3B', background:'rgba(224,122,59,0.05)' } : {}}
-            onClick={() => fileRef.current?.click()}
-            onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
-            onDragLeave={() => setIsDragOver(false)}
-            onDrop={e => { e.preventDefault(); setIsDragOver(false); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); }}
-          >
-            {previewSrc
-              ? <img src={previewSrc} alt="preview" className="jm-thumb" style={{ maxWidth:'100%' }} />
-              : <span>📷 Drop chart screenshot here, or click to browse</span>
-            }
-          </div>
-          <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }}
-            onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]); }} />
-        </div>
-
-        <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
-          <button className="jm-btn" disabled={saving} onClick={save}>
-            {saving ? 'Saving…' : 'Save trade'}
-          </button>
-          {saveMsg && (
-            <span className="jm-save-msg" style={{ color: saveMsg.startsWith('Need') || saveMsg.startsWith('Save') ? '#E24B4A' : '#8B8882' }}>
-              {saveMsg}
+      {/* ── Rating pills ── */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={label}>Trade rating</div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          {RATINGS.map(r => (
+            <button key={r} onClick={() => set('rating', form.rating === r ? '' : r)} style={{
+              padding: '8px 20px', borderRadius: 100, fontWeight: 600, fontSize: 14,
+              fontFamily: "'Inter', sans-serif", cursor: 'pointer', transition: 'all 0.15s',
+              border: form.rating === r ? 'none' : '1px solid var(--c-border)',
+              background: form.rating === r ? RATING_COLORS[r] : 'transparent',
+              color: form.rating === r ? '#fff' : 'var(--c-text-2)',
+            }}>
+              {r}
+            </button>
+          ))}
+          {form.rating && (
+            <span style={{ fontSize: 12, color: RATING_COLORS[form.rating], fontStyle: 'italic' }}>
+              {RATING_LABELS[form.rating]}
             </span>
           )}
         </div>
       </div>
+
+      {/* ── Thought process ── */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 20, letterSpacing: '-0.02em', color: 'var(--c-text)', marginBottom: 12, lineHeight: 1.2 }}>
+          Thought <em style={{ fontStyle: 'italic', color: 'var(--c-accent)' }}>process</em>.
+        </div>
+        <textarea
+          style={{ ...inp, resize: 'vertical', minHeight: 120, lineHeight: 1.6, fontVariantNumeric: 'normal' }}
+          placeholder="What was your thesis going in? What did you see, what did you feel, and what actually happened? Any lessons?"
+          rows={5}
+          value={form.notes}
+          onChange={e => set('notes', e.target.value)}
+        />
+      </div>
+
+      {/* ── Screenshot ── */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={label}>Chart screenshot (optional)</div>
+        <div
+          onClick={() => fileRef.current?.click()}
+          onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={e => { e.preventDefault(); setIsDragOver(false); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); }}
+          style={{
+            border: `1.5px dashed ${isDragOver ? 'var(--c-accent)' : 'var(--c-border)'}`,
+            borderRadius: 12, padding: '28px 24px', textAlign: 'center', cursor: 'pointer',
+            background: isDragOver ? 'rgba(224,122,59,0.04)' : 'transparent',
+            transition: 'border-color 0.15s, background 0.15s',
+          }}
+        >
+          {previewSrc ? (
+            <img src={previewSrc} alt="preview" style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 8 }} />
+          ) : (
+            <div style={{ fontSize: 13, color: 'var(--c-text-2)', lineHeight: 1.6 }}>
+              Drop your chart screenshot here<br />
+              <span style={{ fontSize: 11, opacity: 0.6 }}>or click to browse</span>
+            </div>
+          )}
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
+          onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]); }} />
+      </div>
+
+      {/* ── Save row ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button
+          disabled={saving}
+          onClick={save}
+          style={{
+            padding: '13px 28px', borderRadius: 12, fontSize: 15, fontWeight: 600,
+            fontFamily: "'Inter', sans-serif", cursor: saving ? 'not-allowed' : 'pointer',
+            background: saving ? 'var(--c-border)' : 'var(--c-accent)',
+            color: '#fff', border: 'none', transition: 'background 0.15s', opacity: saving ? 0.7 : 1,
+          }}
+        >
+          {saving ? 'Saving…' : 'Save trade'}
+        </button>
+        {saveMsg && (
+          <span style={{
+            fontSize: 13, fontStyle: 'italic',
+            color: saveMsg.startsWith('Need') || saveMsg.startsWith('Save') ? '#C65A45' : 'var(--c-text-2)',
+          }}>
+            {saveMsg}
+          </span>
+        )}
+        {!saveMsg && !saving && (
+          <span style={{ fontSize: 11, color: 'var(--c-text-2)', opacity: 0.6 }}>
+            Auto-saved
+          </span>
+        )}
+      </div>
+
     </div>
   );
 }
