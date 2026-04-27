@@ -2,31 +2,66 @@ import { useRef, useEffect, useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { filterPeriod, computeStats, fmt, getGreeting, getStreak, animateCount } from '../../lib/utils';
 
-// ── Session / Rating constants ──────────────────────────────────────────────
-const SESSION_COLORS = {
-  Sydney: '#A89687', Tokyo: '#A78BFA', London: '#E07A3B',
-  'New York': '#E07A3B', Premarket: '#EFC97A', 'After Hours': '#8B8882',
-};
-const RATING_COLORS = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#F09595' };
-
-// ── Monthly goal helpers ──────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
+const RATING_COLORS = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#C65A45' };
 const GOAL_KEY = 'te_monthly_goal';
 function loadGoal() { return parseFloat(localStorage.getItem(GOAL_KEY) || '0') || 0; }
 function saveGoal(v) { localStorage.setItem(GOAL_KEY, String(v)); }
 
+// ── Live clock ────────────────────────────────────────────────────────────────
+function useClock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
+// ── Hairline rule ─────────────────────────────────────────────────────────────
+function HR({ my = 28 }) {
+  return <div style={{ height: 1, background: 'var(--c-border)', margin: `${my}px 0` }} />;
+}
+
+// ── Eyebrow label ─────────────────────────────────────────────────────────────
+function Eyebrow({ children }) {
+  return (
+    <div style={{ fontSize: 10, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
+      {children}
+    </div>
+  );
+}
+
+// ── Stat card (boxed) ─────────────────────────────────────────────────────────
+function StatCard({ label, children, badge, badgeColor }) {
+  return (
+    <div style={{
+      background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+      borderRadius: 14, padding: '18px 20px',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+        <Eyebrow>{label}</Eyebrow>
+        {badge && <span style={{ fontSize: 11, color: badgeColor || 'var(--c-text-2)', fontWeight: 600 }}>{badge}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export default function Dashboard({ user, profile }) {
   const { trades, setActiveTab } = useApp();
-  const heroRef = useRef(null);
+  const heroRef   = useRef(null);
+  const now       = useClock();
   const [goal,       setGoal]       = useState(loadGoal);
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput,  setGoalInput]  = useState('');
 
-  const name = (profile?.name) || user?.user_metadata?.name || user?.email || 'Trader';
+  const name      = (profile?.name) || user?.user_metadata?.name || user?.email || 'Trader';
   const { time, firstName } = getGreeting(name);
 
-  const todayTrades  = filterPeriod(trades, 'day');
-  const weekTrades   = filterPeriod(trades, 'week');
-  const monthTrades  = filterPeriod(trades, 'month');
+  const todayTrades = filterPeriod(trades, 'day');
+  const weekTrades  = filterPeriod(trades, 'week');
+  const monthTrades = filterPeriod(trades, 'month');
 
   const today  = computeStats(todayTrades);
   const week   = computeStats(weekTrades);
@@ -39,504 +74,413 @@ export default function Dashboard({ user, profile }) {
 
   const recentTrades = [...trades].slice(0, 5);
 
-  // Sparkline from last 14 trades
-  const sparkData = useMemo(() => {
-    const last = [...trades].slice(0, 14).reverse();
-    if (last.length < 2) return null;
-    const vals = last.map(t => t.pnl || 0);
-    const min = Math.min(...vals);
-    const max = Math.max(...vals);
+  // ── Cumulative equity sparkline ──────────────────────────────────────────────
+  const { sparkPath, sparkArea, sparkIsUp, sparkCumPnl, sparkW, sparkH } = useMemo(() => {
+    const sorted = [...trades].reverse();
+    if (sorted.length < 2) return { sparkPath: null };
+    let cum = 0;
+    const pts = sorted.map(t => { cum += (t.pnl || 0); return cum; });
+    const min = Math.min(...pts, 0);
+    const max = Math.max(...pts, 0);
     const range = max - min || 1;
-    const w = 180, h = 44;
-    const pts = vals.map((v, i) => {
-      const x = (i / (vals.length - 1)) * w;
-      const y = h - ((v - min) / range) * (h - 4) - 2;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    const w = 460, h = 110, padY = 8;
+    const coords = pts.map((v, i) => {
+      const x = (i / (pts.length - 1)) * w;
+      const y = (h - padY) - ((v - min) / range) * (h - padY * 2);
+      return { x: x.toFixed(1), y: y.toFixed(1) };
     });
-    const isUp = vals[vals.length - 1] >= vals[0];
-    return { points: pts.join(' '), isUp };
+    const path = coords.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+    const area = `${path} L ${w} ${h} L 0 ${h} Z`;
+    return {
+      sparkPath: path, sparkArea: area, sparkIsUp: cum >= 0,
+      sparkCumPnl: cum, sparkW: w, sparkH: h,
+    };
   }, [trades]);
 
-  // Win rate ring
-  const ringRadius = 30;
-  const circumference = 2 * Math.PI * ringRadius;
-  const winRateDash = (month.winRate / 100) * circumference;
+  // ── Date & clock strings ─────────────────────────────────────────────────────
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
 
+  // ── Insight ──────────────────────────────────────────────────────────────────
   function getInsight() {
-    if (!trades.length) return { msg: "Log your first trade to get started. Every pro started at zero.", icon: '✦', color: '#E07A3B' };
-    if (streak >= 5)    return { msg: `${streak}-trade win streak — you're locked in. Stay disciplined.`, icon: '🔥', color: '#F4A460' };
-    if (week.winRate >= 70) return { msg: `${week.winRate.toFixed(0)}% win rate this week. That edge is sharp.`, icon: '📈', color: '#E07A3B' };
-    if (week.winRate > 0 && week.winRate < 40) return { msg: "Tough week. Review your setups — protect the capital first.", icon: '🛡', color: '#E24B4A' };
-    if (today.count === 0 && new Date().getHours() >= 9) return { msg: "No trades yet today. Wait for your setup — patience is alpha.", icon: '⏳', color: '#8B8882' };
-    return { msg: `${month.count} trades this month. Win rate: ${month.winRate.toFixed(0)}%. Keep building consistency.`, icon: '◈', color: '#E07A3B' };
+    if (!trades.length)       return "Log your first trade to get started — every edge starts with data.";
+    if (streak >= 5)          return `${streak}-trade win streak — you're locked in. Stay disciplined and protect the capital.`;
+    if (week.winRate >= 70)   return `${week.winRate.toFixed(0)}% win rate this week. That edge is sharp — scale only if size feels comfortable.`;
+    if (week.winRate > 0 && week.winRate < 40) return "Tough week. Review your setups and reduce size — protecting capital is trading.";
+    if (today.count === 0 && new Date().getHours() >= 9) return "No trades yet today. Wait for your setup — patience is alpha.";
+    return `${month.count} trades this month · ${month.winRate.toFixed(0)}% win rate. Keep building consistency.`;
   }
 
-  const insight = getInsight();
-  const todayPos = today.totalPnl >= 0;
-  const todayColor = todayPos ? '#E07A3B' : '#E24B4A';
+  // ── Monthly goal ─────────────────────────────────────────────────────────────
+  const monthPnl = month.totalPnl;
+  const now2 = new Date();
+  const dayOfMonth   = now2.getDate();
+  const daysInMonth  = new Date(now2.getFullYear(), now2.getMonth() + 1, 0).getDate();
+  const projectedPnl = monthPnl * (daysInMonth / Math.max(dayOfMonth, 1));
+  const goalSet  = goal > 0;
+  const goalPct  = goalSet ? Math.min(1, Math.max(0, monthPnl / goal)) : 0;
+  const smashed  = goalSet && monthPnl >= goal;
+  const onPace   = goalSet && !smashed && projectedPnl >= goal;
+
+  const todayColor = today.totalPnl >= 0 ? '#E07A3B' : '#C65A45';
+  const stroke     = sparkIsUp ? '#E07A3B' : '#C65A45';
 
   return (
-    <div className="jm-view" style={{ paddingBottom: '24px' }}>
+    <div style={{ padding: '36px 44px', maxWidth: 980, paddingBottom: 48 }}>
 
-      {/* ── Greeting bar ─────────────────────────────── */}
-      <div className="dash-greeting-bar" style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: '20px'
-      }}>
-        <div>
-          <p style={{ margin: 0, fontSize: '11px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--c-text-2)', marginBottom: '2px' }}>{time}</p>
-          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--c-text)', letterSpacing: '-0.5px', lineHeight: 1.1 }}>
-            Hey, <span style={{ color: '#E07A3B' }}>{firstName}</span> 👋
-          </h1>
+      {/* ── Editorial header ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+        <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+          {dateStr}
         </div>
-        <div style={{
-          background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-          borderRadius: '12px', padding: '8px 14px', textAlign: 'center'
-        }}>
-          <p style={{ margin: 0, fontSize: '10px', color: 'var(--c-text-2)', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 600 }}>Streak</p>
-          <p style={{ margin: '2px 0 0', fontSize: '18px', fontWeight: 800, color: streak >= 3 ? '#F4A460' : 'var(--c-text)' }}>
-            {streak >= 1 ? `${streak} 🔥` : '—'}
-          </p>
+        <div style={{ fontSize: 11, color: 'var(--c-text-2)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.04em' }}>
+          {timeStr}
         </div>
       </div>
 
-      {/* ── ROW 1: Hero + Week + Win Ring ─────────────── */}
-      <div className="dash-row1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+      {/* ── Greeting ── */}
+      <div style={{ fontSize: 30, fontWeight: 600, color: 'var(--c-text)', letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 8 }}>
+        {time}, <span style={{ color: '#E07A3B' }}>{firstName}</span>.
+      </div>
+      <div style={{ fontSize: 13.5, color: 'var(--c-text-2)', lineHeight: 1.55, maxWidth: 540 }}>
+        {today.count === 0
+          ? "No trades logged yet today — your edge is in the waiting."
+          : <>You're {today.totalPnl >= 0 ? 'up' : 'down'}{' '}
+              <span style={{ color: 'var(--c-text)', fontWeight: 500 }}>{fmt(today.totalPnl)}</span>
+              {' '}across {today.count} trade{today.count === 1 ? '' : 's'} —{' '}
+              {today.winRate >= 60 ? 'win rate is sharp. Keep position sizing tight through the close.' : 'stay disciplined and wait for your setup.'}
+            </>
+        }
+      </div>
 
-        {/* Today P&L hero */}
-        <div style={{
-          background: todayPos
-            ? 'radial-gradient(ellipse at top left, rgba(224,122,59,0.18) 0%, rgba(224,122,59,0.04) 55%, var(--c-surface) 100%)'
-            : 'radial-gradient(ellipse at top left, rgba(226,75,74,0.22) 0%, rgba(226,75,74,0.04) 55%, var(--c-surface) 100%)',
-          border: `1px solid ${todayPos ? 'rgba(224,122,59,0.35)' : 'rgba(226,75,74,0.35)'}`,
-          borderRadius: '16px', padding: '18px', position: 'relative', overflow: 'hidden',
-          gridColumn: '1 / 2'
-        }}>
-          {/* Decorative glow blob */}
-          <div style={{
-            position: 'absolute', top: '-20px', right: '-20px',
-            width: '80px', height: '80px', borderRadius: '50%',
-            background: todayPos ? 'rgba(224,122,59,0.2)' : 'rgba(226,75,74,0.2)',
-            filter: 'blur(24px)', pointerEvents: 'none'
-          }} />
+      <HR my={30} />
 
-          <p style={{ margin: '0 0 6px', fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--c-text-2)' }}>
-            Today's P&L
-          </p>
-          <p ref={heroRef} style={{
-            margin: '0 0 6px', fontSize: '28px', fontWeight: 900,
-            color: todayColor, letterSpacing: '-1px', lineHeight: 1,
-            fontVariantNumeric: 'tabular-nums'
+      {/* ── Three-up hero stats ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: 36 }}>
+
+        {/* Today P&L */}
+        <div>
+          <Eyebrow>Today's P&L</Eyebrow>
+          <div ref={heroRef} style={{
+            fontSize: 52, fontWeight: 600, letterSpacing: '-0.03em',
+            color: todayColor, lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+            marginBottom: 14,
           }}>
             $0.00
-          </p>
-          <p style={{ margin: '0 0 10px', fontSize: '11px', color: 'var(--c-text-2)' }}>
-            {todayTrades.length === 0
-              ? 'No trades logged today'
-              : `${today.count} trade${today.count === 1 ? '' : 's'} · ${today.wins}W ${today.losses}L`}
-          </p>
-
-          {/* Sparkline */}
-          {sparkData && (
-            <svg width="180" height="44" viewBox="0 0 180 44" style={{ display: 'block', overflow: 'visible' }}>
-              <defs>
-                <linearGradient id="spark-grad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor={sparkData.isUp ? '#E07A3B' : '#E24B4A'} stopOpacity="0.3" />
-                  <stop offset="100%" stopColor={sparkData.isUp ? '#E07A3B' : '#E24B4A'} stopOpacity="1" />
-                </linearGradient>
-              </defs>
-              <polyline
-                points={sparkData.points}
-                fill="none"
-                stroke="url(#spark-grad)"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+          </div>
+          {sparkPath && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <svg width={140} height={32} viewBox={`0 0 ${sparkW} ${sparkH}`}
+                preserveAspectRatio="none" style={{ width: 140, height: 32 }}>
+                <defs>
+                  <linearGradient id="dash-spark-grad" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor={stroke} stopOpacity="0.25" />
+                    <stop offset="100%" stopColor={stroke} stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path d={sparkArea} fill="url(#dash-spark-grad)" />
+                <path d={sparkPath} fill="none" stroke={stroke} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span style={{ fontSize: 11, color: 'var(--c-text-2)' }}>
+                {sparkIsUp ? '+' : ''}{fmt(sparkCumPnl)} all time
+              </span>
+            </div>
           )}
         </div>
 
-        {/* Right column: Week + Win Ring stacked */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-
-          {/* Week card */}
-          <div style={{
-            background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-            borderRadius: '16px', padding: '16px', flex: 1
-          }}>
-            <p style={{ margin: '0 0 4px', fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--c-text-2)' }}>This Week</p>
-            <p style={{
-              margin: '0 0 4px', fontSize: '22px', fontWeight: 800,
-              color: week.totalPnl >= 0 ? '#E07A3B' : '#E24B4A',
-              letterSpacing: '-0.5px', fontVariantNumeric: 'tabular-nums'
-            }}>
-              {fmt(week.totalPnl)}
-            </p>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <Tag color="#E07A3B">{week.wins}W</Tag>
-              <Tag color="#E24B4A">{week.losses}L</Tag>
-              <Tag color="#E07A3B">{week.winRate.toFixed(0)}% WR</Tag>
-            </div>
-          </div>
-
-          {/* Win rate ring */}
-          <div style={{
-            background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-            borderRadius: '16px', padding: '14px', flex: 1,
-            display: 'flex', alignItems: 'center', gap: '14px'
-          }}>
-            <svg width="72" height="72" viewBox="0 0 72 72" style={{ flexShrink: 0 }}>
-              <circle cx="36" cy="36" r={ringRadius} fill="none" stroke="var(--c-border)" strokeWidth="6" />
-              <circle
-                cx="36" cy="36" r={ringRadius} fill="none"
-                stroke={month.winRate >= 60 ? '#E07A3B' : month.winRate >= 40 ? '#E07A3B' : '#E24B4A'}
-                strokeWidth="6" strokeLinecap="round"
-                strokeDasharray={`${winRateDash} ${circumference}`}
-                transform="rotate(-90 36 36)"
-                style={{ transition: 'stroke-dasharray 0.6s ease' }}
-              />
-              <text x="36" y="36" textAnchor="middle" dominantBaseline="central"
-                style={{ fontSize: '13px', fontWeight: 800, fill: 'var(--c-text)', fontFamily: 'inherit' }}>
-                {month.winRate.toFixed(0)}%
-              </text>
-            </svg>
-            <div>
-              <p style={{ margin: '0 0 2px', fontSize: '10px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--c-text-2)' }}>Month WR</p>
-              <p style={{ margin: '0 0 4px', fontSize: '13px', color: 'var(--c-text)', fontWeight: 600 }}>{month.count} trades</p>
-              <p style={{ margin: 0, fontSize: '11px', color: 'var(--c-text-2)' }}>{fmt(month.totalPnl)} P&L</p>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      {/* ── ROW 2: Insight ────────────────────────────── */}
-      <div style={{
-        background: `linear-gradient(135deg, rgba(224,122,59,0.12) 0%, var(--c-surface) 60%)`,
-        border: '1px solid rgba(224,122,59,0.3)',
-        borderRadius: '16px', padding: '16px 18px', marginBottom: '10px',
-        display: 'flex', alignItems: 'center', gap: '14px'
-      }}>
-        <span style={{ fontSize: '28px', lineHeight: 1, flexShrink: 0 }}>{insight.icon}</span>
+        {/* Win rate */}
         <div>
-          <p style={{ margin: '0 0 2px', fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#E07A3B' }}>Today's Insight</p>
-          <p style={{ margin: 0, fontSize: '13px', color: 'var(--c-text)', lineHeight: 1.6, fontWeight: 500 }}>{insight.msg}</p>
+          <Eyebrow>Win rate</Eyebrow>
+          <div style={{
+            fontSize: 42, fontWeight: 600, letterSpacing: '-0.02em',
+            color: 'var(--c-text)', lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+            marginBottom: 10,
+          }}>
+            {month.winRate.toFixed(0)}
+            <span style={{ fontSize: 20, color: 'var(--c-text-2)', fontWeight: 400 }}>%</span>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--c-text-2)' }}>Last 30 days · {month.count} trade{month.count === 1 ? '' : 's'}</div>
+        </div>
+
+        {/* Streak */}
+        <div>
+          <Eyebrow>Win streak</Eyebrow>
+          <div style={{
+            fontSize: 42, fontWeight: 600, letterSpacing: '-0.02em',
+            color: 'var(--c-text)', lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+            marginBottom: 10,
+          }}>
+            {streak}
+            <span style={{ fontSize: 15, color: 'var(--c-text-2)', fontWeight: 400, marginLeft: 8 }}>
+              {streak === 1 ? 'win' : 'wins'}
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--c-text-2)' }}>
+            {streak >= 3 ? 'Stay locked in.' : streak > 0 ? 'Build on it.' : 'Start the streak.'}
+          </div>
         </div>
       </div>
 
-      {/* ── ROW 2.5: Cumulative P&L curve ───────────────── */}
-      {(() => {
-        const sorted = [...trades].reverse();
-        if (sorted.length < 2) return null;
-        let cum = 0;
-        const pts = sorted.map(t => { cum += t.pnl; return cum; });
-        const min = Math.min(...pts, 0);
-        const max = Math.max(...pts, 0);
-        const range = max - min || 1;
-        const w = 460, h = 100, padY = 6;
-        const points = pts.map((v, i) => {
-          const x = (i / (pts.length - 1)) * w;
-          const y = (h - padY) - ((v - min) / range) * (h - padY * 2);
-          return `${x.toFixed(1)},${y.toFixed(1)}`;
-        });
-        const fillPoints = `0,${h} ${points.join(' ')} ${w},${h}`;
-        const isUp = cum >= 0;
-        const stroke = isUp ? '#E07A3B' : '#E24B4A';
-        const zeroY = (h - padY) - ((0 - min) / range) * (h - padY * 2);
-        return (
-          <div style={{
-            background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-            borderRadius: '16px', padding: '16px 18px', marginBottom: '10px',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <div>
-                <p style={{ margin: '0 0 2px', fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--c-text-2)' }}>Account Curve</p>
-                <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--c-text-2)' }}>{trades.length} trades total</p>
-              </div>
-              <p style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: stroke, fontVariantNumeric: 'tabular-nums' }}>
-                {cum >= 0 ? '+' : ''}{fmt(cum)}
-              </p>
+      <HR my={32} />
+
+      {/* ── Equity curve + insight pull-quote ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 44 }}>
+
+        {/* Sparkline */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--c-text)', letterSpacing: '-0.01em' }}>
+              Equity curve
             </div>
-            <svg width="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block', overflow: 'visible' }}>
-              {/* Zero line */}
-              <line x1="0" y1={zeroY} x2={w} y2={zeroY} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="4 4" />
-              {/* Fill */}
-              <polygon points={fillPoints} fill={isUp ? 'rgba(224,122,59,0.1)' : 'rgba(226,75,74,0.1)'} />
-              {/* Line */}
-              <polyline points={points.join(' ')} fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              {/* End dot */}
-              <circle cx={w} cy={parseFloat(points[points.length-1].split(',')[1])} r="3" fill={stroke} />
+            <div style={{ fontSize: 11, color: 'var(--c-text-2)' }}>
+              {trades.length} trades total
+            </div>
+          </div>
+          {sparkPath ? (
+            <svg width="100%" viewBox={`0 0 ${sparkW} ${sparkH}`} preserveAspectRatio="none"
+              style={{ display: 'block', height: 110 }}>
+              <defs>
+                <linearGradient id="dash-curve-grad" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor={stroke} stopOpacity="0.22" />
+                  <stop offset="100%" stopColor={stroke} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path d={sparkArea} fill="url(#dash-curve-grad)" />
+              <path d={sparkPath} fill="none" stroke={stroke} strokeWidth="1.8"
+                strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </div>
-        );
-      })()}
-
-      {/* ── ROW 3: Recent Trades ───────────────────────── */}
-      <div style={{
-        background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-        borderRadius: '16px', padding: '18px', marginBottom: '10px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--c-text)', letterSpacing: '-0.2px' }}>Recent Trades</h2>
-            <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--c-text-2)' }}>Last {recentTrades.length} logged</p>
-          </div>
-          <button
-            onClick={() => setActiveTab('history')}
-            style={{
-              fontSize: '11px', fontWeight: 600, color: '#E07A3B', background: 'rgba(224,122,59,0.1)',
-              border: '1px solid rgba(224,122,59,0.25)', borderRadius: '8px',
-              cursor: 'pointer', padding: '5px 10px', letterSpacing: '0.3px'
-            }}
-          >
-            View all →
-          </button>
+          ) : (
+            <div style={{ height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '1px dashed var(--c-border)', borderRadius: 10,
+              fontSize: 12, color: 'var(--c-text-2)' }}>
+              Log trades to see your equity curve
+            </div>
+          )}
         </div>
 
-        {recentTrades.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '28px 0' }}>
-            <p style={{ fontSize: '32px', margin: '0 0 8px' }}>📋</p>
-            <p style={{ color: 'var(--c-text-2)', fontSize: '13px', margin: '0 0 14px', lineHeight: 1.5 }}>No trades logged yet.<br />Start building your edge.</p>
-            <button className="jm-btn" onClick={() => setActiveTab('entry')} style={{ fontSize: '13px', padding: '9px 22px' }}>
-              ✦ Log First Trade
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {recentTrades.map((t, i) => {
-              const isWin = t.pnl > 0;
-              const isLoss = t.pnl < 0;
-              const barColor = isWin ? '#E07A3B' : isLoss ? '#E24B4A' : '#8B8882';
-              return (
-                <div key={t.id} style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '10px 12px', borderRadius: '10px',
-                  background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
-                  border: '1px solid transparent',
-                  transition: 'background 0.15s, border-color 0.15s',
-                }}>
-                  {/* Color bar */}
-                  <div style={{ width: '3px', height: '32px', borderRadius: '2px', background: barColor, flexShrink: 0 }} />
-
-                  {/* Ticker + meta */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                      <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--c-text)' }}>
-                        {t.symbol || t.ticker || '—'}
-                      </span>
-                      {t.direction && (
-                        <span style={{
-                          fontSize: '9px', fontWeight: 700, padding: '2px 5px', borderRadius: '4px', letterSpacing: '0.8px',
-                          background: t.direction === 'Long' ? 'rgba(224,122,59,0.15)' : 'rgba(224,122,59,0.15)',
-                          color: t.direction === 'Long' ? '#E07A3B' : '#E07A3B', textTransform: 'uppercase'
-                        }}>
-                          {t.direction}
-                        </span>
-                      )}
-                      {t.setup && (
-                        <span style={{ fontSize: '10px', color: 'var(--c-text-2)', fontStyle: 'italic' }}>{t.setup}</span>
-                      )}
-                      {t.session && (
-                        <span style={{
-                          fontSize: '9px', fontWeight: 700, padding: '2px 5px', borderRadius: '4px', letterSpacing: '0.5px',
-                          background: `${SESSION_COLORS[t.session] || '#8B8882'}22`,
-                          color: SESSION_COLORS[t.session] || '#8B8882',
-                        }}>
-                          ● {t.session}
-                        </span>
-                      )}
-                      {t.rating && (
-                        <span style={{
-                          fontSize: '9px', fontWeight: 700, padding: '2px 5px', borderRadius: '4px', letterSpacing: '0.5px',
-                          background: `${RATING_COLORS[t.rating]}22`,
-                          color: RATING_COLORS[t.rating],
-                        }}>
-                          {t.rating}
-                        </span>
-                      )}
-                    </div>
-                    <p style={{ margin: 0, fontSize: '10px', color: 'var(--c-text-2)' }}>{t.date}</p>
-                  </div>
-
-                  {/* P&L */}
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{
-                      fontWeight: 800, fontSize: '14px', fontVariantNumeric: 'tabular-nums',
-                      color: barColor, letterSpacing: '-0.3px'
-                    }}>
-                      {t.pnl > 0 ? '+' : ''}{fmt(t.pnl)}
-                    </span>
-                    <p style={{ margin: '2px 0 0', fontSize: '9px', color: 'var(--c-text-2)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                      {isWin ? 'WIN' : isLoss ? 'LOSS' : 'B/E'}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ── ROW 4: Action buttons ─────────────────────── */}
-      <div className="dash-action-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '10px' }}>
-        <ActionBtn
-          icon="✦"
-          label="Log Trade"
-          desc="New entry"
-          accent="#E07A3B"
-          onClick={() => setActiveTab('entry')}
-          primary
-        />
-        <ActionBtn
-          icon="◈"
-          label="Stats"
-          desc="Analytics"
-          accent="#E07A3B"
-          onClick={() => setActiveTab('stats')}
-        />
-        <ActionBtn
-          icon="☰"
-          label="History"
-          desc="All trades"
-          accent="#8B8882"
-          onClick={() => setActiveTab('history')}
-        />
-      </div>
-
-      {/* ── ROW 5: Monthly Goal ───────────────────────── */}
-      {(() => {
-        const monthPnl = month.totalPnl;
-        const now = new Date();
-        const dayOfMonth = now.getDate();
-        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        const paceMultiplier = daysInMonth / Math.max(dayOfMonth, 1);
-        const projectedPnl = monthPnl * paceMultiplier;
-        const goalSet = goal > 0;
-        const pct = goalSet ? Math.min(1, Math.max(0, monthPnl / goal)) : 0;
-        const smashed = goalSet && monthPnl >= goal;
-        const onPace = goalSet && !smashed && projectedPnl >= goal;
-        const barColor = smashed ? '#F4A460' : onPace ? '#E07A3B' : '#E07A3B';
-
-        return (
+        {/* Pull-quote / insight */}
+        <div style={{ borderLeft: '2px solid #E07A3B', paddingLeft: 22 }}>
+          <Eyebrow>Today's note</Eyebrow>
           <div style={{
-            background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-            borderRadius: '16px', padding: '16px 18px'
+            fontSize: 15, color: 'var(--c-text)', lineHeight: 1.5,
+            letterSpacing: '-0.005em', fontWeight: 500,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <div>
-                <p style={{ margin: '0 0 2px', fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--c-text-2)' }}>Monthly Goal</p>
-                {smashed
-                  ? <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#F4A460' }}>🏆 Goal smashed!</p>
-                  : onPace
-                    ? <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#E07A3B' }}>✓ On pace</p>
-                    : goalSet
-                      ? <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, color: 'var(--c-text-2)' }}>Behind pace — keep pushing</p>
-                      : <p style={{ margin: 0, fontSize: '12px', color: 'var(--c-text-2)' }}>Set a goal to track progress</p>}
+            {getInsight()}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--c-text-2)', marginTop: 12 }}>
+            — pattern engine, {month.count > 0 ? '30-day window' : 'no data yet'}
+          </div>
+        </div>
+      </div>
+
+      <HR my={32} />
+
+      {/* ── Three stat cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+
+        {/* Win streak card */}
+        <StatCard label="Win streak" badge={streak >= 3 ? '🔥' : undefined}>
+          <div style={{
+            fontSize: 30, fontWeight: 600, color: 'var(--c-text)',
+            letterSpacing: '-0.02em', lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+            marginBottom: 4,
+          }}>
+            {streak}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--c-text-2)', marginBottom: 14 }}>
+            This month: {month.wins}W / {month.losses}L
+          </div>
+          {/* Streak dots — last 7 trades */}
+          <div style={{ display: 'flex', gap: 3 }}>
+            {[...trades].slice(0, 7).reverse().map((t, i) => (
+              <div key={i} style={{
+                flex: 1, height: 5, borderRadius: 3,
+                background: t.pnl >= 0 ? '#E07A3B' : 'var(--c-border)',
+              }} />
+            ))}
+            {trades.length < 7 && Array.from({ length: 7 - Math.min(trades.length, 7) }).map((_, i) => (
+              <div key={`e-${i}`} style={{ flex: 1, height: 5, borderRadius: 3, background: 'var(--c-border)' }} />
+            ))}
+          </div>
+        </StatCard>
+
+        {/* Monthly goal card */}
+        <StatCard
+          label="Monthly goal"
+          badge={smashed ? '🏆 Smashed' : onPace ? '✓ On pace' : goalSet ? 'Behind pace' : undefined}
+          badgeColor={smashed ? '#F4A460' : onPace ? '#E07A3B' : 'var(--c-text-2)'}
+        >
+          {goalSet ? (
+            <>
+              <div style={{
+                fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em',
+                color: monthPnl >= 0 ? '#E07A3B' : '#C65A45',
+                fontVariantNumeric: 'tabular-nums', lineHeight: 1, marginBottom: 4,
+              }}>
+                {fmt(monthPnl)}
+                <span style={{ fontSize: 13, color: 'var(--c-text-2)', fontWeight: 400 }}> of {fmt(goal)}</span>
+              </div>
+              <div style={{ height: 5, background: 'var(--c-border)', borderRadius: 3, marginTop: 12, marginBottom: 6, overflow: 'hidden' }}>
+                <div style={{
+                  width: `${(goalPct * 100).toFixed(1)}%`, height: '100%',
+                  background: smashed ? 'linear-gradient(90deg, #E07A3B, #F4A460)' : '#E07A3B',
+                  borderRadius: 3, transition: 'width 0.5s ease',
+                }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 10, color: 'var(--c-text-2)' }}>{(goalPct * 100).toFixed(0)}% complete</span>
+                {editingGoal ? (
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <input autoFocus type="number" value={goalInput}
+                      onChange={e => setGoalInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') { const v = parseFloat(goalInput) || 0; saveGoal(v); setGoal(v); setEditingGoal(false); }
+                        if (e.key === 'Escape') setEditingGoal(false);
+                      }}
+                      style={{
+                        width: 70, padding: '3px 6px', borderRadius: 6, fontSize: 11,
+                        background: 'var(--c-bg)', border: '1px solid var(--c-border)',
+                        color: 'var(--c-text)', outline: 'none', fontFamily: 'inherit',
+                      }} />
+                    <button onClick={() => { const v = parseFloat(goalInput) || 0; saveGoal(v); setGoal(v); setEditingGoal(false); }}
+                      style={{ padding: '3px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700, background: '#E07A3B', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => { setGoalInput(String(goal)); setEditingGoal(true); }}
+                    style={{ fontSize: 10, color: '#E07A3B', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
+                    Edit
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 13, color: 'var(--c-text-2)', marginBottom: 12, lineHeight: 1.5 }}>
+                Set a monthly target to track your progress.
               </div>
               {editingGoal ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--c-text-2)' }}>$</span>
-                  <input
-                    autoFocus
-                    type="number"
-                    value={goalInput}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input autoFocus type="number" value={goalInput}
                     onChange={e => setGoalInput(e.target.value)}
                     onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        const v = parseFloat(goalInput) || 0;
-                        saveGoal(v); setGoal(v); setEditingGoal(false);
-                      }
+                      if (e.key === 'Enter') { const v = parseFloat(goalInput) || 0; saveGoal(v); setGoal(v); setEditingGoal(false); }
                       if (e.key === 'Escape') setEditingGoal(false);
                     }}
-                    placeholder="0"
+                    placeholder="e.g. 5000"
                     style={{
-                      width: '80px', padding: '5px 8px', borderRadius: '8px', fontSize: '13px',
-                      background: 'var(--c-bg)', border: '1px solid var(--c-border)', color: 'var(--c-text)',
-                      outline: 'none', fontFamily: 'inherit', fontVariantNumeric: 'tabular-nums'
-                    }}
-                  />
-                  <button
-                    onClick={() => { const v = parseFloat(goalInput) || 0; saveGoal(v); setGoal(v); setEditingGoal(false); }}
-                    style={{ padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: '#E07A3B', color: '#fff', border: 'none', cursor: 'pointer' }}
-                  >Save</button>
+                      flex: 1, padding: '5px 8px', borderRadius: 8, fontSize: 12,
+                      background: 'var(--c-bg)', border: '1px solid var(--c-border)',
+                      color: 'var(--c-text)', outline: 'none', fontFamily: 'inherit',
+                    }} />
+                  <button onClick={() => { const v = parseFloat(goalInput) || 0; saveGoal(v); setGoal(v); setEditingGoal(false); }}
+                    style={{ padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#E07A3B', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                    Set
+                  </button>
                 </div>
               ) : (
-                <button
-                  onClick={() => { setGoalInput(goal > 0 ? String(goal) : ''); setEditingGoal(true); }}
+                <button onClick={() => { setGoalInput(''); setEditingGoal(true); }}
                   style={{
-                    padding: '6px 12px', borderRadius: '9px', fontSize: '11px', fontWeight: 600,
-                    background: 'rgba(224,122,59,0.12)', color: '#E07A3B',
-                    border: '1px solid rgba(224,122,59,0.25)', cursor: 'pointer', letterSpacing: '0.3px'
-                  }}
-                >
-                  {goalSet ? 'Edit' : '+ Set Goal'}
+                    fontSize: 12, fontWeight: 500, color: '#E07A3B',
+                    background: 'rgba(224,122,59,0.08)', border: '1px solid rgba(224,122,59,0.2)',
+                    borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit',
+                  }}>
+                  + Set a goal
                 </button>
               )}
-            </div>
+            </>
+          )}
+        </StatCard>
 
-            {goalSet && (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: monthPnl >= 0 ? '#E07A3B' : '#E24B4A', fontVariantNumeric: 'tabular-nums' }}>
-                    {monthPnl >= 0 ? '+' : ''}{fmt(monthPnl)}
-                  </span>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-text-2)', fontVariantNumeric: 'tabular-nums' }}>
-                    / {fmt(goal)}
-                  </span>
-                </div>
-                <div style={{ background: 'var(--c-bg)', borderRadius: '6px', height: '8px', overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%', borderRadius: '6px',
-                    width: `${(pct * 100).toFixed(1)}%`,
-                    background: smashed
-                      ? 'linear-gradient(90deg, #E07A3B, #F4A460)'
-                      : `linear-gradient(90deg, ${barColor}99, ${barColor})`,
-                    transition: 'width 0.5s ease'
-                  }} />
-                </div>
-                <p style={{ margin: '6px 0 0', fontSize: '10px', color: 'var(--c-text-2)', textAlign: 'right' }}>
-                  {(pct * 100).toFixed(0)}% · projected {fmt(projectedPnl)} this month
-                </p>
-              </>
-            )}
+        {/* Week card */}
+        <StatCard label="This week" badge={week.winRate >= 60 ? 'Sharp' : week.winRate > 0 ? 'Building' : undefined} badgeColor="#E07A3B">
+          <div style={{
+            fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em',
+            color: week.totalPnl >= 0 ? '#E07A3B' : '#C65A45',
+            fontVariantNumeric: 'tabular-nums', lineHeight: 1, marginBottom: 8,
+          }}>
+            {fmt(week.totalPnl)}
           </div>
-        );
-      })()}
+          <div style={{ fontSize: 11, color: 'var(--c-text-2)', marginBottom: 14 }}>
+            {week.wins}W · {week.losses}L · {week.winRate.toFixed(0)}% win rate
+          </div>
+          <div style={{ height: 5, background: 'var(--c-border)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{
+              width: `${week.winRate}%`, height: '100%',
+              background: week.winRate >= 60 ? '#E07A3B' : '#C65A45',
+              borderRadius: 3,
+            }} />
+          </div>
+        </StatCard>
+      </div>
+
+      <HR my={32} />
+
+      {/* ── Recent trades ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--c-text)', letterSpacing: '-0.01em' }}>Recent trades</div>
+        <button onClick={() => setActiveTab('history')}
+          style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.08em', textTransform: 'uppercase',
+            background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+          See all →
+        </button>
+      </div>
+
+      {recentTrades.length === 0 ? (
+        <div style={{
+          textAlign: 'center', padding: '40px 0',
+          border: '1px dashed var(--c-border)', borderRadius: 12,
+        }}>
+          <div style={{ fontSize: 12, color: 'var(--c-text-2)', marginBottom: 16, lineHeight: 1.6 }}>
+            No trades logged yet.<br />Every edge starts with data.
+          </div>
+          <button onClick={() => setActiveTab('entry')}
+            style={{
+              fontSize: 13, fontWeight: 500, color: '#E07A3B',
+              background: 'rgba(224,122,59,0.1)', border: '1px solid rgba(224,122,59,0.25)',
+              borderRadius: 10, padding: '8px 20px', cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+            Log first trade →
+          </button>
+        </div>
+      ) : (
+        <div>
+          {recentTrades.map((t, i) => {
+            const isWin  = t.pnl > 0;
+            const pnlColor = isWin ? '#E07A3B' : '#C65A45';
+            const sym    = t.symbol || t.ticker || '—';
+            const desc   = [t.direction, t.setup, t.date].filter(Boolean).join(' · ');
+            return (
+              <div key={t.id || i} style={{
+                display: 'grid',
+                gridTemplateColumns: '80px 1fr auto 32px',
+                gap: 20,
+                padding: '14px 0',
+                borderBottom: i < recentTrades.length - 1 ? '1px solid var(--c-border)' : 'none',
+                alignItems: 'baseline',
+              }}>
+                <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--c-text)', fontVariantNumeric: 'tabular-nums' }}>
+                  {sym}
+                </span>
+                <span style={{ fontSize: 13, color: 'var(--c-text-2)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {desc || '—'}
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: pnlColor, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                  {t.pnl > 0 ? '+' : ''}{fmt(t.pnl)}
+                </span>
+                <span style={{
+                  fontSize: 12, fontWeight: 600, textAlign: 'right',
+                  color: t.rating === 'A' ? '#E07A3B' : 'var(--c-text-2)',
+                }}>
+                  {t.rating || '—'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
     </div>
-  );
-}
-
-function Tag({ color, children }) {
-  return (
-    <span style={{
-      fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '5px',
-      background: `${color}18`, color, letterSpacing: '0.3px'
-    }}>
-      {children}
-    </span>
-  );
-}
-
-function ActionBtn({ icon, label, desc, accent, onClick, primary }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: '14px 10px', borderRadius: '14px',
-        border: `1px solid ${primary ? accent : 'var(--c-border)'}`,
-        background: primary
-          ? `linear-gradient(135deg, ${accent}22 0%, ${accent}08 100%)`
-          : 'var(--c-surface)',
-        cursor: 'pointer', textAlign: 'center',
-        transition: 'transform 0.12s, border-color 0.12s',
-      }}
-      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = accent; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = primary ? accent : 'var(--c-border)'; }}
-    >
-      <p style={{ margin: '0 0 4px', fontSize: '20px', lineHeight: 1 }}>{icon}</p>
-      <p style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 700, color: primary ? accent : 'var(--c-text)' }}>{label}</p>
-      <p style={{ margin: 0, fontSize: '10px', color: 'var(--c-text-2)', letterSpacing: '0.3px' }}>{desc}</p>
-    </button>
   );
 }
