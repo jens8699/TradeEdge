@@ -2,24 +2,23 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { filterPeriod, computeStats, fmt, animateCount } from '../../lib/utils';
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── helpers ───────────────────────────────────────────────────────────────────
 
 function getStreak(list) {
   if (!list.length) return { current: 0, type: 'none', longest: 0, longestLoss: 0 };
   const sorted = [...list].sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''));
   let current = 0, type = 'none';
   for (const t of sorted) {
-    if (t.pnl > 0) { if (type === 'none' || type === 'win') { type = 'win'; current++; } else break; }
+    if (t.pnl > 0)      { if (type === 'none' || type === 'win')  { type = 'win';  current++; } else break; }
     else if (t.pnl < 0) { if (type === 'none' || type === 'loss') { type = 'loss'; current++; } else break; }
     else break;
   }
-  // Longest win streak
   let longestW = 0, longestL = 0, runW = 0, runL = 0;
   const asc = [...list].sort((a, b) => a.date.localeCompare(b.date));
   for (const t of asc) {
-    if (t.pnl > 0) { runW++; runL = 0; longestW = Math.max(longestW, runW); }
+    if (t.pnl > 0)      { runW++; runL = 0; longestW = Math.max(longestW, runW); }
     else if (t.pnl < 0) { runL++; runW = 0; longestL = Math.max(longestL, runL); }
-    else { runW = 0; runL = 0; }
+    else                 { runW = 0; runL = 0; }
   }
   return { current, type, longest: longestW, longestLoss: longestL };
 }
@@ -56,444 +55,515 @@ function getConsistencyScore(s) {
   let score = 50;
   score += Math.min(20, (s.winRate - 40) * 0.8);
   if (s.pf >= 2) score += 15; else if (s.pf >= 1.5) score += 10; else if (s.pf >= 1) score += 5; else score -= 10;
-  if (s.rr >= 2) score += 10; else if (s.rr >= 1.5) score += 6; else if (s.rr >= 1) score += 2; else score -= 5;
+  if (s.rr >= 2) score += 10; else if (s.rr >= 1.5) score += 6;  else if (s.rr >= 1) score += 2; else score -= 5;
   if (s.count >= 20) score += 5; else if (s.count >= 10) score += 2;
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
 function scoreLabel(n) {
-  if (n >= 85) return { label: 'Elite', color: '#E07A3B' };
-  if (n >= 70) return { label: 'Strong', color: '#E07A3B' };
-  if (n >= 55) return { label: 'Developing', color: '#EFC97A' };
-  if (n >= 40) return { label: 'Inconsistent', color: '#A89687' };
-  return { label: 'Needs work', color: '#F09595' };
+  if (n >= 85) return { label: 'Elite',       color: '#E07A3B' };
+  if (n >= 70) return { label: 'Strong',      color: '#E07A3B' };
+  if (n >= 55) return { label: 'Developing',  color: '#EFC97A' };
+  if (n >= 40) return { label: 'Inconsistent',color: '#A89687' };
+  return              { label: 'Needs work',  color: '#C65A45' };
 }
 
-// ── component ─────────────────────────────────────────────────────────────────
+// ── layout helpers ─────────────────────────────────────────────────────────────
+
+function HR() {
+  return <div style={{ height: 1, background: 'var(--c-border)', margin: '28px 0' }} />;
+}
+
+function Eyebrow({ children }) {
+  return (
+    <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
+      {children}
+    </div>
+  );
+}
+
+// ── main component ────────────────────────────────────────────────────────────
+
+const PERIODS = [
+  { key: 'week',  label: '1W'  },
+  { key: 'month', label: '1M'  },
+  { key: 'all',   label: 'All' },
+];
 
 export default function Stats() {
   const { trades } = useApp();
   const [period, setPeriod] = useState('month');
   const heroRef  = useRef(null);
-  const chartRef = useRef(null);
-  const wlRef    = useRef(null);
   const dowRef   = useRef(null);
-  const pnlChart = useRef(null);
-  const wlChart  = useRef(null);
   const dowChart = useRef(null);
 
   const list = filterPeriod(trades, period);
   const s    = computeStats(list);
 
-  const streak   = useMemo(() => getStreak(list), [list]);
-  const setups   = useMemo(() => getSetupStats(list), [list]);
-  const dowStats = useMemo(() => getDayOfWeekStats(list), [list]);
+  const streak      = useMemo(() => getStreak(list), [list]);
+  const setups      = useMemo(() => getSetupStats(list), [list]);
+  const dowStats    = useMemo(() => getDayOfWeekStats(list), [list]);
   const consistency = useMemo(() => getConsistencyScore(s), [s]);
   const consistencyInfo = consistency !== null ? scoreLabel(consistency) : null;
 
-  const topWins   = useMemo(() => [...list].filter(t => t.pnl > 0).sort((a,b) => b.pnl - a.pnl).slice(0, 3), [list]);
-  const topLosses = useMemo(() => [...list].filter(t => t.pnl < 0).sort((a,b) => a.pnl - b.pnl).slice(0, 3), [list]);
+  const topWins   = useMemo(() => [...list].filter(t => t.pnl > 0).sort((a, b) => b.pnl - a.pnl).slice(0, 3), [list]);
+  const topLosses = useMemo(() => [...list].filter(t => t.pnl < 0).sort((a, b) => a.pnl - b.pnl).slice(0, 3), [list]);
 
-  // Animate hero
+  // Animate hero P&L
   useEffect(() => {
     if (heroRef.current) animateCount(heroRef.current, s.totalPnl);
   }, [s.totalPnl, period]);
 
-  // Cumulative P/L chart
+  // Day-of-week bar chart
   useEffect(() => {
     if (typeof window === 'undefined') return;
     import('chart.js').then(({ Chart, registerables }) => {
       Chart.register(...registerables);
-      const sorted = [...list].sort((a,b) => a.date.localeCompare(b.date) || (a.createdAt||'').localeCompare(b.createdAt||''));
-      if (pnlChart.current) { pnlChart.current.destroy(); pnlChart.current = null; }
-      const ctx = chartRef.current;
-      if (!ctx || !sorted.length) return;
-      let cum = 0;
-      const labels = [], data = [];
-      sorted.forEach(t => { cum += t.pnl; labels.push(t.date.slice(5)); data.push(+(cum.toFixed(2))); });
-      const lineColor = cum >= 0 ? '#E07A3B' : '#E24B4A';
-      const fillColor = cum >= 0 ? 'rgba(224,122,59,0.15)' : 'rgba(226,75,74,0.12)';
-      pnlChart.current = new Chart(ctx, {
-        type: 'line',
-        data: { labels, datasets: [{ data, borderColor: lineColor, backgroundColor: fillColor, fill: true, tension: 0.35, pointRadius: sorted.length < 20 ? 4 : 0, pointBackgroundColor: lineColor, pointBorderColor: '#17150F', pointBorderWidth: 2, borderWidth: 2.5 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0E0C08', titleColor: '#F5F3ED', bodyColor: '#E8E6E1', borderColor: '#2A2720', borderWidth: 1, padding: 10, cornerRadius: 8, callbacks: { label: c => (c.raw < 0 ? '-$' : '$') + Math.abs(c.raw).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) } } }, scales: { y: { ticks: { color: '#8B8882', callback: v => (v < 0 ? '-$' : '$') + Math.abs(v) }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { display: false } }, x: { ticks: { color: '#8B8882', maxTicksLimit: 8 }, grid: { display: false }, border: { display: false } } } },
-      });
-
-      // W/L bar
-      if (wlChart.current) { wlChart.current.destroy(); wlChart.current = null; }
-      const wlCtx = wlRef.current;
-      if (wlCtx) {
-        const be = s.count - s.wins - s.losses;
-        wlChart.current = new Chart(wlCtx, {
-          type: 'bar',
-          data: { labels: ['Wins', 'Losses', 'B/E'], datasets: [{ data: [s.wins, s.losses, be], backgroundColor: ['rgba(224,122,59,0.75)', 'rgba(226,75,74,0.75)', 'rgba(139,136,130,0.4)'], borderRadius: 8, borderWidth: 0 }] },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0E0C08', titleColor: '#F5F3ED', bodyColor: '#E8E6E1', borderColor: '#2A2720', borderWidth: 1, padding: 10, cornerRadius: 8 } }, scales: { y: { ticks: { color: '#8B8882' }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { display: false } }, x: { ticks: { color: '#E8E6E1' }, grid: { display: false }, border: { display: false } } } },
-        });
-      }
-
-      // Day of week bar
       if (dowChart.current) { dowChart.current.destroy(); dowChart.current = null; }
-      const dowCtx = dowRef.current;
-      if (dowCtx && dowStats.length) {
-        const colors = dowStats.map(d => d.pnl >= 0 ? 'rgba(224,122,59,0.75)' : 'rgba(226,75,74,0.7)');
-        dowChart.current = new Chart(dowCtx, {
-          type: 'bar',
-          data: { labels: dowStats.map(d => d.label), datasets: [{ data: dowStats.map(d => +(d.pnl.toFixed(2))), backgroundColor: colors, borderRadius: 8, borderWidth: 0 }] },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0E0C08', titleColor: '#F5F3ED', bodyColor: '#E8E6E1', borderColor: '#2A2720', borderWidth: 1, padding: 10, cornerRadius: 8, callbacks: { label: c => (c.raw < 0 ? '-$' : '+$') + Math.abs(c.raw).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + ` (${dowStats.find(d => d.label === c.label)?.count || 0} trades)` } } }, scales: { y: { ticks: { color: '#8B8882', callback: v => (v < 0 ? '-$' : '$') + Math.abs(v) }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { display: false } }, x: { ticks: { color: '#E8E6E1' }, grid: { display: false }, border: { display: false } } } },
-        });
-      }
+      const ctx = dowRef.current;
+      if (!ctx || !dowStats.length) return;
+      const colors = dowStats.map(d => d.pnl >= 0 ? 'rgba(224,122,59,0.80)' : 'rgba(198,90,69,0.75)');
+      dowChart.current = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: dowStats.map(d => d.label),
+          datasets: [{
+            data: dowStats.map(d => +(d.pnl.toFixed(2))),
+            backgroundColor: colors,
+            borderRadius: 6,
+            borderWidth: 0,
+          }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'var(--c-surface)', titleColor: 'var(--c-text)', bodyColor: 'var(--c-text-2)',
+              borderColor: 'var(--c-border)', borderWidth: 1, padding: 10, cornerRadius: 8,
+              callbacks: {
+                label: c => {
+                  const entry = dowStats.find(d => d.label === c.label);
+                  return `${c.raw < 0 ? '-$' : '+$'}${Math.abs(c.raw).toFixed(2)} · ${entry?.count || 0} trades`;
+                },
+              },
+            },
+          },
+          scales: {
+            y: { ticks: { color: 'var(--c-text-2)', callback: v => (v < 0 ? '-$' : '$') + Math.abs(v) }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { display: false } },
+            x: { ticks: { color: 'var(--c-text-2)' }, grid: { display: false }, border: { display: false } },
+          },
+        },
+      });
     });
-  }, [list, period, dowStats, s.count, s.wins, s.losses]);
+  }, [list, period, dowStats]);
 
   useEffect(() => () => {
-    if (pnlChart.current) pnlChart.current.destroy();
-    if (wlChart.current)  wlChart.current.destroy();
     if (dowChart.current) dowChart.current.destroy();
   }, []);
 
   const maxSetupPnl = setups.length ? Math.max(...setups.map(ss => Math.abs(ss.pnl))) : 1;
+  const isProfit = s.totalPnl >= 0;
+
+  // Win rate ring values
+  const ringR = 38, ringCirc = 2 * Math.PI * ringR;
+  const ringDash = (Math.max(0, Math.min(100, s.winRate)) / 100) * ringCirc;
 
   return (
-    <div className="jm-view">
-      <div className="jm-greeting">
-        <p className="jm-hello">Know your edge</p>
-        <h1 className="jm-page-title">Performance <span>Stats</span></h1>
+    <div style={{ padding: '36px 44px', maxWidth: 980, paddingBottom: 64 }}>
+
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+        <div>
+          <Eyebrow>Stats</Eyebrow>
+          <div style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 34, fontWeight: 700,
+            color: 'var(--c-text)', letterSpacing: '-0.03em', lineHeight: 1.1,
+          }}>
+            The numbers.
+          </div>
+          {consistencyInfo && list.length >= 3 && (
+            <div style={{ fontSize: 12, color: 'var(--c-text-2)', marginTop: 8 }}>
+              Consistency score:{' '}
+              <span style={{ color: consistencyInfo.color, fontWeight: 600 }}>
+                {consistency} — {consistencyInfo.label}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Period tabs */}
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 4, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--c-border)', borderRadius: 8, padding: 4 }}>
+          {PERIODS.map(({ key, label }) => {
+            const active = period === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setPeriod(key)}
+                style={{
+                  all: 'unset', cursor: 'pointer',
+                  padding: '5px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                  fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.04em',
+                  background: active ? 'var(--c-accent)' : 'transparent',
+                  color: active ? '#fff' : 'var(--c-text-2)',
+                  transition: 'background 0.15s, color 0.15s',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Period selector */}
-      <div className="jm-seg">
-        {[['day','Today'],['week','This week'],['month','This month'],['all','All time']].map(([p,l]) => (
-          <button key={p} className={period === p ? 'on' : ''} onClick={() => setPeriod(p)}>{l}</button>
-        ))}
-      </div>
+      <HR />
 
-      {/* Hero */}
-      <div className="jm-hero" style={s.totalPnl < 0 ? {
-        background: 'radial-gradient(ellipse at top right, rgba(226,75,74,0.22) 0%, rgba(226,75,74,0.04) 50%, #1E1C16 100%)',
-        borderColor: 'rgba(226,75,74,0.4)',
-      } : {}}>
-        <p className="jm-hero-label">Realized P/L</p>
-        <p className="jm-hero-val" style={{ color: s.totalPnl < 0 ? '#C65A45' : '#E07A3B' }} ref={heroRef}>$0.00</p>
-        {list.length === 0
-          ? <p className="jm-hero-meta">No trades in this period</p>
-          : <p className="jm-hero-meta">{s.count} trade{s.count !== 1 ? 's' : ''} · {s.wins}W / {s.losses}L{consistencyInfo ? ` · ` : ''}
-              {consistencyInfo && <span style={{ color: consistencyInfo.color, fontWeight: 600 }}>{consistency} consistency score</span>}
-            </p>
-        }
-      </div>
-
+      {/* ── Flat hero stats ── */}
       {list.length === 0 ? (
-        <div style={{ textAlign:'center', padding:'3rem 0', color:'#5F5C56', fontSize:'13px', lineHeight:1.8 }}>
-          No trades logged for this period.<br />Log some trades to see your stats.
+        <div style={{ textAlign: 'center', padding: '56px 0', color: 'var(--c-text-2)', fontSize: 13, lineHeight: 1.8 }}>
+          No trades logged for this period.<br />
+          <span style={{ opacity: 0.6 }}>Log some trades to see your stats.</span>
         </div>
-      ) : (<>
+      ) : (
+        <>
+          {/* 4-up hero */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, marginBottom: 36 }}>
+            <HeroStat
+              label="Net P&L"
+              valueRef={heroRef}
+              rawValue={s.totalPnl}
+              display="$0.00"
+              color={isProfit ? 'var(--c-accent)' : '#C65A45'}
+              size={48}
+              sub={`${s.count} trade${s.count !== 1 ? 's' : ''} · ${s.wins}W / ${s.losses}L`}
+            />
+            <HeroStat
+              label="Win Rate"
+              display={`${s.winRate.toFixed(1)}%`}
+              color="var(--c-text)"
+              size={38}
+              sub={s.winRate >= 60 ? 'Above threshold' : s.winRate >= 40 ? 'In the zone' : 'Below threshold'}
+            />
+            <HeroStat
+              label="Profit Factor"
+              display={isFinite(s.pf) ? s.pf.toFixed(2) : '∞'}
+              color="var(--c-text)"
+              size={38}
+              sub={s.pf >= 1.5 ? 'Solid edge' : s.pf >= 1 ? 'Breakeven zone' : 'Negative edge'}
+            />
+            <HeroStat
+              label="Avg R:R"
+              display={s.losses === 0 ? '—' : s.rr.toFixed(2)}
+              color="var(--c-text)"
+              size={38}
+              sub={s.losses === 0 ? 'No losses yet' : s.rr >= 1.5 ? 'Healthy ratio' : s.rr >= 1 ? 'Needs work' : 'Risk > reward'}
+            />
+          </div>
 
-        {/* Core metrics row */}
-        <div className="stats-rings-row" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'10px', marginBottom:'10px' }}>
-          <MetricRing label="Win Rate" value={s.winRate.toFixed(1) + '%'} pct={s.winRate} color="#5DCAA5" foot={`${s.wins}W / ${s.losses}L`} />
-          <MetricRing label="Profit Factor" value={isFinite(s.pf) ? s.pf.toFixed(2) : '∞'} pct={Math.min((isFinite(s.pf)?s.pf:3)/3*100,100)} color="#E07A3B" foot={s.pf >= 1.5 ? '✓ Good edge' : s.pf >= 1 ? 'Breakeven zone' : '⚠ Below B/E'} />
-          <MetricRing label="Avg R:R" value={s.losses === 0 ? '—' : s.rr.toFixed(2)} pct={Math.min(s.rr/3*100,100)} color="#A89687" foot={s.losses === 0 ? 'No losses yet' : s.rr >= 1.5 ? '✓ Healthy R:R' : s.rr >= 1 ? 'Needs improvement' : '⚠ Risk > Reward'} />
-        </div>
+          {/* ── Secondary stat cards ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 4 }}>
+            <SecondaryCard label="Avg Win"      value={fmt(s.avgWin)}  color="var(--c-accent)" />
+            <SecondaryCard label="Avg Loss"     value={fmt(s.avgLoss)} color="#C65A45" />
+            <SecondaryCard label="Largest Win"  value={fmt(s.best)}    color="var(--c-accent)" />
+            <SecondaryCard label="Max Drawdown" value={fmt(s.worst)}   color="#C65A45" />
+          </div>
 
-        {/* Secondary metrics */}
-        <div className="stats-small-cards" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'10px', marginBottom:'10px' }}>
-          <SmallCard label="Avg Win" val={fmt(s.avgWin)} color="#E07A3B" />
-          <SmallCard label="Avg Loss" val={fmt(s.avgLoss)} color="#F09595" />
-          <SmallCard label="Best Trade" val={fmt(s.best)} color="#E07A3B" />
-          <SmallCard label="Worst Trade" val={fmt(s.worst)} color="#F09595" />
-        </div>
+          <HR />
 
-        {/* Streak card */}
-        <div className="jm-card stats-streak-card" style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px', marginBottom:'10px', padding:'16px 20px' }}>
-          <StreakCol
-            label="Current streak"
-            value={streak.current}
-            type={streak.type}
-            icon={streak.type === 'win' ? '🔥' : streak.type === 'loss' ? '🧊' : '—'}
-            sub={streak.current === 0 ? 'Start trading' : streak.type === 'win' ? `${streak.current} green in a row` : `${streak.current} red in a row`}
-          />
-          <StreakCol label="Longest win run" value={streak.longest} type="win" icon="⭐" sub="consecutive wins" />
-          <StreakCol label="Longest loss run" value={streak.longestLoss} type="loss" icon="❄️" sub="consecutive losses" />
-        </div>
+          {/* ── Day-of-week chart + Win Rate ring ── */}
+          {dowStats.length > 1 && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 36, alignItems: 'start', marginBottom: 4 }}>
 
-        {/* Setup breakdown */}
-        {setups.length > 0 && (
-          <div className="jm-card" style={{ marginBottom:'10px' }}>
-            <h2 className="jm-card-title" style={{ marginBottom:'14px' }}>Setup Breakdown</h2>
-            <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
-              {setups.map(ss => (
-                <div key={ss.name} style={{ display:'flex', flexDirection:'column', gap:'4px' }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
-                    <span style={{ fontSize:'13px', fontWeight:600, color:'#E8E6E1' }}>{ss.name}</span>
-                    <div style={{ display:'flex', gap:'12px', alignItems:'center' }}>
-                      <span style={{ fontSize:'11px', color:'#8B8882' }}>{ss.count} trades · {ss.wr}% WR</span>
-                      <span style={{ fontSize:'13px', fontWeight:700, color: ss.pnl >= 0 ? '#E07A3B' : '#F09595' }}>{fmt(ss.pnl)}</span>
+                {/* Bar chart */}
+                <div>
+                  <Eyebrow>P/L by Day of Week</Eyebrow>
+                  <div style={{ position: 'relative', height: 160 }}>
+                    <canvas ref={dowRef} />
+                  </div>
+                  {(() => {
+                    const best  = [...dowStats].sort((a, b) => b.pnl - a.pnl)[0];
+                    const worst = [...dowStats].sort((a, b) => a.pnl - b.pnl)[0];
+                    return best && best !== worst ? (
+                      <p style={{ fontSize: 12, color: 'var(--c-text-2)', marginTop: 12, lineHeight: 1.7 }}>
+                        <span style={{ color: 'var(--c-accent)', fontWeight: 600 }}>{best.label}</span> is your best day ({fmt(best.pnl)}) ·{' '}
+                        <span style={{ color: '#C65A45', fontWeight: 600 }}>{worst.label}</span> is your worst ({fmt(worst.pnl)})
+                      </p>
+                    ) : null;
+                  })()}
+                </div>
+
+                {/* Win rate ring */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 28 }}>
+                  <div style={{ position: 'relative', width: 100, height: 100 }}>
+                    <svg width="100" height="100" style={{ display: 'block', overflow: 'visible' }}>
+                      <circle cx="50" cy="50" r={ringR} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+                      <circle cx="50" cy="50" r={ringR} fill="none" stroke="var(--c-accent)" strokeWidth="6"
+                        strokeDasharray={`${ringDash} ${ringCirc}`} strokeLinecap="round"
+                        transform="rotate(-90 50 50)" style={{ transition: 'stroke-dasharray 0.6s ease' }} />
+                    </svg>
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--c-text)', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.02em' }}>
+                        {s.winRate.toFixed(0)}%
+                      </span>
                     </div>
                   </div>
-                  <div style={{ height:'5px', borderRadius:'3px', background:'rgba(255,255,255,0.06)', overflow:'hidden' }}>
-                    <div style={{
-                      height:'100%', borderRadius:'3px',
-                      width: `${Math.abs(ss.pnl) / maxSetupPnl * 100}%`,
-                      background: ss.pnl >= 0 ? 'linear-gradient(90deg,#E07A3B,#F0A67A)' : 'linear-gradient(90deg,#E24B4A,#F09595)',
-                      transition: 'width 0.6s ease',
-                    }} />
+                  <div style={{ fontSize: 11, color: 'var(--c-text-2)', marginTop: 10, textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    Win Rate
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--c-text-2)', marginTop: 6, textAlign: 'center', lineHeight: 1.5, opacity: 0.7 }}>
+                    {s.wins}W · {s.losses}L · {s.count - s.wins - s.losses > 0 ? `${s.count - s.wins - s.losses} B/E` : ''}
+                  </div>
+
+                  {/* Streak numbers */}
+                  <div style={{ marginTop: 22, width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <StreakRow label="Current streak"  value={streak.current}    type={streak.type} />
+                    <StreakRow label="Longest win run" value={streak.longest}    type="win" />
+                    <StreakRow label="Longest loss run" value={streak.longestLoss} type="loss" />
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Charts row */}
-        <div className="stats-charts-row" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'12px' }}>
-          <div className="jm-card">
-            <h2 className="jm-card-title" style={{ marginBottom:'12px' }}>Cumulative P/L</h2>
-            <div style={{ position:'relative', height:'180px' }}>
-              <canvas ref={chartRef} />
-            </div>
-          </div>
-          <div className="jm-card">
-            <h2 className="jm-card-title" style={{ marginBottom:'12px' }}>Win / Loss Split</h2>
-            <div style={{ position:'relative', height:'180px' }}>
-              <canvas ref={wlRef} />
-            </div>
-          </div>
-        </div>
-
-        {/* Day of week chart */}
-        {dowStats.length > 1 && (
-          <div className="jm-card" style={{ marginBottom:'12px' }}>
-            <h2 className="jm-card-title" style={{ marginBottom:'12px' }}>P/L by Day of Week</h2>
-            <div style={{ position:'relative', height:'180px' }}>
-              <canvas ref={dowRef} />
-            </div>
-            {(() => {
-              const best = [...dowStats].sort((a,b) => b.pnl - a.pnl)[0];
-              const worst = [...dowStats].sort((a,b) => a.pnl - b.pnl)[0];
-              return best && best !== worst ? (
-                <p style={{ fontSize:'12px', color:'#8B8882', margin:'10px 0 0', lineHeight:1.6 }}>
-                  <span style={{ color:'#E07A3B', fontWeight:600 }}>{best.label}</span> is your best day ({fmt(best.pnl)}) ·&nbsp;
-                  <span style={{ color:'#F09595', fontWeight:600 }}>{worst.label}</span> is your worst day ({fmt(worst.pnl)})
-                </p>
-              ) : null;
-            })()}
-          </div>
-        )}
-
-        {/* Top trades */}
-        {(topWins.length > 0 || topLosses.length > 0) && (
-          <div className="stats-charts-row" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'10px' }}>
-            {topWins.length > 0 && (
-              <div className="jm-card">
-                <h2 className="jm-card-title" style={{ marginBottom:'12px', color:'#E07A3B' }}>🏆 Top Wins</h2>
-                {topWins.map((t, i) => (
-                  <div key={t.id || i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 0', borderBottom: i < topWins.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none' }}>
-                    <div>
-                      <span style={{ fontSize:'13px', fontWeight:700, color:'#E8E6E1' }}>{t.symbol}</span>
-                      <span style={{ fontSize:'11px', color:'#8B8882', marginLeft:'8px' }}>{t.date}</span>
-                      {t.setup && <span style={{ fontSize:'10px', color:'#6B6760', marginLeft:'6px' }}>{t.setup}</span>}
-                    </div>
-                    <span style={{ fontSize:'13px', fontWeight:700, color:'#E07A3B' }}>{fmt(t.pnl)}</span>
-                  </div>
-                ))}
               </div>
-            )}
-            {topLosses.length > 0 && (
-              <div className="jm-card">
-                <h2 className="jm-card-title" style={{ marginBottom:'12px', color:'#F09595' }}>📚 Biggest Lessons</h2>
-                {topLosses.map((t, i) => (
-                  <div key={t.id || i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 0', borderBottom: i < topLosses.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none' }}>
-                    <div>
-                      <span style={{ fontSize:'13px', fontWeight:700, color:'#E8E6E1' }}>{t.symbol}</span>
-                      <span style={{ fontSize:'11px', color:'#8B8882', marginLeft:'8px' }}>{t.date}</span>
-                      {t.setup && <span style={{ fontSize:'10px', color:'#6B6760', marginLeft:'6px' }}>{t.setup}</span>}
+
+              <HR />
+            </>
+          )}
+
+          {/* ── Setups ranked list ── */}
+          {setups.length > 0 && (
+            <>
+              <div style={{ marginBottom: 4 }}>
+                <Eyebrow>Setup Breakdown</Eyebrow>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {setups.map((ss, i) => (
+                    <div key={ss.name} style={{
+                      display: 'grid', gridTemplateColumns: '1fr auto auto',
+                      gap: 20, padding: '14px 0', alignItems: 'center',
+                      borderBottom: i < setups.length - 1 ? '1px solid var(--c-border)' : 'none',
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-text)', marginBottom: 6 }}>
+                          {ss.name}
+                        </div>
+                        <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden', maxWidth: 280 }}>
+                          <div style={{
+                            height: '100%', borderRadius: 2,
+                            width: `${(Math.abs(ss.pnl) / maxSetupPnl) * 100}%`,
+                            background: ss.pnl >= 0 ? 'var(--c-accent)' : '#C65A45',
+                            transition: 'width 0.6s ease',
+                          }} />
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--c-text-2)', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                        {ss.count} trade{ss.count !== 1 ? 's' : ''} · {ss.wr}% WR
+                      </div>
+                      <div style={{
+                        fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                        color: ss.pnl >= 0 ? 'var(--c-accent)' : '#C65A45',
+                        whiteSpace: 'nowrap', minWidth: 72, textAlign: 'right',
+                      }}>
+                        {ss.pnl >= 0 ? '+' : ''}{fmt(ss.pnl)}
+                      </div>
                     </div>
-                    <span style={{ fontSize:'13px', fontWeight:700, color:'#F09595' }}>{fmt(t.pnl)}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            )}
-          </div>
-        )}
+              <HR />
+            </>
+          )}
 
+          {/* ── Top trades ── */}
+          {(topWins.length > 0 || topLosses.length > 0) && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, marginBottom: 4 }}>
+                {topWins.length > 0 && (
+                  <div>
+                    <Eyebrow>Top Wins</Eyebrow>
+                    {topWins.map((t, i) => (
+                      <div key={t.id || i} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                        padding: '11px 0',
+                        borderBottom: i < topWins.length - 1 ? '1px solid var(--c-border)' : 'none',
+                      }}>
+                        <div>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-text)' }}>{t.symbol || '—'}</span>
+                          {t.setup && <span style={{ fontSize: 11, color: 'var(--c-text-2)', marginLeft: 8 }}>{t.setup}</span>}
+                          <div style={{ fontSize: 11, color: 'var(--c-text-2)', marginTop: 1 }}>{t.date}</div>
+                        </div>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-accent)', fontVariantNumeric: 'tabular-nums' }}>
+                          +{fmt(t.pnl)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {topLosses.length > 0 && (
+                  <div>
+                    <Eyebrow>Biggest Losses</Eyebrow>
+                    {topLosses.map((t, i) => (
+                      <div key={t.id || i} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                        padding: '11px 0',
+                        borderBottom: i < topLosses.length - 1 ? '1px solid var(--c-border)' : 'none',
+                      }}>
+                        <div>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-text)' }}>{t.symbol || '—'}</span>
+                          {t.setup && <span style={{ fontSize: 11, color: 'var(--c-text-2)', marginLeft: 8 }}>{t.setup}</span>}
+                          <div style={{ fontSize: 11, color: 'var(--c-text-2)', marginTop: 1 }}>{t.date}</div>
+                        </div>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: '#C65A45', fontVariantNumeric: 'tabular-nums' }}>
+                          {fmt(t.pnl)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <HR />
+            </>
+          )}
 
-        {/* ── Monthly P&L bar chart ─────────────────────────────────────── */}
-        <MonthlyBars trades={list} />
+          {/* ── Monthly P&L ── */}
+          <MonthlyBars trades={list} />
 
-        {/* ── Setup win-rate breakdown ──────────────────────────────────── */}
-        <SetupBreakdown trades={list} />
+          {/* ── Session breakdown ── */}
+          <SessionBreakdown trades={list} />
 
-        {/* ── Session breakdown ─────────────────────────────────────────── */}
-        <SessionBreakdown trades={list} />
+          {/* ── Rating breakdown ── */}
+          <RatingBreakdown trades={list} />
 
-        {/* ── Rating breakdown ──────────────────────────────────────────── */}
-        <RatingBreakdown trades={list} />
-
-        {/* ── Day-of-week performance ───────────────────────────────────── */}
-        <DayOfWeek trades={list} />
-
-      </>)}
+          {/* ── Day of week tiles ── */}
+          <DayOfWeekTiles trades={list} />
+        </>
+      )}
     </div>
   );
 }
 
-// ── sub-components ────────────────────────────────────────────────────────────
+// ── hero stat (flat, no box) ──────────────────────────────────────────────────
 
-function MetricRing({ label, value, pct, color, foot }) {
-  const r = 26, circ = 2 * Math.PI * r;
-  const dash = (Math.max(0, Math.min(100, pct)) / 100) * circ;
+function HeroStat({ label, valueRef, rawValue, display, color, size, sub }) {
   return (
-    <div className="jm-card" style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'18px 12px', gap:'6px' }}>
-      <div style={{ position:'relative', width:'68px', height:'68px', flexShrink:0 }}>
-        <svg width="68" height="68" style={{ overflow:'visible', display:'block' }}>
-          <circle cx="34" cy="34" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
-          <circle cx="34" cy="34" r={r} fill="none" stroke={color} strokeWidth="5"
-            strokeDasharray={`${dash} ${circ}`} strokeLinecap="butt"
-            transform="rotate(-90 34 34)" style={{ transition:'stroke-dasharray 0.6s ease' }} />
-        </svg>
-        <p style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', margin:0, fontSize: value.length > 5 ? '11px' : value.length > 3 ? '13px' : '16px', fontWeight:800, color, letterSpacing:'-0.5px' }}>{value}</p>
+    <div style={{ paddingRight: 24 }}>
+      <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
+        {label}
       </div>
-      <p style={{ fontSize:'11px', color:'#8B8882', margin:0, textTransform:'uppercase', letterSpacing:'0.5px' }}>{label}</p>
-      {foot && <p style={{ fontSize:'11px', color:'#6B6760', textAlign:'center', lineHeight:1.4, margin:0 }}>{foot}</p>}
+      <div
+        ref={valueRef}
+        style={{
+          fontFamily: "'Inter', sans-serif",
+          fontSize: size, fontWeight: 700, color,
+          letterSpacing: '-0.03em', lineHeight: 1,
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {display}
+      </div>
+      {sub && (
+        <div style={{ fontSize: 11, color: 'var(--c-text-2)', marginTop: 8, lineHeight: 1.5 }}>
+          {sub}
+        </div>
+      )}
     </div>
   );
 }
 
-function SmallCard({ label, val, color }) {
+// ── secondary card (boxed) ────────────────────────────────────────────────────
+
+function SecondaryCard({ label, value, color }) {
   return (
-    <div className="jm-card" style={{ padding:'14px 16px' }}>
-      <p style={{ fontSize:'11px', color:'#8B8882', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'6px' }}>{label}</p>
-      <p style={{ fontSize:'17px', fontWeight:800, color: color || '#E8E6E1' }}>{val}</p>
+    <div style={{
+      border: '1px solid var(--c-border)', borderRadius: 10,
+      padding: '14px 16px',
+    }}>
+      <div style={{ fontSize: 10, color: 'var(--c-text-2)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
+        {label}
+      </div>
+      <div style={{
+        fontFamily: "'Inter', sans-serif",
+        fontSize: 17, fontWeight: 700, color: color || 'var(--c-text)',
+        letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums',
+      }}>
+        {value}
+      </div>
     </div>
   );
 }
 
-function StreakCol({ label, value, type, icon, sub }) {
-  const color = type === 'win' ? '#E07A3B' : type === 'loss' ? '#F09595' : '#8B8882';
+// ── streak row (inside ring panel) ───────────────────────────────────────────
+
+function StreakRow({ label, value, type }) {
+  const color = type === 'win' ? 'var(--c-accent)' : type === 'loss' ? '#C65A45' : 'var(--c-text-2)';
   return (
-    <div style={{ textAlign:'center' }}>
-      <p style={{ fontSize:'11px', color:'#8B8882', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'6px' }}>{label}</p>
-      <p style={{ fontSize:'28px', fontWeight:900, color, lineHeight:1 }}>{value}</p>
-      <p style={{ fontSize:'12px', color:'#6B6760', marginTop:'4px' }}>{icon} {sub}</p>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <span style={{ fontSize: 10, color: 'var(--c-text-2)', letterSpacing: '0.04em' }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
     </div>
   );
 }
 
-// ── Monthly P&L bars (last 6 months) ─────────────────────────────────────────
+// ── monthly bars ──────────────────────────────────────────────────────────────
+
 function MonthlyBars({ trades }) {
   const months = useMemo(() => {
     const map = {};
     const now = new Date();
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const key   = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
       map[key] = { label, pnl: 0, count: 0, wins: 0 };
     }
     trades.forEach(t => {
       const key = t.date.slice(0, 7);
-      if (map[key]) {
-        map[key].pnl += t.pnl;
-        map[key].count++;
-        if (t.pnl > 0) map[key].wins++;
-      }
+      if (map[key]) { map[key].pnl += t.pnl; map[key].count++; if (t.pnl > 0) map[key].wins++; }
     });
     return Object.values(map);
   }, [trades]);
 
   const maxAbs = Math.max(...months.map(m => Math.abs(m.pnl)), 1);
-  const hasData = months.some(m => m.count > 0);
-  if (!hasData) return null;
+  if (!months.some(m => m.count > 0)) return null;
 
   return (
-    <div className="jm-card" style={{ marginBottom: '10px' }}>
-      <h2 className="jm-card-title" style={{ marginBottom: '16px' }}>📅 Monthly P&L</h2>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', height: '120px' }}>
-        {months.map((m, i) => {
-          const pct = Math.abs(m.pnl) / maxAbs;
-          const isPos = m.pnl >= 0;
-          const barH = Math.max(4, pct * 88);
-          const color = isPos ? '#E07A3B' : '#E24B4A';
-          return (
-            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', height: '100%', justifyContent: 'flex-end' }}>
-              <span style={{ fontSize: '10px', fontWeight: 700, color, opacity: m.count ? 1 : 0 }}>
-                {m.pnl >= 0 ? '+' : ''}{Math.abs(m.pnl) >= 1000 ? (m.pnl / 1000).toFixed(1) + 'k' : m.pnl.toFixed(0)}
-              </span>
-              <div style={{ width: '100%', height: `${barH}px`, borderRadius: '4px 4px 0 0', background: m.count ? color : 'rgba(255,255,255,0.04)', transition: 'height 0.4s ease', opacity: m.count ? 1 : 0.3 }} />
-              <span style={{ fontSize: '9px', color: '#6B6760', textAlign: 'center', letterSpacing: '0.3px' }}>{m.label}</span>
-            </div>
-          );
-        })}
+    <>
+      <div style={{ marginBottom: 4 }}>
+        <Eyebrow>Monthly P&L</Eyebrow>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 110 }}>
+          {months.map((m, i) => {
+            const pct    = Math.abs(m.pnl) / maxAbs;
+            const isPos  = m.pnl >= 0;
+            const barH   = Math.max(4, pct * 80);
+            const color  = isPos ? 'var(--c-accent)' : '#C65A45';
+            return (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color, opacity: m.count ? 1 : 0, fontVariantNumeric: 'tabular-nums' }}>
+                  {m.pnl >= 0 ? '+' : ''}{Math.abs(m.pnl) >= 1000 ? (m.pnl / 1000).toFixed(1) + 'k' : m.pnl.toFixed(0)}
+                </span>
+                <div style={{ width: '100%', height: `${barH}px`, borderRadius: '4px 4px 0 0', background: m.count ? color : 'rgba(255,255,255,0.04)', opacity: m.count ? 0.85 : 0.3, transition: 'height 0.4s ease' }} />
+                <span style={{ fontSize: 9, color: 'var(--c-text-2)', letterSpacing: '0.04em' }}>{m.label}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
+      <HR />
+    </>
   );
 }
 
-// ── Setup win-rate breakdown ──────────────────────────────────────────────────
-function SetupBreakdown({ trades }) {
-  const setups = useMemo(() => {
-    const map = {};
-    trades.filter(t => t.setup).forEach(t => {
-      if (!map[t.setup]) map[t.setup] = { pnl: 0, count: 0, wins: 0 };
-      map[t.setup].pnl   += t.pnl;
-      map[t.setup].count += 1;
-      if (t.pnl > 0) map[t.setup].wins++;
-    });
-    return Object.entries(map)
-      .map(([name, s]) => ({ name, ...s, wr: s.count ? s.wins / s.count * 100 : 0 }))
-      .filter(s => s.count >= 2)
-      .sort((a, b) => b.pnl - a.pnl);
-  }, [trades]);
+// ── session breakdown ─────────────────────────────────────────────────────────
 
-  if (!setups.length) return null;
-
-  const maxPnl = Math.max(...setups.map(s => Math.abs(s.pnl)), 1);
-
-  return (
-    <div className="jm-card" style={{ marginBottom: '10px' }}>
-      <h2 className="jm-card-title" style={{ marginBottom: '14px' }}>⚡ Setup Breakdown</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {setups.map((s, i) => {
-          const pct = Math.abs(s.pnl) / maxPnl;
-          const isPos = s.pnl >= 0;
-          const color = isPos ? '#E07A3B' : '#E24B4A';
-          const wrColor = s.wr >= 60 ? '#E07A3B' : s.wr >= 40 ? '#EFC97A' : '#F09595';
-          return (
-            <div key={i}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--c-text)' }}>{s.name}</span>
-                  <span style={{ fontSize: '10px', color: '#6B6760' }}>{s.count} trades</span>
-                </div>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: wrColor }}>{s.wr.toFixed(0)}% WR</span>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color, minWidth: '60px', textAlign: 'right' }}>
-                    {isPos ? '+' : ''}{fmt(s.pnl)}
-                  </span>
-                </div>
-              </div>
-              <div style={{ height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.05)' }}>
-                <div style={{ height: '100%', borderRadius: '3px', background: color, width: `${pct * 100}%`, transition: 'width 0.5s ease' }} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ── Session breakdown ─────────────────────────────────────────────────────────
-const SESSION_COLORS = { Sydney: '#A89687', Tokyo: '#A78BFA', London: '#E07A3B', 'New York': '#E07A3B', Premarket: '#EFC97A', 'After Hours': '#8B8882' };
+const SESSION_COLORS = { Sydney: '#A89687', Tokyo: '#A78BFA', London: '#E07A3B', 'New York': '#E07A3B', Premarket: '#EFC97A', 'After Hours': '#A89687' };
 
 function SessionBreakdown({ trades }) {
   const stats = useMemo(() => {
     const map = {};
     trades.filter(t => t.session).forEach(t => {
       if (!map[t.session]) map[t.session] = { pnl: 0, count: 0, wins: 0 };
-      map[t.session].pnl   += t.pnl;
-      map[t.session].count += 1;
-      if (t.pnl > 0) map[t.session].wins++;
+      map[t.session].pnl += t.pnl; map[t.session].count++; if (t.pnl > 0) map[t.session].wins++;
     });
     return Object.entries(map)
       .map(([name, s]) => ({ name, ...s, wr: s.count ? s.wins / s.count * 100 : 0 }))
@@ -504,51 +574,51 @@ function SessionBreakdown({ trades }) {
   const maxPnl = Math.max(...stats.map(s => Math.abs(s.pnl)), 1);
 
   return (
-    <div className="jm-card" style={{ marginBottom: '10px' }}>
-      <h2 className="jm-card-title" style={{ marginBottom: '14px' }}>🌍 Session Breakdown</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {stats.map((s, i) => {
-          const color = SESSION_COLORS[s.name] || '#8B8882';
-          const pct = Math.abs(s.pnl) / maxPnl;
-          const wrColor = s.wr >= 60 ? '#E07A3B' : s.wr >= 40 ? '#EFC97A' : '#F09595';
-          return (
-            <div key={i}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, flexShrink: 0, display: 'inline-block', boxShadow: `0 0 4px ${color}88` }} />
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--c-text)' }}>{s.name}</span>
-                  <span style={{ fontSize: '10px', color: '#6B6760' }}>{s.count} trade{s.count !== 1 ? 's' : ''}</span>
+    <>
+      <div style={{ marginBottom: 4 }}>
+        <Eyebrow>Session Breakdown</Eyebrow>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {stats.map((s, i) => {
+            const color = SESSION_COLORS[s.name] || 'var(--c-text-2)';
+            const pct   = Math.abs(s.pnl) / maxPnl;
+            return (
+              <div key={i} style={{ padding: '13px 0', borderBottom: i < stats.length - 1 ? '1px solid var(--c-border)' : 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0, display: 'inline-block', boxShadow: `0 0 4px ${color}88` }} />
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-text)' }}>{s.name}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, alignItems: 'baseline' }}>
+                    <span style={{ fontSize: 12, color: 'var(--c-text-2)' }}>{s.count} trade{s.count !== 1 ? 's' : ''} · {s.wr.toFixed(0)}% WR</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: s.pnl >= 0 ? 'var(--c-accent)' : '#C65A45', fontVariantNumeric: 'tabular-nums' }}>
+                      {s.pnl >= 0 ? '+' : ''}{fmt(s.pnl)}
+                    </span>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: wrColor }}>{s.wr.toFixed(0)}% WR</span>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color: s.pnl >= 0 ? '#E07A3B' : '#E24B4A', minWidth: '60px', textAlign: 'right' }}>
-                    {s.pnl >= 0 ? '+' : ''}{fmt(s.pnl)}
-                  </span>
+                <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', borderRadius: 2, background: color, width: `${pct * 100}%`, opacity: 0.7, transition: 'width 0.5s ease' }} />
                 </div>
               </div>
-              <div style={{ height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.05)' }}>
-                <div style={{ height: '100%', borderRadius: '3px', background: color, width: `${pct * 100}%`, transition: 'width 0.5s ease', opacity: 0.75 }} />
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
+      <HR />
+    </>
   );
 }
 
-// ── Rating breakdown ──────────────────────────────────────────────────────────
-const RATING_COLORS_STATS = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#F09595' };
-const RATING_LABELS_STATS = { A: 'Perfect execution', B: 'Good trade', C: 'Average', D: 'Poor execution' };
+// ── rating breakdown ──────────────────────────────────────────────────────────
+
+const RATING_COLORS_STATS  = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#C65A45' };
+const RATING_LABELS_STATS  = { A: 'Perfect execution', B: 'Good trade', C: 'Average', D: 'Poor execution' };
 
 function RatingBreakdown({ trades }) {
   const stats = useMemo(() => {
     const map = {};
     trades.filter(t => t.rating).forEach(t => {
       if (!map[t.rating]) map[t.rating] = { pnl: 0, count: 0, wins: 0 };
-      map[t.rating].pnl   += t.pnl;
-      map[t.rating].count += 1;
-      if (t.pnl > 0) map[t.rating].wins++;
+      map[t.rating].pnl += t.pnl; map[t.rating].count++; if (t.pnl > 0) map[t.rating].wins++;
     });
     return ['A', 'B', 'C', 'D']
       .filter(r => map[r])
@@ -559,55 +629,58 @@ function RatingBreakdown({ trades }) {
   const maxPnl = Math.max(...stats.map(s => Math.abs(s.pnl)), 1);
 
   return (
-    <div className="jm-card" style={{ marginBottom: '10px' }}>
-      <h2 className="jm-card-title" style={{ marginBottom: '14px' }}>⭐ Trade Rating Breakdown</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {stats.map(s => {
-          const color = RATING_COLORS_STATS[s.rating];
-          const pct = Math.abs(s.pnl) / maxPnl;
-          const wrColor = s.wr >= 60 ? '#E07A3B' : s.wr >= 40 ? '#EFC97A' : '#F09595';
-          return (
-            <div key={s.rating}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '15px', fontWeight: 800, color, width: '18px' }}>{s.rating}</span>
-                  <span style={{ fontSize: '11px', color: '#8B8882' }}>{RATING_LABELS_STATS[s.rating]}</span>
-                  <span style={{ fontSize: '10px', color: '#6B6760' }}>· {s.count} trade{s.count !== 1 ? 's' : ''}</span>
+    <>
+      <div style={{ marginBottom: 4 }}>
+        <Eyebrow>Rating Breakdown</Eyebrow>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {stats.map((s, i) => {
+            const color = RATING_COLORS_STATS[s.rating];
+            const pct   = Math.abs(s.pnl) / maxPnl;
+            return (
+              <div key={s.rating} style={{ padding: '13px 0', borderBottom: i < stats.length - 1 ? '1px solid var(--c-border)' : 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 16, fontWeight: 800, color, width: 18 }}>{s.rating}</span>
+                    <span style={{ fontSize: 12, color: 'var(--c-text-2)' }}>{RATING_LABELS_STATS[s.rating]}</span>
+                    <span style={{ fontSize: 11, color: 'var(--c-text-2)', opacity: 0.6 }}>{s.count} trade{s.count !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, alignItems: 'baseline' }}>
+                    <span style={{ fontSize: 12, color: 'var(--c-text-2)' }}>{s.wr.toFixed(0)}% WR</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: s.pnl >= 0 ? 'var(--c-accent)' : '#C65A45', fontVariantNumeric: 'tabular-nums' }}>
+                      {s.pnl >= 0 ? '+' : ''}{fmt(s.pnl)}
+                    </span>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: wrColor }}>{s.wr.toFixed(0)}% WR</span>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color: s.pnl >= 0 ? '#E07A3B' : '#E24B4A', minWidth: '60px', textAlign: 'right' }}>
-                    {s.pnl >= 0 ? '+' : ''}{fmt(s.pnl)}
-                  </span>
+                <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', borderRadius: 2, background: color, width: `${pct * 100}%`, opacity: 0.75, transition: 'width 0.5s ease' }} />
                 </div>
               </div>
-              <div style={{ height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.05)' }}>
-                <div style={{ height: '100%', borderRadius: '3px', background: color, width: `${pct * 100}%`, transition: 'width 0.5s ease', opacity: 0.8 }} />
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
+      <HR />
+    </>
   );
 }
 
-// ── Day-of-week performance ───────────────────────────────────────────────────
-function DayOfWeek({ trades }) {
+// ── day-of-week tile grid ─────────────────────────────────────────────────────
+
+function DayOfWeekTiles({ trades }) {
   const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
   const stats = useMemo(() => {
-    const map = { 1: null, 2: null, 3: null, 4: null, 5: null }; // Mon=1...Fri=5
+    const map = { 1: null, 2: null, 3: null, 4: null, 5: null };
     trades.forEach(t => {
-      const d = new Date(t.date + 'T12:00:00').getDay(); // 0=Sun
-      const idx = d === 0 ? 7 : d; // keep Mon-Fri only
+      const d   = new Date(t.date + 'T12:00:00').getDay();
+      const idx = d === 0 ? 7 : d;
       if (idx >= 1 && idx <= 5) {
         if (!map[idx]) map[idx] = { pnl: 0, count: 0, wins: 0 };
-        map[idx].pnl   += t.pnl;
-        map[idx].count += 1;
-        if (t.pnl > 0) map[idx].wins++;
+        map[idx].pnl += t.pnl; map[idx].count++; if (t.pnl > 0) map[idx].wins++;
       }
     });
-    return [1, 2, 3, 4, 5].map(i => map[i] ? { ...map[i], wr: map[i].wins / map[i].count * 100, avgPnl: map[i].pnl / map[i].count } : null);
+    return [1, 2, 3, 4, 5].map(i => map[i]
+      ? { ...map[i], wr: map[i].wins / map[i].count * 100, avgPnl: map[i].pnl / map[i].count }
+      : null);
   }, [trades]);
 
   if (!stats.some(Boolean)) return null;
@@ -615,37 +688,38 @@ function DayOfWeek({ trades }) {
   const maxAbsAvg = Math.max(...stats.filter(Boolean).map(s => Math.abs(s.avgPnl)), 1);
 
   return (
-    <div className="jm-card" style={{ marginBottom: '10px' }}>
-      <h2 className="jm-card-title" style={{ marginBottom: '14px' }}>📆 Day of Week</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+    <div style={{ marginBottom: 4 }}>
+      <Eyebrow>Day of Week</Eyebrow>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
         {stats.map((s, i) => {
-          const isPos = s && s.avgPnl >= 0;
-          const color = s ? (isPos ? '#E07A3B' : '#E24B4A') : '#2A2720';
-          const wrColor = s ? (s.wr >= 60 ? '#E07A3B' : s.wr >= 40 ? '#EFC97A' : '#F09595') : '#6B6760';
-          const intensity = s ? Math.max(0.08, (Math.abs(s.avgPnl) / maxAbsAvg) * 0.25) : 0.04;
+          const isPos  = s && s.avgPnl >= 0;
+          const color  = s ? (isPos ? 'var(--c-accent)' : '#C65A45') : 'var(--c-border)';
+          const bg     = s ? (isPos ? 'rgba(224,122,59,0.07)' : 'rgba(198,90,69,0.07)') : 'transparent';
           return (
             <div key={i} style={{
-              background: s ? `rgba(${isPos ? '93,202,165' : '226,75,74'},${intensity})` : 'rgba(255,255,255,0.02)',
-              border: `1px solid ${s ? `rgba(${isPos ? '93,202,165' : '226,75,74'},0.25)` : 'rgba(255,255,255,0.05)'}`,
-              borderRadius: '10px', padding: '10px 8px', textAlign: 'center'
+              background: bg,
+              border: `1px solid ${s ? (isPos ? 'rgba(224,122,59,0.2)' : 'rgba(198,90,69,0.2)') : 'var(--c-border)'}`,
+              borderRadius: 10, padding: '12px 10px', textAlign: 'center',
             }}>
-              <p style={{ margin: '0 0 6px', fontSize: '11px', fontWeight: 700, color: '#8B8882', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{DAYS[i]}</p>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+                {DAYS[i]}
+              </div>
               {s ? (
                 <>
-                  <p style={{ margin: '0 0 3px', fontSize: '13px', fontWeight: 800, color }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums', lineHeight: 1, marginBottom: 4 }}>
                     {isPos ? '+' : ''}{Math.abs(s.avgPnl) >= 1000 ? (s.avgPnl / 1000).toFixed(1) + 'k' : s.avgPnl.toFixed(0)}
-                  </p>
-                  <p style={{ margin: '0 0 2px', fontSize: '10px', fontWeight: 700, color: wrColor }}>{s.wr.toFixed(0)}%</p>
-                  <p style={{ margin: 0, fontSize: '9px', color: '#6B6760' }}>{s.count}t</p>
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--c-text-2)', fontWeight: 600 }}>{s.wr.toFixed(0)}%</div>
+                  <div style={{ fontSize: 9, color: 'var(--c-text-2)', marginTop: 2, opacity: 0.6 }}>{s.count}t</div>
                 </>
               ) : (
-                <p style={{ margin: '14px 0', fontSize: '11px', color: '#4A4740' }}>—</p>
+                <div style={{ fontSize: 12, color: 'var(--c-text-2)', opacity: 0.3, padding: '8px 0' }}>—</div>
               )}
             </div>
           );
         })}
       </div>
-      <p style={{ fontSize: '10px', color: '#5F5C56', margin: '8px 0 0', textAlign: 'center' }}>Avg P&L per day · Win rate · Trade count</p>
+      <div style={{ fontSize: 10, color: 'var(--c-text-2)', marginTop: 8, opacity: 0.6 }}>Avg P&L per day · Win rate · Trade count</div>
     </div>
   );
 }
