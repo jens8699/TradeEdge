@@ -695,7 +695,11 @@ function TradovateCSVModal({ onClose, onImported }) {
     setError('');
     try {
       const { data: { user } } = await sb.auth.getUser();
-      const toInsert = preview.trades.map(t => ({ ...t, user_id: user.id }));
+      const toInsert = preview.trades.map(t => ({
+        id: crypto.randomUUID(),
+        ...t,
+        user_id: user.id,
+      }));
       // Try upsert first (requires unique constraint on user_id,external_id)
       // Falls back to plain insert if constraint doesn't exist yet
       let dbErr;
