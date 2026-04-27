@@ -695,7 +695,8 @@ function TradovateCSVModal({ onClose, onImported }) {
     setError('');
     try {
       const { data: { user } } = await sb.auth.getUser();
-      const toInsert = preview.trades.map(t => ({ ...t, user_id: user.id }));
+      // Strip entry/exit if columns don't exist in schema yet
+      const toInsert = preview.trades.map(({ entry, exit, ...t }) => ({ ...t, user_id: user.id }));
       const { error: dbErr } = await sb.from('trades').upsert(toInsert, {
         onConflict: 'user_id,external_id',
         ignoreDuplicates: true,
