@@ -3,11 +3,13 @@ import { sb, getProfile } from './lib/supabase';
 import { AppProvider } from './context/AppContext';
 import AuthScreen from './components/auth/AuthScreen';
 import AppLayout from './components/layout/AppLayout';
+import LandingPage from './components/landing/LandingPage';
 import { useToast, ToastContainer } from './hooks/useToast';
 
 export default function App() {
   const [authState, setAuthState] = useState({ status: 'loading', user: null, profile: null });
   const [authPanel,  setAuthPanel]  = useState('login');
+  const [showLanding, setShowLanding] = useState(true);
   const { toasts, show: showToast } = useToast();
 
   useEffect(() => {
@@ -24,10 +26,12 @@ export default function App() {
         setAuthState({ status: 'authed', user: session.user, profile: prof });
       } else {
         setAuthState({ status: 'guest', user: null, profile: null });
+        setShowLanding(true);
       }
     }).catch(() => {
       clearTimeout(timeout);
       setAuthState({ status: 'guest', user: null, profile: null });
+      setShowLanding(true);
     });
 
     // Auth state changes (login, logout, password recovery)
@@ -42,6 +46,7 @@ export default function App() {
         setAuthState({ status: 'authed', user: session.user, profile: prof });
       } else {
         setAuthState({ status: 'guest', user: null, profile: null });
+        setShowLanding(true);
         setAuthPanel('login');
       }
     });
@@ -60,15 +65,36 @@ export default function App() {
     );
   }
 
+  // Authenticated → show app
+  if (status === 'authed' && user) {
+    return (
+      <AppProvider userId={user.id}>
+        <AppLayout user={user} profile={profile} showToast={showToast} />
+        <ToastContainer toasts={toasts} />
+      </AppProvider>
+    );
+  }
+
+  // Guest + landing shown → marketing page
+  if (showLanding) {
+    return (
+      <>
+        <LandingPage
+          onSignIn={() => { setShowLanding(false); setAuthPanel('login'); }}
+          onStartTrial={() => { setShowLanding(false); setAuthPanel('register'); }}
+        />
+        <ToastContainer toasts={toasts} />
+      </>
+    );
+  }
+
+  // Guest + landing dismissed → auth screen
   return (
     <>
-      {status === 'authed' && user ? (
-        <AppProvider userId={user.id}>
-          <AppLayout user={user} profile={profile} showToast={showToast} />
-        </AppProvider>
-      ) : (
-        <AuthScreen panel={authPanel} onSwitchPanel={setAuthPanel} />
-      )}
+      <AuthScreen panel={authPanel} onSwitchPanel={(p) => {
+        if (p === 'landing') { setShowLanding(true); return; }
+        setAuthPanel(p);
+      }} />
       <ToastContainer toasts={toasts} />
     </>
   );

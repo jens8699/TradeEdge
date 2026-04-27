@@ -182,6 +182,12 @@ export default function AuthScreen({ panel, onSwitchPanel }) {
         {panel === 'register' && <RegisterPanel onSwitch={onSwitchPanel} />}
         {panel === 'reset'    && <ResetPanel    onSwitch={onSwitchPanel} />}
         {panel === 'newpass'  && <NewPassPanel />}
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <button onClick={() => onSwitchPanel('landing')}
+            style={{ background: 'none', border: 'none', color: '#6B6862', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            ← Back to homepage
+          </button>
+        </div>
         <p className="tp-auth-tagline">© 2026 TradeEdge · Built for serious day traders</p>
       </div>
     </div>
