@@ -293,8 +293,7 @@ function TradovateModal({ onClose, onConnected, existingAccount }) {
         {step === 'credentials' && (
           <div style={styles.modalBody}>
             <p style={styles.hint}>
-              Connect your Tradovate account to automatically sync your trade history into TradeEdge.
-              Your credentials are stored securely in your account and never shared.
+              Connect your Tradovate account to automatically sync your trades. Use the <strong style={{ color: 'var(--c-text)' }}>same email and password</strong> you use to log into Tradovate — whether that's through Apex, MFF, TopStep, or another prop firm.
             </p>
 
             <div style={styles.toggleRow}>
@@ -326,7 +325,7 @@ function TradovateModal({ onClose, onConnected, existingAccount }) {
               Connect with Tradovate (OAuth)
             </button>
             <p style={{ margin: '4px 0 12px', fontSize: '11px', color: 'var(--c-text-2)', textAlign: 'center', lineHeight: 1.5 }}>
-              Recommended for MyFundedFutures, Apex, TopStep &amp; other prop firms — no password needed
+              Alternative SSO option — coming soon for MFF, Apex &amp; TopStep
             </p>
 
             {/* Divider */}
@@ -336,15 +335,15 @@ function TradovateModal({ onClose, onConnected, existingAccount }) {
               <div style={{ flex: 1, height: '1px', background: 'var(--c-border)' }} />
             </div>
 
-            <label style={styles.label}>Username</label>
+            <label style={styles.label}>Email address</label>
             <input
               style={styles.input}
-              type="text"
-              placeholder="Your Tradovate username"
+              type="email"
+              placeholder="The email you use to log into Tradovate"
               value={username}
               onChange={e => setUsername(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleConnect()}
-              autoComplete="username"
+              autoComplete="email"
             />
 
             <label style={styles.label}>Password</label>
