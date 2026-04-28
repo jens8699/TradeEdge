@@ -1,5 +1,78 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import Lenis from 'lenis';
 import './landing.css';
+
+// ── Lenis smooth scroll ────────────────────────────────────────────────────────
+function useLenis() {
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.15,
+      easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothTouch: false,
+      touchMultiplier: 1.8,
+    });
+
+    // Wire up nav anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.preventDefault();
+        const id = el.getAttribute('href').slice(1);
+        const target = document.getElementById(id);
+        if (target) lenis.scrollTo(target, { offset: -72, duration: 1.2 });
+      });
+    });
+
+    let rafId;
+    function raf(time) { lenis.raf(time); rafId = requestAnimationFrame(raf); }
+    rafId = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      lenis.destroy();
+    };
+  }, []);
+}
+
+// ── CountUp on view ────────────────────────────────────────────────────────────
+// Triggers once when the element first crosses ~40% visibility, animating from 0
+// to `target` over ~1.2s with cubic ease-out. Locale-formatted with `$` prefix.
+function CountUp({ target, prefix = '$', duration = 1200, className }) {
+  const ref = useRef(null);
+  const [value, setValue] = useState(0);
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const el = ref.current;
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && !startedRef.current) {
+            startedRef.current = true;
+            const start = performance.now();
+            const ease = t => 1 - Math.pow(1 - t, 3); // cubic ease-out
+            const tick = now => {
+              const t = Math.min(1, (now - start) / duration);
+              setValue(Math.round(target * ease(t)));
+              if (t < 1) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+            observer.disconnect();
+          }
+        });
+      },
+      { threshold: 0.4 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [target, duration]);
+
+  return (
+    <span ref={ref} className={className}>
+      {prefix}{value.toLocaleString('en-US')}
+    </span>
+  );
+}
 
 // ── FAQ Item ──────────────────────────────────────────────────────────────────
 function FaqItem({ q, a }) {
@@ -17,6 +90,7 @@ function FaqItem({ q, a }) {
 
 // ── Main Landing Page ─────────────────────────────────────────────────────────
 export default function LandingPage({ onSignIn, onStartTrial }) {
+  useLenis();
   return (
     <div className="lp-root">
 
@@ -57,70 +131,77 @@ export default function LandingPage({ onSignIn, onStartTrial }) {
           </div>
 
           {/* Hero product mock */}
-          <div className="lp-mock">
-            <div className="lp-mock-titlebar">
-              <span className="lp-mock-light" />
-              <span className="lp-mock-light" />
-              <span className="lp-mock-light" />
-            </div>
-            <div className="lp-mock-body">
-              <div className="lp-mock-side">
-                <div className="lp-wordmark" style={{ fontSize: '18px' }}>tradeedge<span className="lp-dot">.</span></div>
+          <div className="lp-mock2">
+            <div className="lp-mock2-body">
+              {/* LEFT: massive P&L headline */}
+              <div className="lp-mock-headline">
+                <div className="lp-mock-breadcrumb">
+                  <span>All accounts</span>
+                  <span className="lp-sep">/</span>
+                  <span>April 2026</span>
+                  <span className="lp-sep">/</span>
+                  <span>MTD</span>
+                </div>
                 <div>
-                  {['All accounts','FTMO','TopStep','Apex','Tradeify','Calendar','Stats'].map((item, i) => (
-                    <div key={item} className={`lp-mock-nav-item${i === 0 ? ' active' : ''}`}>{item}</div>
-                  ))}
+                  <div className="lp-pnl-label">Net P&amp;L · across 5 firms</div>
+                  <h2 className="lp-pnl-big">
+                    <span className="lp-plus">+</span>
+                    <CountUp target={8420} prefix="$" />
+                  </h2>
+                  <div className="lp-pnl-meta">
+                    After <b>$1,180</b> in eval &amp; reset fees, netted across 47 trades. Updated in real time as you close.
+                  </div>
+                </div>
+                <div className="lp-mock-kpis">
+                  <div className="lp-mock-kpi">
+                    <div className="lp-k-label">Active</div>
+                    <div className="lp-k-value">5</div>
+                    <div className="lp-k-sub">3 funded · 2 in eval</div>
+                  </div>
+                  <div className="lp-mock-kpi">
+                    <div className="lp-k-label">Win rate</div>
+                    <div className="lp-k-value">64%</div>
+                    <div className="lp-k-sub">+6 vs last month</div>
+                  </div>
+                  <div className="lp-mock-kpi">
+                    <div className="lp-k-label">Closest DD</div>
+                    <div className="lp-k-value warn">$340</div>
+                    <div className="lp-k-sub">Apex · trail</div>
+                  </div>
                 </div>
               </div>
-              <div className="lp-mock-main">
-                <div>
-                  <div className="lp-mock-breadcrumb">All accounts · April 2026</div>
-                  <div className="lp-mock-title">Across <span>5 firms</span>, you're net <span>+$8,420</span>.</div>
+
+              {/* RIGHT: stack of firm rows */}
+              <div className="lp-mock-stack">
+                <div className="lp-stack-head">
+                  <span>Per firm</span>
+                  <span className="lp-h-title">Today, sorted by P&amp;L</span>
                 </div>
-                <div className="lp-mock-stats">
-                  <div className="lp-mock-stat">
-                    <div className="lp-mock-stat-label">Net P&L · MTD</div>
-                    <div className="lp-mock-stat-v accent">+$8,420</div>
-                    <div className="lp-mock-stat-sub">After $1,180 in eval fees · 47 trades</div>
-                  </div>
-                  <div className="lp-mock-stat">
-                    <div className="lp-mock-stat-label">Active accounts</div>
-                    <div className="lp-mock-stat-v">5</div>
-                    <div className="lp-mock-stat-sub">3 funded · 2 in eval</div>
-                  </div>
-                  <div className="lp-mock-stat">
-                    <div className="lp-mock-stat-label">Win rate</div>
-                    <div className="lp-mock-stat-v">64<span style={{ fontSize: '18px', color: 'var(--lp-text3)', fontWeight: 400 }}>%</span></div>
-                    <div className="lp-mock-stat-sub">+6 vs last month</div>
-                  </div>
-                  <div className="lp-mock-stat">
-                    <div className="lp-mock-stat-label">Closest to drawdown</div>
-                    <div className="lp-mock-stat-v warn">$340</div>
-                    <div className="lp-mock-stat-sub">Apex · 34% remaining</div>
-                  </div>
-                </div>
-                <div>
-                  <div className="lp-mock-breadcrumb">Per firm</div>
-                  <div className="lp-mock-firms">
-                    {[
-                      { firm: 'FTMO', status: 'FUNDED', name: '$200k account', pnl: '+$3,840', up: true, pct: 68, meta: '68% to next payout' },
-                      { firm: 'TopStep', status: 'FUNDED', name: '$150k combine', pnl: '+$2,210', up: true, pct: 42, meta: '42% to next payout' },
-                      { firm: 'Apex', status: '⚠ near DD', name: '$100k eval', pnl: '−$640', up: false, pct: 34, meta: '$340 of drawdown left', warn: true },
-                    ].map(c => (
-                      <div key={c.firm} className="lp-firm-card">
-                        <div className="lp-firm-top">
-                          <span>{c.firm}</span>
-                          <span style={c.warn ? { color: 'var(--lp-warn)' } : {}}>{c.status}</span>
-                        </div>
-                        <div className="lp-firm-name">{c.name}</div>
-                        <div className={`lp-firm-pnl ${c.up ? 'up' : 'down'}`}>{c.pnl}</div>
-                        <div className="lp-firm-bar">
-                          <div className="lp-firm-bar-fill" style={{ width: `${c.pct}%`, background: c.warn ? 'var(--lp-warn)' : 'var(--lp-accent)' }} />
-                        </div>
-                        <div className="lp-firm-meta">{c.meta}</div>
+                {[
+                  { mark: 'F', name: 'FTMO · $200k', status: 'Funded', sub: '68% to next payout', pnl: '+$3,840', pct: '+1.92%', up: true },
+                  { mark: 'T', name: 'TopStep · $150k', status: 'Funded', sub: '42% to next payout', pnl: '+$2,210', pct: '+1.47%', up: true },
+                  { mark: 'M', name: 'MyFundedFutures · $50k', status: 'Funded', sub: '91% to next payout', pnl: '+$1,490', pct: '+2.98%', up: true },
+                  { mark: '5', name: 'The5%ers · $100k', status: 'Eval', statusClass: 'eval', sub: 'Stage 1 · 11 days left', pnl: '+$1,520', pct: '+1.52%', up: true },
+                  { mark: 'A', name: 'Apex · $100k', status: 'Near DD', statusClass: 'danger', sub: '$340 of $3,000 left', pnl: '−$640', pct: '−0.64%', up: false, warn: true },
+                ].map(r => (
+                  <div key={r.name} className={`lp-firm-row${r.warn ? ' warn' : ''}`}>
+                    <div className="lp-firm-mark">{r.mark}</div>
+                    <div className="lp-firm-info">
+                      <div className="lp-firm-info-name">{r.name}</div>
+                      <div className="lp-firm-info-sub">
+                        <span className={`lp-firm-status${r.statusClass ? ` ${r.statusClass}` : ''}`}>{r.status}</span>
+                        <span>{r.sub}</span>
                       </div>
-                    ))}
+                    </div>
+                    <div className={`lp-firm-pnl-num ${r.up ? 'up' : 'down'}`}>
+                      {r.pnl}
+                      <span className="lp-pct">{r.pct}</span>
+                    </div>
                   </div>
+                ))}
+                <div className="lp-stack-foot">
+                  <span>5 accounts · 47 trades · MTD</span>
+                  <span className="lp-foot-total">Net <b>+$8,420</b></span>
                 </div>
               </div>
             </div>
@@ -128,14 +209,18 @@ export default function LandingPage({ onSignIn, onStartTrial }) {
         </div>
       </header>
 
-      {/* ── LOGO STRIP ── */}
+      {/* ── LOGO STATEMENT (typographic) ── */}
       <section className="lp-logos">
         <div className="lp-container">
-          <div className="lp-logos-label">Track every major prop firm</div>
-          <div className="lp-logos-row">
-            {['FTMO','TopStep','Apex','Tradeify','MyFundedFutures','The5%ers','FundedNext'].map(f => (
-              <div key={f} className="lp-logo-firm">{f}</div>
-            ))}
+          <div className="lp-logos-label">Supported firms</div>
+          <p className="lp-logos-statement">
+            <span className="lp-firm">FTMO</span>, <span className="lp-firm">TopStep</span>, <span className="lp-firm">Apex</span>, <span className="lp-firm">Tradeify</span>, <span className="lp-firm">MyFundedFutures</span>, <span className="lp-firm">The5%ers</span>, <span className="lp-firm">FundedNext</span> <span className="lp-more-pill">+ 12 more</span> — <em>all in one place.</em>
+          </p>
+          <div className="lp-logos-meta">
+            <span className="lp-logos-meta-stat"><b>19</b><span className="lp-meta-label">prop firms</span></span>
+            <span className="lp-logos-meta-stat"><b>6</b><span className="lp-meta-label">trading platforms</span></span>
+            <span className="lp-logos-meta-stat"><b>read-only</b><span className="lp-meta-label">never your password</span></span>
+            <span className="lp-logos-meta-stat"><b>&lt; 60s</b><span className="lp-meta-label">to connect an account</span></span>
           </div>
         </div>
       </section>
@@ -162,6 +247,33 @@ export default function LandingPage({ onSignIn, onStartTrial }) {
             <div className="lp-pain-quote">
               <div className="lp-pain-q">"I had eight tabs open just to know if I was up or down for the month. I was paying $200 in fees and didn't realize it until I added it up."</div>
               <div className="lp-pain-attr">— what you've probably said out loud, at least once</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── MANIFESTO / DARK INTERLUDE ── */}
+      <section className="lp-manifesto">
+        <div className="lp-container">
+          <div className="lp-manifesto-grid">
+            <div>
+              <div className="lp-manifesto-lead">A note on the math</div>
+              <h2 className="lp-manifesto-big">
+                You're not&nbsp;<span className="lp-manifesto-strike">losing</span>&nbsp;money.<br />
+                You're <em>leaking it</em>.
+              </h2>
+            </div>
+            <div className="lp-manifesto-right">
+              <div className="lp-manifesto-receipt">
+                <div className="lp-ln"><span>3× failed evals last quarter</span><span>−$447</span></div>
+                <div className="lp-ln"><span>2× drawdown breaches</span><span>−$298</span></div>
+                <div className="lp-ln"><span>Resets you forgot to log</span><span>−$180</span></div>
+                <div className="lp-ln"><span>Profit splits you miscounted</span><span>−$612</span></div>
+                <div className="lp-ln lp-total"><span>What you didn't see in your spreadsheet</span><span>−$1,537</span></div>
+              </div>
+              <p className="lp-manifesto-closer">
+                The average prop trader spends <b>$2,400 a year</b> on fees they don't track. We surface every dollar — eval, reset, payout, split — so the only number you have to read is the one at the bottom.
+              </p>
             </div>
           </div>
         </div>
