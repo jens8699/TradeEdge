@@ -1,27 +1,45 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useApp } from '../../context/AppContext';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
+// Eager: views the user is overwhelmingly likely to open right after auth.
 import Dashboard from '../views/Dashboard';
 import TradeEntry from '../views/TradeEntry';
-import Stats from '../views/Stats';
 import History from '../views/History';
-import Payouts from '../views/Payouts';
-import MarketBrief from '../views/MarketBrief';
-import Insights from '../views/Insights';
+import Stats from '../views/Stats';
 import Settings from '../views/Settings';
-import Calendar from '../views/Calendar';
-import Social from '../views/Social';
-import Connections from '../views/Connections';
 import PreTradeChecklist from '../views/PreTradeChecklist';
 import PrivacyPolicy from '../views/PrivacyPolicy';
 import TermsOfService from '../views/TermsOfService';
-import PropFirmTracker from '../views/PropFirmTracker';
-import WeeklyDigest from '../views/WeeklyDigest';
+// Lazy: secondary views — each gets its own chunk that loads only when opened.
+const Calendar       = lazy(() => import('../views/Calendar'));
+const Payouts        = lazy(() => import('../views/Payouts'));
+const MarketBrief    = lazy(() => import('../views/MarketBrief'));
+const Insights       = lazy(() => import('../views/Insights'));
+const Social         = lazy(() => import('../views/Social'));
+const Connections    = lazy(() => import('../views/Connections'));
+const PropFirmTracker = lazy(() => import('../views/PropFirmTracker'));
+const WeeklyDigest   = lazy(() => import('../views/WeeklyDigest'));
 import UpgradeModal from '../modals/UpgradeModal';
 import OnboardingModal, { isOnboardingDone } from '../modals/OnboardingModal';
 import ErrorBoundary from '../ErrorBoundary';
 import { getGreeting } from '../../lib/utils';
+
+// Tiny fallback shown while a lazy view's chunk downloads. Matches the
+// existing AppLayout loading style so it feels native.
+function ViewLoader() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: 320, flexDirection: 'column', gap: 12,
+    }}>
+      <div className="jm-spinner" style={{ width: 22, height: 22, borderWidth: 2.5 }} />
+      <p style={{ fontSize: 12, color: 'var(--c-text-2)', margin: 0, fontStyle: 'italic', fontFamily: "'Fraunces', Georgia, serif" }}>
+        Loading…
+      </p>
+    </div>
+  );
+}
 
 function LegalBack({ onBack, label }) {
   return (
@@ -73,6 +91,7 @@ export default function AppLayout({ user, profile, showToast }) {
 
         <main className="jm-main">
           <ErrorBoundary>
+          <Suspense fallback={<ViewLoader />}>
             {activeTab === 'dashboard' && <Dashboard user={user} profile={profile} />}
             {activeTab === 'tracker'   && <PropFirmTracker />}
             {activeTab === 'checklist' && <PreTradeChecklist showToast={showToast} />}
@@ -99,6 +118,7 @@ export default function AppLayout({ user, profile, showToast }) {
                 <TermsOfService />
               </div>
             )}
+          </Suspense>
           </ErrorBoundary>
         </main>
       </div>
