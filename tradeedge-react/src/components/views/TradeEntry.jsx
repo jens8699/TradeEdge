@@ -28,7 +28,13 @@ function isChecklistPassedToday() {
   } catch { return false; }
 }
 
-const SETUPS = ['', 'Breakout', 'Pullback', 'Reversal', 'Range', 'Trend continuation', 'News play', 'Gap fill', 'VWAP', 'Support/Resistance', 'Other'];
+// Default setup suggestions. Users can type anything they want — these just
+// give them a head start in the autocomplete dropdown.
+const DEFAULT_SETUPS = [
+  'Breakout', 'Pullback', 'Reversal', 'Range', 'Trend continuation',
+  'News play', 'Gap fill', 'VWAP', 'Support/Resistance',
+  'FVG entry', 'ICT BoS', 'Opening drive', 'Liquidity sweep',
+];
 const SESSION_LIST = ['', 'Sydney', 'Tokyo', 'London', 'New York', 'Premarket', 'After Hours'];
 const RATINGS = ['A', 'B', 'C', 'D'];
 const RATING_LABELS = { A: 'Perfect execution', B: 'Good trade', C: 'Average', D: 'Poor execution' };
@@ -36,6 +42,27 @@ const RATING_COLORS = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#F09595' }
 
 export default function TradeEntry({ showToast }) {
   const { userId, trades, addTrade, setActiveTab } = useApp();
+
+  // Setup suggestions = defaults + every distinct setup the user has used
+  // before, frequency-sorted (their most-used setups float to the top).
+  const setupSuggestions = (() => {
+    const counts = new Map();
+    for (const t of trades) {
+      const s = (t.setup || '').trim();
+      if (!s) continue;
+      counts.set(s, (counts.get(s) || 0) + 1);
+    }
+    const userSetups = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([name]) => name);
+    // Merge: user setups first (frequency-sorted), then defaults not already in the list
+    const seen = new Set(userSetups.map(s => s.toLowerCase()));
+    const merged = [...userSetups];
+    for (const s of DEFAULT_SETUPS) {
+      if (!seen.has(s.toLowerCase())) merged.push(s);
+    }
+    return merged;
+  })();
   // Re-read checklist status whenever this view mounts and on window focus.
   const [checklistPassedToday, setChecklistPassedToday] = useState(isChecklistPassedToday);
   useEffect(() => {
@@ -400,10 +427,21 @@ export default function TradeEntry({ showToast }) {
           </select>
         </div>
         <div style={field}>
-          <span style={label}>Setup tag</span>
-          <select style={inp} value={form.setup} onChange={e => set('setup', e.target.value)}>
-            {SETUPS.map(s => <option key={s} value={s}>{s || '— None —'}</option>)}
-          </select>
+          <span style={label}>
+            Setup tag <span style={{ fontWeight: 400, opacity: 0.55 }}>— pick or type your own</span>
+          </span>
+          <input
+            style={inp}
+            type="text"
+            list="setup-suggestions"
+            placeholder="e.g. Breakout, FVG entry, ICT BoS…"
+            value={form.setup}
+            onChange={e => set('setup', e.target.value)}
+            autoComplete="off"
+          />
+          <datalist id="setup-suggestions">
+            {setupSuggestions.map(s => <option key={s} value={s} />)}
+          </datalist>
         </div>
       </div>
 
