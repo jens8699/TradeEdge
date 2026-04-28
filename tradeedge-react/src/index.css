@@ -17,6 +17,12 @@
   --c-text-muted: #A89687;
   --c-text-dim:   #7A6A5C;
 
+  /* Translucent surface overlays — used by views as inline bg colors.
+     Theme-aware so they read in both dark and light. */
+  --c-overlay-subtle: rgba(255, 255, 255, 0.04);
+  --c-overlay-medium: rgba(255, 255, 255, 0.06);
+  --c-overlay-strong: rgba(255, 255, 255, 0.12);
+
   /* Brand accent */
   --c-accent:     #E07A3B;
   --c-orange:     #E07A3B;
@@ -229,6 +235,11 @@ h1 em, h2 em, h3 em { font-style: italic; color: var(--c-accent); }
   --c-border:  #B8B3A8;
   --c-surface: #FFFFFF;
   --c-surface-2: #F0EBE0;
+
+  /* Light-mode overlays use black-on-light instead of white-on-dark */
+  --c-overlay-subtle: rgba(0, 0, 0, 0.03);
+  --c-overlay-medium: rgba(0, 0, 0, 0.05);
+  --c-overlay-strong: rgba(0, 0, 0, 0.08);
 }
 
 [data-theme="light"] html,

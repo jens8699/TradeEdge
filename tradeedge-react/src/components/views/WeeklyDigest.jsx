@@ -137,7 +137,7 @@ export default function WeeklyDigest() {
         display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between',
         flexWrap: 'wrap', marginBottom: 28,
       }}>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--c-border)', borderRadius: 8, padding: 4 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: 'var(--c-overlay-subtle)', border: '1px solid var(--c-border)', borderRadius: 8, padding: 4 }}>
           {[
             ['this_week', 'This week'],
             ['last_week', 'Last week'],
@@ -304,7 +304,7 @@ export default function WeeklyDigest() {
                         <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-text)', marginBottom: 6 }}>
                           {s.name}
                         </div>
-                        <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, maxWidth: 280, overflow: 'hidden' }}>
+                        <div style={{ height: 4, background: 'var(--c-overlay-medium)', borderRadius: 2, maxWidth: 280, overflow: 'hidden' }}>
                           <div style={{
                             height: '100%',
                             width: `${(Math.abs(s.pnl) / maxAbs) * 100}%`,

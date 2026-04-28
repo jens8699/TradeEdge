@@ -273,7 +273,7 @@ export default function Payouts({ showToast }) {
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text)' }}>{firmName}</span>
                       <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-accent)', fontVariantNumeric: 'tabular-nums' }}>{fmt(amt)}</span>
                     </div>
-                    <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)' }}>
+                    <div style={{ height: 4, borderRadius: 2, background: 'var(--c-overlay-medium)' }}>
                       <div style={{ height: '100%', borderRadius: 2, background: 'var(--c-accent)', width: `${total > 0 ? (amt / total) * 100 : 0}%`, transition: 'width 0.6s ease' }} />
                     </div>
                   </div>
@@ -443,7 +443,7 @@ function ChallengeBar({ label, valueStr, pct, color, suffix, danger }) {
           <span style={{ fontSize: 11, fontWeight: 700, color }}>{suffix}</span>
         </div>
       </div>
-      <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+      <div style={{ height: 5, borderRadius: 3, background: 'var(--c-overlay-medium)', overflow: 'hidden' }}>
         <div style={{
           height: '100%', borderRadius: 3, background: color,
           width: `${Math.max(0, Math.min(100, pct * 100))}%`,

@@ -803,7 +803,7 @@ function TradovateCSVModal({ onClose, onImported }) {
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                   border: `2px dashed ${dragging ? '#00C2E0' : file ? '#E07A3B' : 'var(--c-border)'}`,
                   borderRadius: '14px', padding: '28px 16px', cursor: 'pointer',
-                  background: dragging ? 'rgba(0,194,224,0.04)' : file ? 'rgba(224,122,59,0.04)' : 'rgba(255,255,255,0.02)',
+                  background: dragging ? 'rgba(0,194,224,0.04)' : file ? 'rgba(224,122,59,0.04)' : 'var(--c-overlay-subtle)',
                   transition: 'all 0.2s', marginBottom: '14px',
                 }}>
                 <input type="file" accept=".csv,.txt" onChange={handleFile} style={{ display: 'none' }} />
@@ -836,7 +836,7 @@ function TradovateCSVModal({ onClose, onImported }) {
                     {/* Table header */}
                     <div style={{
                       display: 'grid', gridTemplateColumns: '80px 1fr 60px 70px',
-                      padding: '7px 12px', background: 'rgba(255,255,255,0.04)',
+                      padding: '7px 12px', background: 'var(--c-overlay-subtle)',
                       borderBottom: '1px solid var(--c-border)',
                     }}>
                       {['Date', 'Symbol', 'Side', 'P&L'].map(h => (
@@ -860,7 +860,7 @@ function TradovateCSVModal({ onClose, onImported }) {
                       </div>
                     ))}
                     {preview.trades.length > 6 && (
-                      <div style={{ padding: '7px 12px', fontSize: '11px', color: 'var(--c-text-2)', textAlign: 'center', background: 'rgba(255,255,255,0.02)' }}>
+                      <div style={{ padding: '7px 12px', fontSize: '11px', color: 'var(--c-text-2)', textAlign: 'center', background: 'var(--c-overlay-subtle)' }}>
                         +{preview.trades.length - 6} more trades
                       </div>
                     )}
@@ -873,7 +873,7 @@ function TradovateCSVModal({ onClose, onImported }) {
               {/* Account multiplier */}
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '12px',
-                background: 'rgba(255,255,255,0.04)', border: '1px solid var(--c-border)',
+                background: 'var(--c-overlay-subtle)', border: '1px solid var(--c-border)',
                 borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
               }}>
                 <div style={{ flex: 1 }}>
@@ -1111,7 +1111,7 @@ function GenericCSVImportModal({ platformId, onClose, onImported }) {
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                   border: `2px dashed ${dragging ? preset.color : file ? '#E07A3B' : 'var(--c-border)'}`,
                   borderRadius: '14px', padding: '28px 16px', cursor: 'pointer',
-                  background: dragging ? accentBg : file ? 'rgba(224,122,59,0.04)' : 'rgba(255,255,255,0.02)',
+                  background: dragging ? accentBg : file ? 'rgba(224,122,59,0.04)' : 'var(--c-overlay-subtle)',
                   transition: 'all 0.2s', marginBottom: '14px',
                 }}>
                 <input type="file" accept=".csv,.txt" onChange={handleFile} style={{ display: 'none' }} />
@@ -1126,7 +1126,7 @@ function GenericCSVImportModal({ platformId, onClose, onImported }) {
 
               {/* Manual mapping panel */}
               {showMapping && (
-                <div style={{ border: '1px solid var(--c-border)', borderRadius: 10, padding: 14, marginBottom: 14, background: 'rgba(255,255,255,0.02)' }}>
+                <div style={{ border: '1px solid var(--c-border)', borderRadius: 10, padding: 14, marginBottom: 14, background: 'var(--c-overlay-subtle)' }}>
                   <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--c-text-2)' }}>
                     Pick which CSV column maps to each field:
                   </p>
@@ -1172,7 +1172,7 @@ function GenericCSVImportModal({ platformId, onClose, onImported }) {
                     </span>
                   </div>
                   <div style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--c-border)' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 50px 70px 70px 80px', padding: '7px 12px', background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid var(--c-border)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 50px 70px 70px 80px', padding: '7px 12px', background: 'var(--c-overlay-subtle)', borderBottom: '1px solid var(--c-border)' }}>
                       {['Date', 'Symbol', 'Side', 'Entry', 'Exit', 'P&L'].map(h => (
                         <span key={h} style={{ fontSize: '10px', fontWeight: 600, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</span>
                       ))}
@@ -1195,7 +1195,7 @@ function GenericCSVImportModal({ platformId, onClose, onImported }) {
                       </div>
                     ))}
                     {preview.trades.length > 6 && (
-                      <div style={{ padding: '7px 12px', fontSize: '11px', color: 'var(--c-text-2)', textAlign: 'center', background: 'rgba(255,255,255,0.02)' }}>
+                      <div style={{ padding: '7px 12px', fontSize: '11px', color: 'var(--c-text-2)', textAlign: 'center', background: 'var(--c-overlay-subtle)' }}>
                         +{preview.trades.length - 6} more trades
                       </div>
                     )}
@@ -1221,7 +1221,7 @@ function GenericCSVImportModal({ platformId, onClose, onImported }) {
               {preview && (
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: '12px',
-                  background: 'rgba(255,255,255,0.04)', border: '1px solid var(--c-border)',
+                  background: 'var(--c-overlay-subtle)', border: '1px solid var(--c-border)',
                   borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
                 }}>
                   <div style={{ flex: 1 }}>
@@ -1509,7 +1509,7 @@ export default function Connections({ user, showToast }) {
                       {platform.tags.map(t => (
                         <span key={t} style={{
                           fontSize: '10px', padding: '1px 7px', borderRadius: '100px',
-                          background: 'rgba(255,255,255,0.06)', color: 'var(--c-text-muted)',
+                          background: 'var(--c-overlay-medium)', color: 'var(--c-text-muted)',
                           border: '1px solid var(--c-border)',
                         }}>{t}</span>
                       ))}
@@ -1587,7 +1587,7 @@ export default function Connections({ user, showToast }) {
                   fontSize: '12px', color: 'var(--c-text-muted)', textAlign: 'center',
                   padding: '8px', borderRadius: '8px',
                   border: '1px dashed var(--c-border)',
-                  background: 'rgba(255,255,255,0.04)',
+                  background: 'var(--c-overlay-subtle)',
                 }}>
                   Coming soon
                 </div>
@@ -1701,7 +1701,7 @@ const styles = {
     marginBottom: '6px', fontWeight: 500,
   },
   input: {
-    width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--c-border)',
+    width: '100%', background: 'var(--c-overlay-medium)', border: '1px solid var(--c-border)',
     borderRadius: '8px', padding: '9px 12px', color: 'var(--c-text)',
     fontSize: '13px', marginBottom: '12px', boxSizing: 'border-box',
     outline: 'none',

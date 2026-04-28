@@ -176,7 +176,7 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
           onClick={toggleTheme}
           style={{
             width: 44, height: 24, borderRadius: 12, cursor: 'pointer',
-            background: theme === 'light' ? 'var(--c-accent)' : 'rgba(255,255,255,0.12)',
+            background: theme === 'light' ? 'var(--c-accent)' : 'var(--c-overlay-strong)',
             border: '1px solid var(--c-border)',
             position: 'relative', transition: 'background 0.2s', flexShrink: 0,
           }}
@@ -303,7 +303,7 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
           <div style={{ padding: '14px 18px', borderRadius: 12, border: '1px solid var(--c-border)', marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text)' }}>Free plan</span>
-              <span style={{ fontSize: 11, color: 'var(--c-text-2)', background: 'rgba(255,255,255,0.05)', padding: '3px 8px', borderRadius: 100, border: '1px solid var(--c-border)' }}>Current</span>
+              <span style={{ fontSize: 11, color: 'var(--c-text-2)', background: 'var(--c-overlay-medium)', padding: '3px 8px', borderRadius: 100, border: '1px solid var(--c-border)' }}>Current</span>
             </div>
             <div style={{ fontSize: 12, color: 'var(--c-text-2)', lineHeight: 1.7 }}>
               Journal, stats, AI Insights, and one connected account. Upgrade to Pro for unlimited accounts, AI Deep Coaching, weekly reports, and more.
@@ -441,7 +441,7 @@ function TradingRulesEditor() {
                   onClick={() => handleToggle(r.id, r.enabled === false)}
                   style={{
                     width: 38, height: 22, borderRadius: 12, cursor: 'pointer', flexShrink: 0,
-                    background: r.enabled === false ? 'rgba(255,255,255,0.1)' : 'var(--c-accent)',
+                    background: r.enabled === false ? 'var(--c-overlay-strong)' : 'var(--c-accent)',
                     border: '1px solid var(--c-border)',
                     position: 'relative', transition: 'background 0.2s',
                   }}

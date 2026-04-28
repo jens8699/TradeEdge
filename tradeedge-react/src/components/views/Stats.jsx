@@ -118,7 +118,7 @@ function DisciplineSection({ list }) {
       </div>
 
       {/* Pass-rate bar */}
-      <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', marginBottom: 22, background: 'rgba(255,255,255,0.05)' }}>
+      <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', marginBottom: 22, background: 'var(--c-overlay-medium)' }}>
         <div style={{ flex: onPlan.length, background: 'var(--c-accent)' }} title={`${onPlan.length} on plan`} />
         <div style={{ flex: offPlan.length || 0.001, background: '#EFC97A', opacity: offPlan.length ? 1 : 0 }} title={`${offPlan.length} off plan`} />
       </div>
@@ -361,7 +361,7 @@ export default function Stats() {
             },
           },
           scales: {
-            y: { ticks: { color: 'var(--c-text-2)', callback: v => (v < 0 ? '-$' : '$') + Math.abs(v) }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { display: false } },
+            y: { ticks: { color: 'var(--c-text-2)', callback: v => (v < 0 ? '-$' : '$') + Math.abs(v) }, grid: { color: 'var(--c-overlay-subtle)' }, border: { display: false } },
             x: { ticks: { color: 'var(--c-text-2)' }, grid: { display: false }, border: { display: false } },
           },
         },
@@ -405,7 +405,7 @@ export default function Stats() {
         </div>
 
         {/* Period tabs */}
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 4, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--c-border)', borderRadius: 8, padding: 4 }}>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 4, background: 'var(--c-overlay-subtle)', border: '1px solid var(--c-border)', borderRadius: 8, padding: 4 }}>
           {PERIODS.map(({ key, label }) => {
             const active = period === key;
             return (
@@ -533,7 +533,7 @@ export default function Stats() {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 28 }}>
                   <div style={{ position: 'relative', width: 100, height: 100 }}>
                     <svg width="100" height="100" style={{ display: 'block', overflow: 'visible' }}>
-                      <circle cx="50" cy="50" r={ringR} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+                      <circle cx="50" cy="50" r={ringR} fill="none" stroke="var(--c-overlay-medium)" strokeWidth="6" />
                       <circle cx="50" cy="50" r={ringR} fill="none" stroke="var(--c-accent)" strokeWidth="6"
                         strokeDasharray={`${ringDash} ${ringCirc}`} strokeLinecap="round"
                         transform="rotate(-90 50 50)" style={{ transition: 'stroke-dasharray 0.6s ease' }} />
@@ -583,7 +583,7 @@ export default function Stats() {
                         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-text)', marginBottom: 6 }}>
                           {ss.name}
                         </div>
-                        <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden', maxWidth: 280 }}>
+                        <div style={{ height: 4, background: 'var(--c-overlay-medium)', borderRadius: 2, overflow: 'hidden', maxWidth: 280 }}>
                           <div style={{
                             height: '100%', borderRadius: 2,
                             width: `${(Math.abs(ss.pnl) / maxSetupPnl) * 100}%`,
@@ -777,7 +777,7 @@ function MonthlyBars({ trades }) {
                 <span style={{ fontSize: 10, fontWeight: 600, color, opacity: m.count ? 1 : 0, fontVariantNumeric: 'tabular-nums' }}>
                   {m.pnl >= 0 ? '+' : ''}{Math.abs(m.pnl) >= 1000 ? (m.pnl / 1000).toFixed(1) + 'k' : m.pnl.toFixed(0)}
                 </span>
-                <div style={{ width: '100%', height: `${barH}px`, borderRadius: '4px 4px 0 0', background: m.count ? color : 'rgba(255,255,255,0.04)', opacity: m.count ? 0.85 : 0.3, transition: 'height 0.4s ease' }} />
+                <div style={{ width: '100%', height: `${barH}px`, borderRadius: '4px 4px 0 0', background: m.count ? color : 'var(--c-overlay-subtle)', opacity: m.count ? 0.85 : 0.3, transition: 'height 0.4s ease' }} />
                 <span style={{ fontSize: 9, color: 'var(--c-text-2)', letterSpacing: '0.04em' }}>{m.label}</span>
               </div>
             );
@@ -830,7 +830,7 @@ function SessionBreakdown({ trades }) {
                     </span>
                   </div>
                 </div>
-                <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ height: 4, background: 'var(--c-overlay-medium)', borderRadius: 2, overflow: 'hidden' }}>
                   <div style={{ height: '100%', borderRadius: 2, background: color, width: `${pct * 100}%`, opacity: 0.7, transition: 'width 0.5s ease' }} />
                 </div>
               </div>
@@ -886,7 +886,7 @@ function RatingBreakdown({ trades }) {
                     </span>
                   </div>
                 </div>
-                <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ height: 4, background: 'var(--c-overlay-medium)', borderRadius: 2, overflow: 'hidden' }}>
                   <div style={{ height: '100%', borderRadius: 2, background: color, width: `${pct * 100}%`, opacity: 0.75, transition: 'width 0.5s ease' }} />
                 </div>
               </div>

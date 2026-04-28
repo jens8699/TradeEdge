@@ -243,7 +243,7 @@ function AccountRow({ account, onEdit, onDelete }) {
             padding: '2px 7px', borderRadius: 4,
             background: status.value === 'funded' ? 'rgba(93,202,165,0.12)' :
                         status.value === 'near-dd' || status.value === 'breached' ? 'rgba(198,90,69,0.12)' :
-                        'rgba(255,255,255,0.06)',
+                        'var(--c-overlay-medium)',
             color: status.color,
           }}>
             {status.label}
@@ -527,7 +527,7 @@ const modalStyles = {
   },
   body: { padding: 20 },
   input: {
-    width: '100%', background: 'rgba(255,255,255,0.06)',
+    width: '100%', background: 'var(--c-overlay-medium)',
     border: '1px solid var(--c-border)', borderRadius: 8,
     padding: '9px 12px', color: 'var(--c-text)',
     fontSize: 13, boxSizing: 'border-box', outline: 'none',

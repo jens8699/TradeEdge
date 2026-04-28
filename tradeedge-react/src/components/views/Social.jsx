@@ -534,7 +534,7 @@ export default function Social({ user, profile, showToast }) {
                     onClick={() => setIsPublic(p => !p)}
                     style={{
                       width: 44, height: 24, borderRadius: 12, cursor: 'pointer', flexShrink: 0,
-                      background: isPublic ? 'var(--c-accent)' : 'rgba(255,255,255,0.1)',
+                      background: isPublic ? 'var(--c-accent)' : 'var(--c-overlay-strong)',
                       border: '1px solid var(--c-border)',
                       position: 'relative', transition: 'background 0.2s',
                     }}
@@ -569,7 +569,7 @@ export default function Social({ user, profile, showToast }) {
                     style={{
                       width: 44, height: 24, borderRadius: 12,
                       cursor: isPublic ? 'pointer' : 'not-allowed', flexShrink: 0,
-                      background: sharePnl ? 'var(--c-accent)' : 'rgba(255,255,255,0.1)',
+                      background: sharePnl ? 'var(--c-accent)' : 'var(--c-overlay-strong)',
                       border: '1px solid var(--c-border)',
                       position: 'relative', transition: 'background 0.2s',
                     }}

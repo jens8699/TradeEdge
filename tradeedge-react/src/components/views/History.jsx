@@ -126,7 +126,7 @@ Keep it brutally honest but constructive. No fluff, no generic platitudes.`;
                 <span style={{
                   fontSize: 10, padding: '2px 8px', borderRadius: 100, fontWeight: 600,
                   fontFamily: "'Inter', sans-serif",
-                  background: 'rgba(255,255,255,0.06)',
+                  background: 'var(--c-overlay-medium)',
                   color: 'var(--c-text-2)', border: '1px solid var(--c-border)',
                 }}>
                   {t.direction}
@@ -177,7 +177,7 @@ Keep it brutally honest but constructive. No fluff, no generic platitudes.`;
               </span>
             )}
             {t.setup && (
-              <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', color: 'var(--c-text-2)', border: '1px solid var(--c-border)' }}>
+              <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'var(--c-overlay-medium)', color: 'var(--c-text-2)', border: '1px solid var(--c-border)' }}>
                 {t.setup}
               </span>
             )}
@@ -249,7 +249,7 @@ Keep it brutally honest but constructive. No fluff, no generic platitudes.`;
           {critiqueLoading && (
             <div style={{
               padding: '14px 16px', borderRadius: 12, border: '1px solid var(--c-border)',
-              background: 'rgba(255,255,255,0.02)',
+              background: 'var(--c-overlay-subtle)',
               display: 'flex', alignItems: 'center', gap: 12,
             }}>
               <div className="jm-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
@@ -342,7 +342,7 @@ Keep it brutally honest but constructive. No fluff, no generic platitudes.`;
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 20 }}
             onClick={() => setImgOpen(false)}
           >
-            <button onClick={() => setImgOpen(false)} style={{ position: 'fixed', top: 20, right: 20, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, fontSize: 18, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001 }}>✕</button>
+            <button onClick={() => setImgOpen(false)} style={{ position: 'fixed', top: 20, right: 20, background: 'var(--c-overlay-strong)', border: 'none', borderRadius: '50%', width: 40, height: 40, fontSize: 18, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001 }}>✕</button>
             <img src={t.imageUrl || t.image} alt="chart" style={{ maxWidth: '92vw', maxHeight: '88vh', borderRadius: 12, objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
           </div>
         )}
@@ -620,7 +620,7 @@ export default function History({ showToast }) {
         <div style={{
           display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20,
           padding: '16px 18px', border: '1px solid var(--c-border)', borderRadius: 12,
-          background: 'rgba(255,255,255,0.02)',
+          background: 'var(--c-overlay-subtle)',
         }}>
           <select style={inputStyle} value={symbolFilter} onChange={e => setSymbolFilter(e.target.value)}>
             <option value="">All symbols</option>
