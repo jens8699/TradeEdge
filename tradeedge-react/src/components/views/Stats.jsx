@@ -262,12 +262,30 @@ export default function Stats() {
           </div>
 
           {/* ── Secondary stat cards ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 4 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 10 }}>
             <SecondaryCard label="Avg Win"      value={fmt(s.avgWin)}  color="var(--c-accent)" />
             <SecondaryCard label="Avg Loss"     value={fmt(s.avgLoss)} color="#C65A45" />
             <SecondaryCard label="Largest Win"  value={fmt(s.best)}    color="var(--c-accent)" />
             <SecondaryCard label="Max Drawdown" value={fmt(s.worst)}   color="#C65A45" />
           </div>
+          {/* ── R-multiple cards (only when risk data exists) ── */}
+          {(s.avgRWin !== null || s.expectancy !== null) && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 4 }}>
+              {s.avgRWin !== null && (
+                <SecondaryCard label="Avg R (Wins)" value={`+${s.avgRWin.toFixed(2)}R`} color="var(--c-accent)" />
+              )}
+              {s.avgRLoss !== null && (
+                <SecondaryCard label="Avg R (Losses)" value={`${s.avgRLoss.toFixed(2)}R`} color="#C65A45" />
+              )}
+              {s.expectancy !== null && (
+                <SecondaryCard
+                  label="Expectancy"
+                  value={`${s.expectancy >= 0 ? '+' : ''}${s.expectancy.toFixed(2)}R`}
+                  color={s.expectancy >= 0 ? 'var(--c-accent)' : '#C65A45'}
+                />
+              )}
+            </div>
+          )}
 
           <HR />
 

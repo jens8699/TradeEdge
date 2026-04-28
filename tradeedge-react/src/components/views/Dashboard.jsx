@@ -1,6 +1,6 @@
 import { useRef, useEffect, useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { filterPeriod, computeStats, fmt, getGreeting, getStreak, animateCount } from '../../lib/utils';
+import { filterPeriod, computeStats, fmt, fmtR, getGreeting, getStreak, animateCount } from '../../lib/utils';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const RATING_COLORS = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#C65A45' };
@@ -458,7 +458,7 @@ export default function Dashboard({ user, profile }) {
                 gap: 20,
                 padding: '14px 0',
                 borderBottom: i < recentTrades.length - 1 ? '1px solid var(--c-border)' : 'none',
-                alignItems: 'baseline',
+                alignItems: 'center',
               }}>
                 <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--c-text)', fontVariantNumeric: 'tabular-nums' }}>
                   {sym}
@@ -466,9 +466,16 @@ export default function Dashboard({ user, profile }) {
                 <span style={{ fontSize: 13, color: 'var(--c-text-2)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {desc || '—'}
                 </span>
-                <span style={{ fontSize: 14, fontWeight: 600, color: pnlColor, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                  {t.pnl > 0 ? '+' : ''}{fmt(t.pnl)}
-                </span>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: pnlColor, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                    {t.pnl > 0 ? '+' : ''}{fmt(t.pnl)}
+                  </div>
+                  {fmtR(t.pnl, t.risk) && (
+                    <div style={{ fontSize: 11, color: pnlColor, opacity: 0.6, fontVariantNumeric: 'tabular-nums', fontFamily: "'JetBrains Mono', monospace" }}>
+                      {fmtR(t.pnl, t.risk)}
+                    </div>
+                  )}
+                </div>
                 <span style={{
                   fontSize: 12, fontWeight: 600, textAlign: 'right',
                   color: t.rating === 'A' ? '#E07A3B' : 'var(--c-text-2)',

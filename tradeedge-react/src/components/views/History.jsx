@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { fmt } from '../../lib/utils';
+import { fmt, fmtR } from '../../lib/utils';
 import EditTradeModal from '../modals/EditTradeModal';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -113,10 +113,14 @@ function TradeDetailModal({ trade: t, onClose, onEdit, onDelete }) {
             { label: 'Setup',  value: t.setup  || '—' },
             { label: 'Risk',   value: t.risk   ? fmt(t.risk)   : '—' },
             { label: 'Target', value: t.reward ? fmt(t.reward) : '—' },
+            ...(fmtR(t.pnl, t.risk) ? [{ label: 'R-Multiple', value: fmtR(t.pnl, t.risk), highlight: true }] : []),
           ].map(d => (
-            <div key={d.label} style={{ padding: '10px 12px', border: '1px solid var(--c-border)', borderRadius: 8 }}>
+            <div key={d.label} style={{
+              padding: '10px 12px', border: `1px solid ${d.highlight ? `${isProfit ? 'rgba(224,122,59,0.3)' : 'rgba(198,90,69,0.3)'}` : 'var(--c-border)'}`, borderRadius: 8,
+              background: d.highlight ? `${isProfit ? 'rgba(224,122,59,0.05)' : 'rgba(198,90,69,0.05)'}` : 'transparent',
+            }}>
               <div style={{ fontSize: 10, color: 'var(--c-text-2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>{d.label}</div>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--c-text)', fontVariantNumeric: 'tabular-nums' }}>{d.value}</div>
+              <div style={{ fontSize: 13, fontWeight: d.highlight ? 700 : 500, color: d.highlight ? pnlColor : 'var(--c-text)', fontVariantNumeric: 'tabular-nums' }}>{d.value}</div>
             </div>
           ))}
         </div>
@@ -233,11 +237,16 @@ function TradeRow({ trade: t, onClick, isLast }) {
         </div>
       </div>
 
-      {/* P&L */}
+      {/* P&L + R */}
       <div style={{ textAlign: 'right' }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: pnlColor, fontVariantNumeric: 'tabular-nums', fontFamily: "'Inter', sans-serif" }}>
           {isProfit ? '+' : ''}{fmt(t.pnl)}
         </div>
+        {fmtR(t.pnl, t.risk) && (
+          <div style={{ fontSize: 11, color: pnlColor, opacity: 0.6, marginTop: 1, fontVariantNumeric: 'tabular-nums', fontFamily: "'JetBrains Mono', monospace" }}>
+            {fmtR(t.pnl, t.risk)}
+          </div>
+        )}
         {t.entry && t.exit && (
           <div style={{ fontSize: 10, color: 'var(--c-text-2)', marginTop: 1, opacity: 0.6 }}>{t.date}</div>
         )}
@@ -353,6 +362,10 @@ export default function History({ showToast }) {
 
   const totalPnl = filtered.reduce((s, t) => s + t.pnl, 0);
   const wins     = filtered.filter(t => t.pnl > 0).length;
+  const tradesWithR = filtered.filter(t => t.risk > 0);
+  const avgR = tradesWithR.length
+    ? tradesWithR.reduce((s, t) => s + t.pnl / t.risk, 0) / tradesWithR.length
+    : null;
 
   const handleExport = () => {
     const headers = ['Date','Symbol','Direction','Session','Setup','Rating','Entry','Exit','Qty','P&L','Outcome','Accounts','Risk','Reward','Notes'];
@@ -483,6 +496,17 @@ export default function History({ showToast }) {
           <span>{filtered.length} trade{filtered.length !== 1 ? 's' : ''}</span>
           <span style={{ color: 'var(--c-border)' }}>·</span>
           <span>{filtered.length ? (wins / filtered.length * 100).toFixed(0) : 0}% win rate</span>
+          {avgR !== null && (
+            <>
+              <span style={{ color: 'var(--c-border)' }}>·</span>
+              <span>
+                avg{' '}
+                <span style={{ color: avgR >= 0 ? 'var(--c-accent)' : '#C65A45', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                  {avgR >= 0 ? '+' : ''}{avgR.toFixed(2)}R
+                </span>
+              </span>
+            </>
+          )}
           <button
             onClick={handleExport}
             style={{

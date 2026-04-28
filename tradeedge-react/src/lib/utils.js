@@ -6,6 +6,14 @@ export function fmt(n) {
   return s + '$' + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// R-multiple: returns e.g. "+2.50R", "-0.75R", or null if risk unknown
+export function fmtR(pnl, risk) {
+  if (!risk || risk <= 0 || !isFinite(pnl)) return null;
+  const r = pnl / risk;
+  const sign = r > 0 ? '+' : '';
+  return `${sign}${r.toFixed(2)}R`;
+}
+
 // ── Period filtering ─────────────────────────────────────────────────────────
 
 export function filterPeriod(trades, p) {
@@ -40,7 +48,17 @@ export function computeStats(list) {
   const pf       = grossLoss > 0 ? grossWin / grossLoss : (grossWin > 0 ? Infinity : 0);
   const best     = list.length ? Math.max(...list.map(t => t.pnl)) : 0;
   const worst    = list.length ? Math.min(...list.map(t => t.pnl)) : 0;
-  return { count: list.length, wins: wins.length, losses: losses.length, totalPnl, winRate, avgWin, avgLoss, rr, pf, best, worst };
+
+  // R-multiple stats (only for trades that have risk logged)
+  const winsWithR   = wins.filter(t => t.risk > 0);
+  const lossesWithR = losses.filter(t => t.risk > 0);
+  const avgRWin     = winsWithR.length   ? winsWithR.reduce((s, t) => s + t.pnl / t.risk, 0) / winsWithR.length     : null;
+  const avgRLoss    = lossesWithR.length ? lossesWithR.reduce((s, t) => s + t.pnl / t.risk, 0) / lossesWithR.length : null;
+  const expectancy  = avgRWin !== null && avgRLoss !== null
+    ? (winRate / 100) * avgRWin + (1 - winRate / 100) * avgRLoss
+    : null;
+
+  return { count: list.length, wins: wins.length, losses: losses.length, totalPnl, winRate, avgWin, avgLoss, rr, pf, best, worst, avgRWin, avgRLoss, expectancy };
 }
 
 // ── Time-of-day greeting ─────────────────────────────────────────────────────
