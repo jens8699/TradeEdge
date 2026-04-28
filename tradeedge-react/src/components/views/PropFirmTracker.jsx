@@ -357,7 +357,7 @@ export default function PropFirmTracker() {
   });
 
   return (
-    <div style={{ padding: '36px 44px 64px', boxSizing: 'border-box' }}>
+    <div style={{ padding: 'clamp(20px, 5vw, 36px) clamp(16px, 4.5vw, 44px) 64px', boxSizing: 'border-box' }}>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
@@ -379,7 +379,7 @@ export default function PropFirmTracker() {
       {accounts.length > 0 && (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
           gap: 12,
           marginBottom: 24,
         }}>

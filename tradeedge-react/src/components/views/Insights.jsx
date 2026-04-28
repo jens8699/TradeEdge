@@ -553,7 +553,7 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
   const PERIOD_LABELS = { day: 'Today', week: 'Week', month: 'Month', all: 'All' };
 
   return (
-    <div style={{ padding: '36px 44px', paddingBottom: 64 }}>
+    <div style={{ padding: 'clamp(20px, 5vw, 36px) clamp(16px, 4.5vw, 44px) 64px' }}>
 
       {/* Header */}
       <div style={{ marginBottom: 16 }}>
@@ -597,7 +597,7 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
           {/* ── Score + Key Stats ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 24, marginBottom: 28, border: '1px solid var(--c-border)', borderRadius: 18, padding: '24px' }}>
             <ScoreRing score={score} />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, alignContent: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12, alignContent: 'center' }}>
               {[
                 { label: 'Net P&L',       value: fmt(s.totalPnl),                         color: s.totalPnl >= 0 ? 'var(--c-accent)' : '#C65A45' },
                 { label: 'Win Rate',      value: `${s.winRate.toFixed(1)}%`,               color: s.winRate >= 50 ? 'var(--c-accent)' : '#C65A45' },

@@ -126,7 +126,7 @@ export default function Dashboard({ user, profile }) {
   const stroke     = sparkIsUp ? '#E07A3B' : '#C65A45';
 
   return (
-    <div style={{ padding: '36px 44px', paddingBottom: 48 }}>
+    <div style={{ padding: 'clamp(20px, 5vw, 36px) clamp(16px, 4.5vw, 44px) 48px' }}>
 
       {/* ── Editorial header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
@@ -276,7 +276,7 @@ export default function Dashboard({ user, profile }) {
       <HR my={32} />
 
       {/* ── Three stat cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
 
         {/* Win streak card */}
         <StatCard label="Win streak" badge={streak >= 3 ? '🔥' : undefined}>

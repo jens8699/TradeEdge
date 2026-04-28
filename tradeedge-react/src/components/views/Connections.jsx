@@ -1433,7 +1433,7 @@ export default function Connections({ user, showToast }) {
   const totalTrades = connectedAccounts.reduce((s, a) => s + (a.trade_count || 0), 0);
 
   return (
-    <div style={{ padding: '36px 44px 64px', boxSizing: 'border-box' }}>
+    <div style={{ padding: 'clamp(20px, 5vw, 36px) clamp(16px, 4.5vw, 44px) 64px', boxSizing: 'border-box' }}>
       {/* Hi-Fi Header */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
@@ -1450,7 +1450,7 @@ export default function Connections({ user, showToast }) {
       {/* Summary bar */}
       {totalConnected > 0 && (
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px',
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '24px',
         }}>
           {[
             { label: 'Connected', value: totalConnected },

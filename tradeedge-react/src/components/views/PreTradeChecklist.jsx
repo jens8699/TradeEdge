@@ -130,7 +130,7 @@ export default function PreTradeChecklist({ showToast }) {
   const passed = !!session;
 
   return (
-    <div style={{ padding: '36px 44px', maxWidth: 700, margin: '0 auto', paddingBottom: 60 }}>
+    <div style={{ padding: 'clamp(20px, 5vw, 36px) clamp(16px, 4.5vw, 44px) 60px', maxWidth: 700, margin: '0 auto' }}>
 
       {/* ── Hard-stop overlay ── */}
       {showBlock && (

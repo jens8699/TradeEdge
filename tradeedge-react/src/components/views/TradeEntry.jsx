@@ -239,7 +239,7 @@ export default function TradeEntry({ showToast }) {
   });
 
   return (
-    <div style={{ padding: '36px 44px', maxWidth: 840, paddingBottom: 48, margin: '0 auto' }}>
+    <div style={{ padding: 'clamp(20px, 5vw, 36px) clamp(16px, 4.5vw, 44px) 48px', maxWidth: 840, margin: '0 auto' }}>
 
       {/* ── Editorial header ── */}
       <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
@@ -333,7 +333,7 @@ export default function TradeEntry({ showToast }) {
             <input style={inp} type="date" value={form.date} onChange={e => set('date', e.target.value)} />
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, marginBottom: 16 }}>
           <div style={field}>
             <span style={label}>Direction</span>
             <select style={inp} value={form.direction} onChange={e => set('direction', e.target.value)}>
@@ -350,7 +350,7 @@ export default function TradeEntry({ showToast }) {
             <input style={inp} type="number" placeholder="0.00" step="0.01" value={form.exit} onChange={e => set('exit', e.target.value)} />
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 12, marginBottom: 16 }}>
           <div style={field}>
             <span style={label}>Qty / contracts</span>
             <input style={inp} type="number" placeholder="1" min="1" value={form.qty} onChange={e => set('qty', e.target.value)} />

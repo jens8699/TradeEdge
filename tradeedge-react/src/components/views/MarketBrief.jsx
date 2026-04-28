@@ -241,7 +241,7 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
   };
 
   return (
-    <div style={{ padding: '36px 44px', paddingBottom: 64 }}>
+    <div style={{ padding: 'clamp(20px, 5vw, 36px) clamp(16px, 4.5vw, 44px) 64px' }}>
 
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
@@ -287,7 +287,7 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
 
       {/* Today's snapshot */}
       {todayTrades.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 24 }}>
           {[
             { label: 'Trades',   val: todayStats.count,                                                                                  color: 'var(--c-text)' },
             { label: 'P&L',      val: `${todayStats.totalPnl >= 0 ? '+' : ''}$${todayStats.totalPnl.toFixed(0)}`,                       color: todayStats.totalPnl >= 0 ? 'var(--c-accent)' : '#C65A45' },

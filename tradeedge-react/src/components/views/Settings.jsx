@@ -145,7 +145,7 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
   const isPro = profile?.plan === 'pro';
 
   return (
-    <div style={{ padding: '36px 44px', maxWidth: 840, paddingBottom: 64, margin: '0 auto' }}>
+    <div style={{ padding: 'clamp(20px, 5vw, 36px) clamp(16px, 4.5vw, 44px) 64px', maxWidth: 840, margin: '0 auto' }}>
 
       {/* ── Header ── */}
       <div style={{ marginBottom: 16 }}>

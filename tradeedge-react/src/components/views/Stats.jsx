@@ -285,7 +285,7 @@ export default function Stats() {
   const ringDash = (Math.max(0, Math.min(100, s.winRate)) / 100) * ringCirc;
 
   return (
-    <div style={{ padding: '36px 44px', paddingBottom: 64 }}>
+    <div style={{ padding: 'clamp(20px, 5vw, 36px) clamp(16px, 4.5vw, 44px) 64px' }}>
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
@@ -343,7 +343,7 @@ export default function Stats() {
       ) : (
         <>
           {/* 4-up hero */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, marginBottom: 36 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 0, marginBottom: 36 }}>
             <HeroStat
               label="Net P&L"
               valueRef={heroRef}
@@ -377,7 +377,7 @@ export default function Stats() {
           </div>
 
           {/* ── Secondary stat cards ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 10 }}>
             <SecondaryCard label="Avg Win"      value={fmt(s.avgWin)}  color="var(--c-accent)" />
             <SecondaryCard label="Avg Loss"     value={fmt(s.avgLoss)} color="#C65A45" />
             <SecondaryCard label="Largest Win"  value={fmt(s.best)}    color="var(--c-accent)" />
@@ -385,7 +385,7 @@ export default function Stats() {
           </div>
           {/* ── R-multiple cards (only when risk data exists) ── */}
           {(s.avgRWin !== null || s.expectancy !== null) && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 4 }}>
               {s.avgRWin !== null && (
                 <SecondaryCard label="Avg R (Wins)" value={`+${s.avgRWin.toFixed(2)}R`} color="var(--c-accent)" />
               )}
@@ -410,7 +410,7 @@ export default function Stats() {
           {/* ── Day-of-week chart + Win Rate ring ── */}
           {dowStats.length > 1 && (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 36, alignItems: 'start', marginBottom: 4 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 36, alignItems: 'start', marginBottom: 4 }}>
 
                 {/* Bar chart */}
                 <div>

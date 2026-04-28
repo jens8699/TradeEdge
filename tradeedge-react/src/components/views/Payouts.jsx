@@ -123,7 +123,7 @@ export default function Payouts({ showToast }) {
   };
 
   return (
-    <div style={{ padding: '36px 44px', paddingBottom: 64 }}>
+    <div style={{ padding: 'clamp(20px, 5vw, 36px) clamp(16px, 4.5vw, 44px) 64px' }}>
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>

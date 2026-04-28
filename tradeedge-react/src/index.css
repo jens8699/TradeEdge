@@ -274,6 +274,24 @@ html[data-theme="light"] body { background:#E8E2D6; color:#0D0C09; }
   .tp-plans      { grid-template-columns:1fr 1fr; }
 }
 
+/* ── NARROW-PHONE OVERRIDES (≤480px) ── */
+/* Catches anything inline padding/grid styles miss. Most views use
+   inline styles for their root padding/grid; we cover those via clamp()
+   in the JSX. These rules are the safety net. */
+@media (max-width: 480px) {
+  body { font-size:14px; padding-bottom:88px; }
+  .tp-plans { grid-template-columns:1fr; }
+  /* Ensure nothing horizontally overflows */
+  .jm-view { max-width:100%; overflow-x:hidden; }
+}
+
+/* ── VERY NARROW (≤375px, iPhone SE / mini) ── */
+@media (max-width: 375px) {
+  body { font-size:13.5px; }
+  /* Tighten the auth card a hair more */
+  .tp-auth-card { padding:18px; }
+}
+
 /* ── DASHBOARD TRADE ROW ── */
 .dash-trade-row {
   display:flex; align-items:center; gap:10px;
