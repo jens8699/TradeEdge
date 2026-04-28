@@ -55,6 +55,29 @@ export default function Calendar() {
     return { totalPnl, green, tradingDays: days.length, totalTrades, winRate };
   }, [dayMap]);
 
+  // Largest |pnl| in the visible month — used to scale heat intensity per cell
+  const maxAbsPnl = useMemo(() => {
+    let m = 0;
+    for (const d of Object.values(dayMap)) {
+      const abs = Math.abs(d.pnl || 0);
+      if (abs > m) m = abs;
+    }
+    return m || 1;
+  }, [dayMap]);
+
+  // Map a P&L number to an rgba bg using 4 quantised intensity buckets
+  // (matches the Dashboard heatmap formula).
+  function colorForPnl(pnl) {
+    if (!pnl) return 'transparent';
+    const intensity = Math.min(1, Math.abs(pnl) / maxAbsPnl);
+    const bucket = intensity <= 0.25 ? 0.25
+                 : intensity <= 0.5  ? 0.5
+                 : intensity <= 0.75 ? 0.75
+                 : 1;
+    const base = pnl >= 0 ? '224, 122, 59' : '198, 90, 69';
+    return `rgba(${base}, ${0.10 + bucket * 0.45})`;
+  }
+
   const today   = new Date().toISOString().slice(0, 10);
   const selData = selected ? dayMap[selected] : null;
 
@@ -139,9 +162,7 @@ export default function Calendar() {
           const isProfit   = cell.pnl > 0;
           const isLoss     = cell.pnl < 0;
 
-          const bg = hasTrades
-            ? isProfit ? 'rgba(224,122,59,0.10)' : isLoss ? 'rgba(198,90,69,0.10)' : 'transparent'
-            : 'transparent';
+          const bg = hasTrades ? colorForPnl(cell.pnl) : 'transparent';
 
           const borderColor = isSelected
             ? 'var(--c-accent)'
@@ -203,6 +224,28 @@ export default function Calendar() {
           );
         })}
       </div>
+
+      {/* ── Legend (only when there's any P&L heat to show) ── */}
+      {summary.totalTrades > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          marginTop: 14, fontSize: 10, color: 'var(--c-text-2)',
+          fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.04em',
+        }}>
+          <span>Loss</span>
+          {[0.25, 0.5, 0.75, 1].map(b => (
+            <span key={'l' + b} style={{ width: 16, height: 12, borderRadius: 3, background: `rgba(198, 90, 69, ${0.10 + b * 0.45})` }} />
+          ))}
+          <span style={{ width: 16, height: 12, borderRadius: 3, border: '1px solid var(--c-border)' }} />
+          {[0.25, 0.5, 0.75, 1].map(b => (
+            <span key={'w' + b} style={{ width: 16, height: 12, borderRadius: 3, background: `rgba(224, 122, 59, ${0.10 + b * 0.45})` }} />
+          ))}
+          <span>Win</span>
+          <span style={{ marginLeft: 'auto', opacity: 0.65 }}>
+            scaled to {fmt(maxAbsPnl)} max
+          </span>
+        </div>
+      )}
 
       {/* ── Selected day detail ── */}
       {selected && selData && (
