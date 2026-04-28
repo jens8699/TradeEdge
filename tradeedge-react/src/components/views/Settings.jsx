@@ -71,9 +71,9 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
   const [pass,        setPass]        = useState('');
   const [passConfirm, setPassConfirm] = useState('');
   const [passMsg,     setPassMsg]     = useState('');
-  const [claudeKey,   setClaudeKey]   = useState(localStorage.getItem('jens_claude_key') || '');
+  const [claudeKey,   setClaudeKey]   = useState(localStorage.getItem('te_claude_key') || localStorage.getItem('jens_claude_key') || '');
   const [claudeMsg,   setClaudeMsg]   = useState('');
-  const [elKey,       setElKey]       = useState(localStorage.getItem('jens_el_key') || '');
+  const [elKey,       setElKey]       = useState(localStorage.getItem('te_el_key') || localStorage.getItem('jens_el_key') || '');
   const [elMsg,       setElMsg]       = useState('');
   const [dailyLimit,  setDailyLimit]  = useState(localStorage.getItem('te_daily_loss_limit') || '');
   const [limitMsg,    setLimitMsg]    = useState('');
@@ -107,14 +107,16 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
 
   const saveClaudeKey = () => {
     if (!claudeKey.startsWith('sk-ant-')) { setClaudeMsg('Key should start with sk-ant-'); return; }
-    localStorage.setItem('jens_claude_key', claudeKey);
+    localStorage.setItem('te_claude_key', claudeKey);
+    localStorage.removeItem('jens_claude_key');
     setClaudeMsg('✓ Key saved');
     showToast('Claude key saved');
   };
 
   const saveElKey = () => {
     if (!elKey.trim()) { setElMsg('Please enter a key.'); return; }
-    localStorage.setItem('jens_el_key', elKey);
+    localStorage.setItem('te_el_key', elKey);
+    localStorage.removeItem('jens_el_key');
     setElMsg('✓ Key saved');
     showToast('ElevenLabs key saved');
   };

@@ -302,7 +302,7 @@ export default function Payouts({ showToast }) {
           <input type="number" style={{ ...inputStyle, maxWidth: 200 }} placeholder="500.00" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} />
         </div>
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: 'var(--c-text-2)', marginBottom: 6, fontFamily: "'Fraunces', serif", fontStyle: 'italic', fontSize: 14 }}>Notes</div>
+          <div style={{ fontSize: 14, color: 'var(--c-text-2)', marginBottom: 6, fontFamily: "'Fraunces', serif", fontStyle: 'italic' }}>Notes</div>
           <textarea style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} rows={2} placeholder="First payout from Phase 1 challenge…" value={notes} onChange={e => setNotes(e.target.value)} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

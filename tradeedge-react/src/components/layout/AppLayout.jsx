@@ -13,6 +13,7 @@ import Settings from '../views/Settings';
 import Calendar from '../views/Calendar';
 import Social from '../views/Social';
 import Connections from '../views/Connections';
+import PreTradeChecklist from '../views/PreTradeChecklist';
 import UpgradeModal from '../modals/UpgradeModal';
 import ErrorBoundary from '../ErrorBoundary';
 import { getGreeting } from '../../lib/utils';
@@ -44,6 +45,7 @@ export default function AppLayout({ user, profile, showToast }) {
         <main className="jm-main">
           <ErrorBoundary>
             {activeTab === 'dashboard' && <Dashboard user={user} profile={profile} />}
+            {activeTab === 'checklist' && <PreTradeChecklist showToast={showToast} />}
             {activeTab === 'entry'    && <TradeEntry showToast={showToast} />}
             {activeTab === 'stats'    && <Stats />}
             {activeTab === 'history'  && <History showToast={showToast} />}

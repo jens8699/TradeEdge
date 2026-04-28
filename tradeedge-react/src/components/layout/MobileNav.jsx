@@ -45,19 +45,21 @@ export default function MobileNav() {
 
   const nav = [
     { id: 'dashboard', icon: '⌂', label: 'Home' },
+    { id: 'checklist', icon: '✓', label: 'Check' },
     { id: 'entry',    icon: '✦', label: 'Log' },
     { id: 'stats',    icon: '◈', label: 'Stats' },
-    { id: 'social',   icon: '◉', label: 'Social' },
   ];
   const more = [
-    { id: 'calendar', icon: '▦', label: 'Calendar' },
-    { id: 'history',  icon: '≡', label: 'History' },
-    { id: 'payouts',  icon: '$', label: 'Payouts' },
-    { id: 'brief',    icon: '◎', label: 'Market Brief' },
-    { id: 'insights', icon: '◇', label: 'AI Insights' },
-    { id: 'settings', icon: '⚙', label: 'Settings' },
+    { id: 'social',       icon: '◉', label: 'Social' },
+    { id: 'connections',  icon: '⊕', label: 'Connections' },
+    { id: 'calendar',     icon: '▦', label: 'Calendar' },
+    { id: 'history',      icon: '≡', label: 'History' },
+    { id: 'payouts',      icon: '$', label: 'Payouts' },
+    { id: 'brief',        icon: '◎', label: 'Market Brief' },
+    { id: 'insights',     icon: '◇', label: 'AI Insights' },
+    { id: 'settings',     icon: '⚙', label: 'Settings' },
   ];
-  const moreActive = ['brief','insights','settings','history','payouts','calendar'].includes(activeTab);
+  const moreActive = ['brief','insights','settings','history','payouts','calendar','social','connections'].includes(activeTab);
 
   const go = (tab) => { setActiveTab(tab); setMoreOpen(false); };
 

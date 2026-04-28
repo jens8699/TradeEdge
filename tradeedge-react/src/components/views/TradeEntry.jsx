@@ -277,7 +277,7 @@ export default function TradeEntry({ showToast }) {
             <input style={inp} type="number" placeholder="0.00" step="0.01" value={form.exit} onChange={e => set('exit', e.target.value)} />
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16, marginBottom: 16 }}>
           <div style={field}>
             <span style={label}>Qty / contracts</span>
             <input style={inp} type="number" placeholder="1" min="1" value={form.qty} onChange={e => set('qty', e.target.value)} />
@@ -291,18 +291,29 @@ export default function TradeEntry({ showToast }) {
             <input style={inp} type="number" placeholder="50" step="0.01" value={form.riskPer} onChange={e => set('riskPer', e.target.value)} />
           </div>
           <div style={field}>
-            <span style={label}>Actual P/L ($)</span>
-            <input style={inp} type="number" placeholder="auto" step="0.01" value={form.pnl} onChange={e => set('pnl', e.target.value)} />
+            <span style={label}>Target / acct ($)</span>
+            <input style={inp} type="number" placeholder="100" step="0.01" value={form.rewardPer} onChange={e => set('rewardPer', e.target.value)} />
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: 16 }}>
+          <div style={field}>
+            <span style={label}>Actual P/L ($) <span style={{ fontWeight: 400, opacity: 0.55 }}>— override</span></span>
+            <input style={inp} type="number" placeholder="auto from target" step="0.01" value={form.pnl} onChange={e => set('pnl', e.target.value)} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
+            <div style={{ fontSize: 11, color: 'var(--c-text-2)', lineHeight: 1.6, opacity: 0.7 }}>
+              Leave blank to auto-calculate — wins save as Target × Accounts, losses save as −Risk × Accounts.
+            </div>
           </div>
         </div>
 
         {/* R:R preview */}
         {preview && (
           <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--c-bg, #1C1613)', borderRadius: 8, fontSize: 12, color: 'var(--c-text-2)', display: 'flex', gap: 20, flexWrap: 'wrap', fontVariantNumeric: 'tabular-nums' }}>
-            <span>Risk: <strong style={{ color: 'var(--c-text)' }}>${preview.totalRisk.toFixed(2)}</strong></span>
-            <span>Target: <strong style={{ color: 'var(--c-text)' }}>${preview.totalReward.toFixed(2)}</strong></span>
-            <span>R:R: <strong style={{ color: 'var(--c-text)' }}>{preview.rr}</strong></span>
-            <span>P&L will save as: <strong style={{ color: preview.expectedPnl >= 0 ? 'var(--c-accent)' : '#C65A45' }}>{preview.expectedPnl >= 0 ? '+' : ''}${preview.expectedPnl.toFixed(2)}</strong></span>
+            <span>Total risk: <strong style={{ color: '#C65A45' }}>${preview.totalRisk.toFixed(2)}</strong></span>
+            {preview.totalReward > 0 && <span>Total target: <strong style={{ color: 'var(--c-accent)' }}>${preview.totalReward.toFixed(2)}</strong></span>}
+            {preview.totalReward > 0 && <span>R:R: <strong style={{ color: 'var(--c-text)' }}>1 : {preview.rr}</strong></span>}
+            <span>Will save as: <strong style={{ color: preview.expectedPnl >= 0 ? 'var(--c-accent)' : '#C65A45' }}>{preview.expectedPnl >= 0 ? '+' : ''}${preview.expectedPnl.toFixed(2)}</strong></span>
           </div>
         )}
       </div>

@@ -85,7 +85,7 @@ export function getMilestone(count) {
 
 export function getStreak(trades) {
   if (!trades.length) return 0;
-  const sorted = [...trades].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  const sorted = [...trades].sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''));
   let streak = 0;
   for (const t of sorted) {
     if (t.pnl > 0) streak++;

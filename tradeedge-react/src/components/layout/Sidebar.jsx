@@ -5,6 +5,7 @@ import { sb } from '../../lib/supabase';
 
 const NAV_MAIN = [
   { id: 'dashboard', label: 'Today'       },
+  { id: 'checklist', label: 'Checklist'   },
   { id: 'entry',    label: 'Log a trade'  },
   { id: 'calendar', label: 'Calendar'     },
   { id: 'history',  label: 'History'      },

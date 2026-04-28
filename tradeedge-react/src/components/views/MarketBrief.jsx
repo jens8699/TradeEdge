@@ -14,8 +14,8 @@ function isActive(s) {
   return s.open < s.close ? (h >= s.open && h < s.close) : (h >= s.open || h < s.close);
 }
 
-function getClaudeKey() { return localStorage.getItem('jens_claude_key') || ''; }
-function getElKey()     { return localStorage.getItem('jens_el_key')     || ''; }
+function getClaudeKey() { return localStorage.getItem('te_claude_key') || localStorage.getItem('jens_claude_key') || ''; }
+function getElKey()     { return localStorage.getItem('te_el_key')     || localStorage.getItem('jens_el_key')     || ''; }
 
 // ── Layout helpers ────────────────────────────────────────────────────────────
 
