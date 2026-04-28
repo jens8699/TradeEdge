@@ -88,6 +88,10 @@ function FaqItem({ q, a }) {
   );
 }
 
+// ── Contact email — single source of truth, easy to change ────────────────────
+const CONTACT_EMAIL = 'hello@tradeedge.today';
+const SUPPORT_EMAIL = 'support@tradeedge.today';
+
 // ── Main Landing Page ─────────────────────────────────────────────────────────
 export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onShowTerms }) {
   useLenis();
@@ -210,7 +214,7 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
       </header>
 
       {/* ── LOGO STATEMENT (typographic) ── */}
-      <section className="lp-logos">
+      <section className="lp-logos" id="firms">
         <div className="lp-container">
           <div className="lp-logos-label">Supported firms</div>
           <p className="lp-logos-statement">
@@ -527,20 +531,30 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
               <a href="#features">Features</a>
               <a href="#compare">Compare</a>
               <a href="#pricing">Pricing</a>
-              <a href="#">Changelog</a>
+              <a href={`mailto:${CONTACT_EMAIL}?subject=Changelog%20updates`}>
+                Changelog <span className="lp-soon">soon</span>
+              </a>
             </div>
             <div className="lp-footer-col">
               <h4>Resources</h4>
-              <a href="#">Supported firms</a>
-              <a href="#">Help center</a>
-              <a href="#">API docs</a>
-              <a href="#">Status</a>
+              <a href="#firms">Supported firms</a>
+              <a href={`mailto:${SUPPORT_EMAIL}?subject=Help%20with%20TradeEdge`}>
+                Help center
+              </a>
+              <a href={`mailto:${CONTACT_EMAIL}?subject=API%20access`}>
+                API docs <span className="lp-soon">soon</span>
+              </a>
+              <a href="#" onClick={e => e.preventDefault()} style={{ cursor: 'default' }}>
+                <span className="lp-status-dot" /> All systems normal
+              </a>
             </div>
             <div className="lp-footer-col">
               <h4>Company</h4>
-              <a href="#">About</a>
-              <a href="#">Blog</a>
-              <a href="#">Contact</a>
+              <a href={`mailto:${CONTACT_EMAIL}?subject=About%20TradeEdge`}>About</a>
+              <a href={`mailto:${CONTACT_EMAIL}?subject=Blog%20updates`}>
+                Blog <span className="lp-soon">soon</span>
+              </a>
+              <a href={`mailto:${CONTACT_EMAIL}`}>Contact</a>
               <a
                 href="#privacy"
                 onClick={e => { e.preventDefault(); onShowPrivacy && onShowPrivacy(); }}

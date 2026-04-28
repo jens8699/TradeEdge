@@ -16,6 +16,7 @@ import Connections from '../views/Connections';
 import PreTradeChecklist from '../views/PreTradeChecklist';
 import PrivacyPolicy from '../views/PrivacyPolicy';
 import TermsOfService from '../views/TermsOfService';
+import PropFirmTracker from '../views/PropFirmTracker';
 import UpgradeModal from '../modals/UpgradeModal';
 import ErrorBoundary from '../ErrorBoundary';
 import { getGreeting } from '../../lib/utils';
@@ -59,6 +60,7 @@ export default function AppLayout({ user, profile, showToast }) {
         <main className="jm-main">
           <ErrorBoundary>
             {activeTab === 'dashboard' && <Dashboard user={user} profile={profile} />}
+            {activeTab === 'tracker'   && <PropFirmTracker />}
             {activeTab === 'checklist' && <PreTradeChecklist showToast={showToast} />}
             {activeTab === 'entry'    && <TradeEntry showToast={showToast} />}
             {activeTab === 'stats'    && <Stats />}

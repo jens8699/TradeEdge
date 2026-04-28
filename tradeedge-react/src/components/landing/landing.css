@@ -928,6 +928,36 @@
   background: var(--lp-bg2);
   padding: 50px 0 36px;
 }
+.lp-soon {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lp-text3);
+  background: var(--lp-bg);
+  border: 1px solid var(--lp-border-soft);
+  border-radius: 100px;
+  padding: 1px 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.lp-status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #5DCAA5;
+  margin-right: 6px;
+  vertical-align: middle;
+  box-shadow: 0 0 0 0 rgba(93, 202, 165, 0.5);
+  animation: lp-pulse-green 2s ease-out infinite;
+}
+@keyframes lp-pulse-green {
+  0%   { box-shadow: 0 0 0 0 rgba(93, 202, 165, 0.5); }
+  70%  { box-shadow: 0 0 0 6px rgba(93, 202, 165, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(93, 202, 165, 0); }
+}
 .lp-footer-row {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1fr;
@@ -1027,6 +1057,7 @@
 }
 .lp-manifesto-strike {
   position: relative;
+  display: inline-block;
   color: #6B5A4D;
 }
 .lp-manifesto-strike::after {
@@ -1038,7 +1069,9 @@
   height: 4px;
   background: #E07A3B;
   transform: rotate(-2deg);
+  transform-origin: center;
   border-radius: 2px;
+  pointer-events: none;
 }
 .lp-manifesto-right {
   padding-bottom: 18px;

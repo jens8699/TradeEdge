@@ -3,6 +3,10 @@ import { useApp } from '../../context/AppContext';
 import { getGreeting, getMilestone, getStreak } from '../../lib/utils';
 import { sb } from '../../lib/supabase';
 
+const NAV_TRACKER = [
+  { id: 'tracker', label: 'Prop Firms' },
+];
+
 const NAV_MAIN = [
   { id: 'dashboard', label: 'Today'       },
   { id: 'checklist', label: 'Checklist'   },
@@ -191,6 +195,10 @@ export default function Sidebar({ user, profile, onUpgrade }) {
 
       {/* ── Navigation ── */}
       <nav style={{ flex: 1, overflow: 'auto', padding: '0 0', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div>
+          <NavLabel>Accounts</NavLabel>
+          <NavSection items={NAV_TRACKER} activeTab={activeTab} setActiveTab={setActiveTab} />
+        </div>
         <div>
           <NavLabel>Journal</NavLabel>
           <NavSection items={NAV_MAIN} activeTab={activeTab} setActiveTab={setActiveTab} />

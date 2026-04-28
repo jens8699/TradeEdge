@@ -50,6 +50,7 @@ export default function MobileNav() {
     { id: 'stats',    icon: '◈', label: 'Stats' },
   ];
   const more = [
+    { id: 'tracker',      icon: '◫', label: 'Prop Firms' },
     { id: 'social',       icon: '◉', label: 'Social' },
     { id: 'connections',  icon: '⊕', label: 'Connections' },
     { id: 'calendar',     icon: '▦', label: 'Calendar' },
@@ -59,7 +60,7 @@ export default function MobileNav() {
     { id: 'insights',     icon: '◇', label: 'AI Insights' },
     { id: 'settings',     icon: '⚙', label: 'Settings' },
   ];
-  const moreActive = ['brief','insights','settings','history','payouts','calendar','social','connections'].includes(activeTab);
+  const moreActive = ['tracker','brief','insights','settings','history','payouts','calendar','social','connections'].includes(activeTab);
 
   const go = (tab) => { setActiveTab(tab); setMoreOpen(false); };
 
