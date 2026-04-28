@@ -48,6 +48,140 @@ function StatCard({ label, children, badge, badgeColor }) {
   );
 }
 
+// ── P&L Heatmap (last 12 weeks) ──────────────────────────────────────────
+// Compact GitHub-style contribution grid showing daily P&L. Greens for wins,
+// reds for losses, neutral grey for no-trade days, today is outlined.
+function PnlHeatmap({ trades }) {
+  const WEEKS = 12; // 84 days
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Bucket trades by YYYY-MM-DD
+  const byDay = (() => {
+    const m = new Map();
+    for (const t of trades) {
+      if (!t.date) continue;
+      const k = String(t.date).slice(0, 10);
+      const cur = m.get(k) || { pnl: 0, count: 0 };
+      cur.pnl += t.pnl || 0;
+      cur.count += 1;
+      m.set(k, cur);
+    }
+    return m;
+  })();
+
+  // Build grid — start at the Monday at-or-before (today - 11 weeks)
+  const start = new Date(today);
+  start.setDate(start.getDate() - (WEEKS * 7 - 1));
+  // shift back to Monday
+  const day = start.getDay(); // 0=Sun..6=Sat
+  start.setDate(start.getDate() - (day === 0 ? 6 : day - 1));
+
+  const cells = [];
+  let maxAbs = 1;
+  for (let w = 0; w < WEEKS; w++) {
+    const week = [];
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + w * 7 + d);
+      const future = date > today;
+      const k = date.toISOString().slice(0, 10);
+      const entry = byDay.get(k);
+      if (entry && Math.abs(entry.pnl) > maxAbs) maxAbs = Math.abs(entry.pnl);
+      week.push({ date, key: k, pnl: entry?.pnl || 0, count: entry?.count || 0, future });
+    }
+    cells.push(week);
+  }
+
+  // Month labels above each week column where the month flips
+  const monthLabels = cells.map((week, i) => {
+    const first = week[0].date;
+    const prev = i > 0 ? cells[i - 1][0].date : null;
+    if (!prev || first.getMonth() !== prev.getMonth()) {
+      return first.toLocaleDateString('en-US', { month: 'short' });
+    }
+    return '';
+  });
+
+  function colorForCell(c) {
+    if (c.future) return 'transparent';
+    if (c.count === 0) return 'var(--c-border)';
+    const intensity = Math.min(1, Math.abs(c.pnl) / maxAbs);
+    // 4 buckets so the grid stays readable
+    const bucket = intensity <= 0.25 ? 0.25
+                 : intensity <= 0.5  ? 0.5
+                 : intensity <= 0.75 ? 0.75
+                 : 1;
+    const base = c.pnl >= 0 ? '224, 122, 59' : '198, 90, 69';
+    return `rgba(${base}, ${0.18 + bucket * 0.65})`;
+  }
+
+  return (
+    <div>
+      <Eyebrow>Last 12 weeks</Eyebrow>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, overflowX: 'auto' }}>
+        {/* Day labels column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 18, flexShrink: 0 }}>
+          {['Mon', '', 'Wed', '', 'Fri', '', ''].map((label, i) => (
+            <div key={i} style={{ height: 14, fontSize: 9, color: 'var(--c-text-2)', opacity: 0.7, lineHeight: '14px', fontFamily: "'JetBrains Mono', monospace" }}>
+              {label}
+            </div>
+          ))}
+        </div>
+        <div>
+          {/* Month label row */}
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${WEEKS}, 1fr)`, gap: 3, marginBottom: 4, height: 14 }}>
+            {monthLabels.map((m, i) => (
+              <div key={i} style={{ fontSize: 9, color: 'var(--c-text-2)', opacity: 0.7, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.04em' }}>
+                {m}
+              </div>
+            ))}
+          </div>
+          {/* Cell grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${WEEKS}, 1fr)`, gap: 3 }}>
+            {cells.map((week, wi) => (
+              <div key={wi} style={{ display: 'grid', gridTemplateRows: 'repeat(7, 14px)', gap: 3 }}>
+                {week.map(c => {
+                  const isToday = c.date.getTime() === today.getTime();
+                  const tooltip = c.future
+                    ? null
+                    : c.count === 0
+                      ? `${c.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} — no trades`
+                      : `${c.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · ${c.count} trade${c.count !== 1 ? 's' : ''} · ${c.pnl >= 0 ? '+' : ''}${fmt(c.pnl)}`;
+                  return (
+                    <div
+                      key={c.key}
+                      title={tooltip || ''}
+                      style={{
+                        height: 14, borderRadius: 3,
+                        background: colorForCell(c),
+                        outline: isToday ? '1.5px solid var(--c-accent)' : 'none',
+                        outlineOffset: isToday ? -1 : 0,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      {/* Legend */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, fontSize: 10, color: 'var(--c-text-2)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.04em' }}>
+        <span>Loss</span>
+        {[0.25, 0.5, 0.75, 1].map(b => (
+          <span key={b} style={{ width: 10, height: 10, borderRadius: 2, background: `rgba(198, 90, 69, ${0.18 + b * 0.65})` }} />
+        ))}
+        <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--c-border)' }} />
+        {[0.25, 0.5, 0.75, 1].map(b => (
+          <span key={b} style={{ width: 10, height: 10, borderRadius: 2, background: `rgba(224, 122, 59, ${0.18 + b * 0.65})` }} />
+        ))}
+        <span>Win</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard({ user, profile }) {
   const { trades, setActiveTab } = useApp();
   const heroRef   = useRef(null);
@@ -272,6 +406,11 @@ export default function Dashboard({ user, profile }) {
           </div>
         </div>
       </div>
+
+      <HR my={32} />
+
+      {/* ── 12-week P&L heatmap ── */}
+      <PnlHeatmap trades={trades} />
 
       <HR my={32} />
 
