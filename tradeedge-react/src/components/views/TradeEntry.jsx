@@ -42,6 +42,21 @@ const RATINGS = ['A', 'B', 'C', 'D'];
 const RATING_LABELS = { A: 'Perfect execution', B: 'Good trade', C: 'Average', D: 'Poor execution' };
 const RATING_COLORS = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#F09595' };
 
+// Default symbol hints for users who haven't logged anything yet. The user's
+// own history (frequency-sorted) is mixed in on top of these.
+const DEFAULT_SYMBOLS = [
+  // Index futures
+  'ES', 'NQ', 'YM', 'RTY', 'MES', 'MNQ', 'MYM', 'M2K',
+  // Other futures
+  'CL', 'GC', 'SI', 'NG', 'ZB', 'ZN',
+  // Forex
+  'EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD', 'GBP/JPY',
+  // Stocks
+  'SPY', 'QQQ', 'AAPL', 'TSLA', 'NVDA', 'MSFT', 'AMZN', 'META',
+  // Crypto
+  'BTC/USD', 'ETH/USD',
+];
+
 export default function TradeEntry({ showToast }) {
   const { userId, trades, addTrade, setActiveTab } = useApp();
 
@@ -62,6 +77,26 @@ export default function TradeEntry({ showToast }) {
     const merged = [...userSetups];
     for (const s of DEFAULT_SETUPS) {
       if (!seen.has(s.toLowerCase())) merged.push(s);
+    }
+    return merged;
+  })();
+
+  // Symbol suggestions — same shape as setups: user history first
+  // (frequency-sorted, most-used floats to the top), then defaults.
+  const symbolSuggestions = (() => {
+    const counts = new Map();
+    for (const t of trades) {
+      const s = (t.symbol || '').trim().toUpperCase();
+      if (!s) continue;
+      counts.set(s, (counts.get(s) || 0) + 1);
+    }
+    const userSymbols = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([sym]) => sym);
+    const seen = new Set(userSymbols.map(s => s.toUpperCase()));
+    const merged = [...userSymbols];
+    for (const s of DEFAULT_SYMBOLS) {
+      if (!seen.has(s.toUpperCase())) merged.push(s);
     }
     return merged;
   })();
@@ -430,7 +465,20 @@ export default function TradeEntry({ showToast }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
           <div style={field}>
             <span style={label}>Symbol</span>
-            <input style={inp} type="text" placeholder="NQ, ES, AAPL…" value={form.symbol} onChange={e => set('symbol', e.target.value)} />
+            <input
+              style={inp}
+              type="text"
+              list="symbol-suggestions"
+              placeholder="NQ, ES, AAPL…"
+              value={form.symbol}
+              onChange={e => set('symbol', e.target.value)}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+            />
+            <datalist id="symbol-suggestions">
+              {symbolSuggestions.map(s => <option key={s} value={s} />)}
+            </datalist>
           </div>
           <div style={field}>
             <span style={label}>Date</span>
