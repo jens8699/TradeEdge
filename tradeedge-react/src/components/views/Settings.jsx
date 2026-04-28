@@ -143,7 +143,7 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
   const isPro = profile?.plan === 'pro';
 
   return (
-    <div style={{ padding: '36px 44px', maxWidth: 840, paddingBottom: 64 }}>
+    <div style={{ padding: '36px 44px', maxWidth: 840, paddingBottom: 64, margin: '0 auto' }}>
 
       {/* ── Header ── */}
       <div style={{ marginBottom: 16 }}>
