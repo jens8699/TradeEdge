@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { tradovateAuth, tradovateAuthMFA, tradovateGetAccounts, tradovateSyncTrades } from '../../lib/tradovate';
 import { sb } from '../../lib/supabase';
+import {
+  parseDAS, parseTOS, parseWithMapping, parseCsv, detectFormat,
+} from '../../lib/csvImporters';
 
 // ── Platform definitions ──────────────────────────────────────────────────────
 
@@ -74,9 +77,18 @@ const PLATFORMS = [
     name: 'thinkorswim',
     logo: 'ToS',
     color: '#00A651',
-    description: 'TD Ameritrade / Schwab flagship platform',
-    status: 'coming_soon',
+    description: 'TD Ameritrade / Schwab — CSV import via Account Statement',
+    status: 'csv_only',
     tags: ['Stocks', 'Options', 'Futures'],
+  },
+  {
+    id: 'das',
+    name: 'DAS Trader',
+    logo: 'DAS',
+    color: '#7E57C2',
+    description: 'DAS Trader Pro — CSV import of your Trades report',
+    status: 'csv_only',
+    tags: ['Stocks', 'Day Trading'],
   },
 ];
 
@@ -915,6 +927,347 @@ function TradovateCSVModal({ onClose, onImported }) {
   );
 }
 
+// ── Generic CSV Import Modal (DAS / TOS / unknown w/ manual mapping) ─────────
+
+const PLATFORM_PRESETS = {
+  das: {
+    title: 'Import DAS Trader CSV',
+    color: '#7E57C2',
+    logo: 'DAS',
+    parser: parseDAS,
+    sourceLabel: 'das_csv',
+    instructions: [
+      'In DAS Trader Pro, open the **Trades** window',
+      'Right-click → **Export to CSV**',
+      'Save the file and drop it below',
+    ],
+  },
+  thinkorswim: {
+    title: 'Import thinkorswim CSV',
+    color: '#00A651',
+    logo: 'ToS',
+    parser: parseTOS,
+    sourceLabel: 'tos_csv',
+    instructions: [
+      'In thinkorswim, open **Monitor → Account Statement**',
+      'Pick your date range and click **Export to File** → CSV',
+      'Drop the file below — we extract the Account Trade History section',
+    ],
+  },
+};
+
+function GenericCSVImportModal({ platformId, onClose, onImported }) {
+  const preset = PLATFORM_PRESETS[platformId] || PLATFORM_PRESETS.das;
+  const [file, setFile]         = useState(null);
+  const [rawText, setRawText]   = useState('');
+  const [preview, setPreview]   = useState(null); // { trades, skipped, leftover }
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
+  const [done, setDone]         = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const [multiplier, setMultiplier] = useState(1);
+  const [showMapping, setShowMapping] = useState(false);
+  const [mappingHeaders, setMappingHeaders] = useState([]);
+  const [mapping, setMapping] = useState({ time: '', symbol: '', side: '', qty: '', price: '' });
+
+  function runParse(text, useMapping = null) {
+    setError('');
+    try {
+      let result;
+      if (useMapping) {
+        result = parseWithMapping(text, useMapping);
+      } else {
+        const detected = detectFormat(text);
+        // Prefer the user-selected platform's parser; fall back to detection
+        try {
+          result = preset.parser(text);
+        } catch (e1) {
+          if (detected === 'das' && platformId !== 'das') result = parseDAS(text);
+          else if (detected === 'tos' && platformId !== 'thinkorswim') result = parseTOS(text);
+          else throw e1;
+        }
+      }
+      if (!result.trades.length) {
+        throw new Error('No round-trip trades found. The CSV may only contain open positions, or column names differ — try the manual mapping option.');
+      }
+      setPreview(result);
+    } catch (err) {
+      setPreview(null);
+      setError(err.message || 'Could not parse CSV.');
+    }
+  }
+
+  function processFile(f) {
+    if (!f) return;
+    if (!f.name.match(/\.(csv|txt)$/i)) { setError('Please upload a .csv or .txt file.'); return; }
+    setFile(f);
+    setError('');
+    setPreview(null);
+    setShowMapping(false);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const text = ev.target.result;
+      setRawText(text);
+      runParse(text);
+      // Pre-load headers in case user wants manual mapping
+      try {
+        const { headers } = parseCsv(text);
+        setMappingHeaders(headers);
+      } catch {}
+    };
+    reader.readAsText(f);
+  }
+
+  function handleFile(e) { processFile(e.target.files[0]); }
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragging(false);
+    processFile(e.dataTransfer.files[0]);
+  }
+
+  function applyMapping() {
+    runParse(rawText, mapping);
+    setShowMapping(false);
+  }
+
+  async function handleImport() {
+    if (!preview?.trades?.length) return;
+    setLoading(true);
+    setError('');
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      const mult = Math.max(1, parseInt(multiplier) || 1);
+      const toInsert = preview.trades.map(t => ({
+        id: crypto.randomUUID(),
+        ...t,
+        pnl: parseFloat((t.pnl * mult).toFixed(2)),
+        qty: (t.qty || 1) * mult,
+        notes: mult > 1 ? `${t.notes} · ×${mult} accounts` : t.notes,
+        user_id: user.id,
+      }));
+      let dbErr;
+      const upsertResult = await sb.from('trades').upsert(toInsert, {
+        onConflict: 'user_id,external_id',
+        ignoreDuplicates: true,
+      });
+      if (upsertResult.error?.message?.includes('no unique or exclusion constraint')) {
+        const ids = toInsert.map(t => t.external_id).filter(Boolean);
+        const { data: existing } = await sb.from('trades').select('external_id').eq('user_id', user.id).in('external_id', ids);
+        const existingIds = new Set((existing || []).map(r => r.external_id));
+        const newTrades = toInsert.filter(t => !existingIds.has(t.external_id));
+        if (newTrades.length) {
+          const insertResult = await sb.from('trades').insert(newTrades);
+          dbErr = insertResult.error;
+        }
+      } else {
+        dbErr = upsertResult.error;
+      }
+      if (dbErr) throw new Error(dbErr.message);
+      setDone(preview.trades.length);
+      onImported?.(preview.trades.length);
+    } catch (e) {
+      setError(e.message || 'Import failed.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const accentBg = `${preset.color}1f`;
+  const accentBorder = `${preset.color}55`;
+
+  return (
+    <div style={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ ...styles.modal, maxWidth: '520px' }}>
+        <div style={styles.modalHeader}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ ...styles.platformIcon, background: accentBg, color: preset.color, fontSize: '12px', fontWeight: 800 }}>{preset.logo}</div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--c-text)' }}>{preset.title}</h3>
+              <p style={{ margin: 0, fontSize: '12px', color: 'var(--c-text-2)' }}>One-time import — no account credentials needed</p>
+            </div>
+          </div>
+          <button onClick={onClose} style={styles.closeBtn}>✕</button>
+        </div>
+
+        <div style={styles.modalBody}>
+          {!done ? (
+            <>
+              {/* Step guide */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16, fontSize: 12, color: 'var(--c-text-2)', lineHeight: 1.6 }}>
+                {preset.instructions.map((s, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, background: accentBg, color: preset.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, marginTop: 1 }}>{i + 1}</div>
+                    <span dangerouslySetInnerHTML={{ __html: s.replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--c-text)">$1</strong>') }} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Drop zone */}
+              <label
+                onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={handleDrop}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  border: `2px dashed ${dragging ? preset.color : file ? '#E07A3B' : 'var(--c-border)'}`,
+                  borderRadius: '14px', padding: '28px 16px', cursor: 'pointer',
+                  background: dragging ? accentBg : file ? 'rgba(224,122,59,0.04)' : 'rgba(255,255,255,0.02)',
+                  transition: 'all 0.2s', marginBottom: '14px',
+                }}>
+                <input type="file" accept=".csv,.txt" onChange={handleFile} style={{ display: 'none' }} />
+                <span style={{ fontSize: '28px', marginBottom: '8px' }}>{file ? '✓' : '📂'}</span>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: file ? '#E07A3B' : 'var(--c-text)' }}>
+                  {file ? file.name : 'Drop CSV here or click to browse'}
+                </span>
+                <span style={{ fontSize: '11px', color: 'var(--c-text-2)', marginTop: '4px' }}>
+                  {file ? `${(file.size / 1024).toFixed(1)} KB` : 'Auto-detects format · falls back to manual mapping'}
+                </span>
+              </label>
+
+              {/* Manual mapping panel */}
+              {showMapping && (
+                <div style={{ border: '1px solid var(--c-border)', borderRadius: 10, padding: 14, marginBottom: 14, background: 'rgba(255,255,255,0.02)' }}>
+                  <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--c-text-2)' }}>
+                    Pick which CSV column maps to each field:
+                  </p>
+                  {[
+                    { key: 'symbol', label: 'Symbol', required: true },
+                    { key: 'side',   label: 'Side (buy/sell)', required: true },
+                    { key: 'qty',    label: 'Quantity', required: true },
+                    { key: 'price',  label: 'Price', required: true },
+                    { key: 'time',   label: 'Time / Date', required: false },
+                  ].map(field => (
+                    <div key={field.key} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <span style={{ flex: '0 0 130px', fontSize: 12, color: 'var(--c-text)' }}>
+                        {field.label}{field.required && <span style={{ color: '#E07A3B' }}> *</span>}
+                      </span>
+                      <select
+                        value={mapping[field.key]}
+                        onChange={e => setMapping(m => ({ ...m, [field.key]: e.target.value }))}
+                        style={{ flex: 1, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'var(--c-bg)', color: 'var(--c-text)', fontSize: 12 }}
+                      >
+                        <option value="">— pick column —</option>
+                        {mappingHeaders.map(h => <option key={h} value={h}>{h}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                  <button
+                    onClick={applyMapping}
+                    style={{ ...styles.primaryBtn, marginTop: 6 }}
+                  >
+                    Apply mapping
+                  </button>
+                </div>
+              )}
+
+              {/* Preview table */}
+              {preview && (
+                <div style={{ marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#E07A3B' }}>
+                      ✓ {preview.trades.length} round-trip trade{preview.trades.length !== 1 ? 's' : ''} ready
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--c-text-2)' }}>
+                      {preview.skipped.length} rows skipped{preview.leftover.length > 0 ? ` · ${preview.leftover.length} open` : ''}
+                    </span>
+                  </div>
+                  <div style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--c-border)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 50px 70px 70px 80px', padding: '7px 12px', background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid var(--c-border)' }}>
+                      {['Date', 'Symbol', 'Side', 'Entry', 'Exit', 'P&L'].map(h => (
+                        <span key={h} style={{ fontSize: '10px', fontWeight: 600, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</span>
+                      ))}
+                    </div>
+                    {preview.trades.slice(0, 6).map((t, i) => (
+                      <div key={i} style={{
+                        display: 'grid', gridTemplateColumns: '80px 1fr 50px 70px 70px 80px',
+                        padding: '7px 12px',
+                        borderBottom: i < Math.min(preview.trades.length, 6) - 1 ? '1px solid var(--c-border)' : 'none',
+                        background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
+                      }}>
+                        <span style={{ fontSize: '11px', color: 'var(--c-text-2)' }}>{t.date.slice(5)}</span>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--c-text)' }}>{t.symbol}</span>
+                        <span style={{ fontSize: '11px', color: t.direction === 'Long' ? '#5DCAA5' : '#E07A3B' }}>{t.direction}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--c-text-2)', fontVariantNumeric: 'tabular-nums' }}>{t.entry?.toFixed(2)}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--c-text-2)', fontVariantNumeric: 'tabular-nums' }}>{t.exit?.toFixed(2)}</span>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: t.pnl >= 0 ? '#5DCAA5' : '#C65A45', fontVariantNumeric: 'tabular-nums' }}>
+                          {t.pnl >= 0 ? '+' : ''}{t.pnl.toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                    {preview.trades.length > 6 && (
+                      <div style={{ padding: '7px 12px', fontSize: '11px', color: 'var(--c-text-2)', textAlign: 'center', background: 'rgba(255,255,255,0.02)' }}>
+                        +{preview.trades.length - 6} more trades
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <div style={styles.error}>
+                  <p style={{ margin: 0 }}>{error}</p>
+                  {file && !showMapping && (
+                    <button
+                      onClick={() => setShowMapping(true)}
+                      style={{ marginTop: 8, background: 'none', border: 'none', color: '#E07A3B', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                    >
+                      Try manual column mapping →
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Account multiplier (same as Tradovate flow) */}
+              {preview && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  background: 'rgba(255,255,255,0.04)', border: '1px solid var(--c-border)',
+                  borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 600, color: 'var(--c-text)' }}>Copytrade accounts</p>
+                    <p style={{ margin: 0, fontSize: '11px', color: 'var(--c-text-2)' }}>
+                      Same trades on multiple accounts? P&amp;L and qty will be multiplied.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <button onClick={() => setMultiplier(m => Math.max(1, m - 1))} style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>−</button>
+                    <span style={{ minWidth: '24px', textAlign: 'center', fontSize: '15px', fontWeight: 700, color: multiplier > 1 ? '#E07A3B' : 'var(--c-text)' }}>
+                      {multiplier}
+                    </span>
+                    <button onClick={() => setMultiplier(m => m + 1)} style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-text)', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>+</button>
+                  </div>
+                </div>
+              )}
+
+              <button
+                style={{ ...styles.primaryBtn, opacity: (!preview?.trades?.length || loading) ? 0.5 : 1 }}
+                onClick={handleImport}
+                disabled={!preview?.trades?.length || loading}
+              >
+                {loading ? 'Importing…' : preview
+                  ? `Import ${preview.trades.length} trade${preview.trades.length !== 1 ? 's' : ''}${multiplier > 1 ? ` × ${multiplier} accounts` : ''} →`
+                  : 'Select a file to continue'}
+              </button>
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+              <div style={{ fontSize: '44px', marginBottom: '12px' }}>🎉</div>
+              <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: '18px', color: 'var(--c-text)' }}>
+                {done} trade{done !== 1 ? 's' : ''} imported!
+              </p>
+              <p style={{ margin: '0 0 24px', fontSize: '12px', color: 'var(--c-text-2)', lineHeight: 1.6 }}>
+                Your journal is updated. Head to <strong style={{ color: 'var(--c-text)' }}>History</strong> or <strong style={{ color: 'var(--c-text)' }}>Stats</strong> to see your performance.
+              </p>
+              <button style={styles.primaryBtn} onClick={onClose}>View my trades →</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── MT4/MT5 Guide Modal ───────────────────────────────────────────────────────
 
 function MT5GuideModal({ onClose }) {
@@ -1240,6 +1593,21 @@ export default function Connections({ user, showToast }) {
                 </div>
               )}
 
+              {platform.status === 'csv_only' && (
+                <button
+                  onClick={() => setActiveModal(`csv_${platform.id}`)}
+                  style={{
+                    ...styles.cardBtn,
+                    background: 'transparent',
+                    color: platform.color,
+                    border: `1px solid ${platform.color}55`,
+                    fontSize: '12px',
+                  }}
+                >
+                  ↑ Import CSV
+                </button>
+              )}
+
               {platform.status === 'guide' && (
                 <button
                   onClick={() => setActiveModal(platform.id)}
@@ -1283,6 +1651,13 @@ export default function Connections({ user, showToast }) {
       )}
       {activeModal === 'mt4mt5' && (
         <MT5GuideModal onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal?.startsWith('csv_') && (
+        <GenericCSVImportModal
+          platformId={activeModal.slice(4)} // 'csv_das' → 'das'
+          onClose={() => setActiveModal(null)}
+          onImported={count => showToast?.(`${count} trade${count !== 1 ? 's' : ''} imported!`)}
+        />
       )}
     </div>
   );
