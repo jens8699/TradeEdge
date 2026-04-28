@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
@@ -18,6 +18,7 @@ import PrivacyPolicy from '../views/PrivacyPolicy';
 import TermsOfService from '../views/TermsOfService';
 import PropFirmTracker from '../views/PropFirmTracker';
 import UpgradeModal from '../modals/UpgradeModal';
+import OnboardingModal, { isOnboardingDone } from '../modals/OnboardingModal';
 import ErrorBoundary from '../ErrorBoundary';
 import { getGreeting } from '../../lib/utils';
 
@@ -34,10 +35,22 @@ function LegalBack({ onBack, label }) {
 }
 
 export default function AppLayout({ user, profile, showToast }) {
-  const { activeTab, setActiveTab, loading } = useApp();
+  const { activeTab, setActiveTab, loading, trades } = useApp();
   const [showUpgrade, setShowUpgrade] = useState(false);
+  // Onboarding shows on first login (no trades yet + flag not set), or when
+  // the user replays it from Settings via the onReplayOnboarding callback.
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const name = (profile?.name) || user?.user_metadata?.name || user?.email || 'Trader';
   const { full: greet } = getGreeting(name);
+
+  // Trigger onboarding on first login: flips true once after initial load if
+  // user has no trades yet and the localStorage flag isn't set.
+  useEffect(() => {
+    if (loading) return;
+    if (isOnboardingDone()) return;
+    if (!trades || trades.length > 0) return;
+    setShowOnboarding(true);
+  }, [loading, trades]);
 
   if (loading) {
     return (
@@ -71,7 +84,7 @@ export default function AppLayout({ user, profile, showToast }) {
             {activeTab === 'calendar'  && <Calendar />}
             {activeTab === 'social'       && <Social user={user} profile={profile} showToast={showToast} />}
             {activeTab === 'connections'  && <Connections user={user} showToast={showToast} />}
-            {activeTab === 'settings'     && <Settings user={user} profile={profile} showToast={showToast} onUpgrade={() => setShowUpgrade(true)} />}
+            {activeTab === 'settings'     && <Settings user={user} profile={profile} showToast={showToast} onUpgrade={() => setShowUpgrade(true)} onReplayOnboarding={() => { try { localStorage.removeItem('te_onboarding_done'); } catch {} setShowOnboarding(true); }} />}
             {activeTab === 'privacy'      && (
               <div className="jm-view">
                 <LegalBack onBack={() => setActiveTab('settings')} label="Settings" />
@@ -90,6 +103,13 @@ export default function AppLayout({ user, profile, showToast }) {
 
       <MobileNav />
       {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
+      {showOnboarding && (
+        <OnboardingModal
+          user={user}
+          profile={profile}
+          onClose={() => setShowOnboarding(false)}
+        />
+      )}
     </div>
   );
 }

@@ -63,7 +63,7 @@ function ActionButton({ onClick, children, variant = 'primary', disabled }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function Settings({ user, profile, showToast, onUpgrade }) {
+export default function Settings({ user, profile, showToast, onUpgrade, onReplayOnboarding }) {
   const { exportData, importData, isOnline, syncPending, doSync, offlineQueueCount, theme, toggleTheme, setActiveTab } = useApp();
 
   const [name,        setName]        = useState(profile?.name || user?.user_metadata?.name || '');
@@ -317,6 +317,18 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
           </div>
         </>
       )}
+
+      <HR />
+
+      {/* ── Help & Tour ── */}
+      <SectionLabel>Help</SectionLabel>
+      <button
+        type="button"
+        onClick={() => onReplayOnboarding && onReplayOnboarding()}
+        style={{ background: 'none', border: 'none', padding: '6px 0', textAlign: 'left', color: 'var(--c-text)', fontSize: 13, cursor: 'pointer', fontFamily: "'Inter', sans-serif", display: 'block' }}
+      >
+        Replay welcome tour →
+      </button>
 
       <HR />
 
