@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { sb } from '../../lib/supabase';
+import { setChecklistTag } from '../../lib/checklistTags';
 
 const DRAFT_KEY = 'te_trade_draft';
+const CHECKLIST_SESSION_KEY = 'te_checklist_session';
 
 function loadDraft() {
   try {
@@ -16,6 +18,16 @@ function loadDraft() {
 
 function today() { return new Date().toISOString().slice(0, 10); }
 
+// Read today's checklist pass status. Returns true if passed today, false otherwise.
+function isChecklistPassedToday() {
+  try {
+    const raw = localStorage.getItem(CHECKLIST_SESSION_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    return s.date === today();
+  } catch { return false; }
+}
+
 const SETUPS = ['', 'Breakout', 'Pullback', 'Reversal', 'Range', 'Trend continuation', 'News play', 'Gap fill', 'VWAP', 'Support/Resistance', 'Other'];
 const SESSION_LIST = ['', 'Sydney', 'Tokyo', 'London', 'New York', 'Premarket', 'After Hours'];
 const RATINGS = ['A', 'B', 'C', 'D'];
@@ -23,7 +35,18 @@ const RATING_LABELS = { A: 'Perfect execution', B: 'Good trade', C: 'Average', D
 const RATING_COLORS = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#F09595' };
 
 export default function TradeEntry({ showToast }) {
-  const { userId, trades, addTrade } = useApp();
+  const { userId, trades, addTrade, setActiveTab } = useApp();
+  // Re-read checklist status whenever this view mounts and on window focus.
+  const [checklistPassedToday, setChecklistPassedToday] = useState(isChecklistPassedToday);
+  useEffect(() => {
+    const refresh = () => setChecklistPassedToday(isChecklistPassedToday());
+    window.addEventListener('focus', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
 
   const [form, setForm] = useState({
     date: today(), symbol: '', direction: 'long', accounts: 1,
@@ -147,6 +170,12 @@ export default function TradeEntry({ showToast }) {
       } catch(e) { console.warn('Screenshot upload error:', e); }
     }
 
+    // Tag the trade with whether the day's pre-trade checklist was passed.
+    // Only tag if the trade's date is today — backdated trades stay null/unknown.
+    const checklistPassed = (date === today())
+      ? isChecklistPassedToday()
+      : null;
+
     const trade = {
       id: tradeId, date, symbol: symbol.trim().toUpperCase(), direction, accounts: accounts_,
       riskPer: riskPer_, rewardPer: rewardPer_, risk: totalRisk, reward: totalReward,
@@ -157,11 +186,16 @@ export default function TradeEntry({ showToast }) {
       qty:     form.qty     ? parseInt(form.qty)      : null,
       session: form.session || null,
       rating:  form.rating  || null,
+      checklistPassed,
     };
 
     const result = await addTrade(trade);
     setSaving(false);
     if (!result.ok) { setSaveMsg('Save failed: ' + result.error); return; }
+    // Persist the checklist tag locally (no Supabase column for this yet).
+    if (checklistPassed === true || checklistPassed === false) {
+      setChecklistTag(tradeId, checklistPassed);
+    }
     showToast(imagePath ? 'Trade saved with screenshot' : result.offline ? 'Saved offline — syncs when back online' : 'Trade saved', result.offline ? 'warn' : 'success', result.offline ? 4000 : 3000);
     setSaveMsg('');
     // Reset form — also reset outcome so it never carries over to the next trade
@@ -231,6 +265,45 @@ export default function TradeEntry({ showToast }) {
             Discard
           </button>
         </div>
+      )}
+
+      {/* Checklist status — only shown when the trade is being logged for today */}
+      {form.date === today() && (
+        checklistPassedToday ? (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            background: 'rgba(93,202,165,0.08)',
+            border: '1px solid rgba(93,202,165,0.25)',
+            borderRadius: 10, padding: '10px 16px', marginTop: 16,
+            fontSize: 12.5, color: '#5DCAA5',
+          }}>
+            <span style={{ fontWeight: 600 }}>✓</span>
+            <span style={{ color: 'var(--c-text-2)' }}>
+              Checklist passed today — this trade will be tagged as <strong style={{ color: 'var(--c-text)' }}>on plan</strong>.
+            </span>
+          </div>
+        ) : (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+            background: 'rgba(239,201,122,0.06)',
+            border: '1px solid rgba(239,201,122,0.25)',
+            borderRadius: 10, padding: '10px 16px', marginTop: 16,
+            fontSize: 12.5, color: '#EFC97A',
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontWeight: 600 }}>⚠</span>
+              <span style={{ color: 'var(--c-text-2)' }}>
+                Today's pre-trade checklist hasn't been passed — this trade will be tagged as <strong style={{ color: '#EFC97A' }}>off plan</strong>.
+              </span>
+            </span>
+            <button
+              onClick={() => setActiveTab('checklist')}
+              style={{ fontSize: 11, fontWeight: 600, color: '#EFC97A', background: 'transparent', border: '1px solid rgba(239,201,122,0.3)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+            >
+              Go to checklist →
+            </button>
+          </div>
+        )
       )}
 
       <div style={hr} />

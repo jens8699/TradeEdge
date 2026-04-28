@@ -74,6 +74,121 @@ function HR() {
   return <div style={{ height: 1, background: 'var(--c-border)', margin: '28px 0' }} />;
 }
 
+// ── Discipline section ──────────────────────────────────────────────────────
+// Compares P&L on trades where the pre-trade checklist was passed vs trades
+// where it was skipped. Trades with `checklistPassed === undefined/null` are
+// excluded (imported trades + historic trades from before the feature shipped).
+function DisciplineSection({ list }) {
+  const tagged = list.filter(t => t.checklistPassed === true || t.checklistPassed === false);
+  if (tagged.length < 3) return null; // not enough data for a meaningful comparison
+
+  const onPlan  = tagged.filter(t => t.checklistPassed === true);
+  const offPlan = tagged.filter(t => t.checklistPassed === false);
+
+  const sumPnl = arr => arr.reduce((s, t) => s + (t.pnl || 0), 0);
+  const winRate = arr => {
+    const wins = arr.filter(t => (t.outcome === 'win') || (t.pnl > 0)).length;
+    return arr.length > 0 ? (wins / arr.length) * 100 : 0;
+  };
+  const avg = arr => arr.length > 0 ? sumPnl(arr) / arr.length : 0;
+
+  const onPlanPct = (onPlan.length / tagged.length) * 100;
+
+  return (
+    <>
+      <HR />
+      <Eyebrow>Discipline</Eyebrow>
+
+      {/* Pass-rate row */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, marginBottom: 18 }}>
+        <span style={{
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 38, fontWeight: 600, color: 'var(--c-text)',
+          letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums',
+          lineHeight: 1,
+        }}>
+          {onPlanPct.toFixed(0)}%
+        </span>
+        <span style={{ fontSize: 12, color: 'var(--c-text-2)', lineHeight: 1.6 }}>
+          of your tagged trades were logged on a checklist-passed day.<br />
+          <span style={{ opacity: 0.7 }}>
+            {onPlan.length} on plan · {offPlan.length} off plan · {list.length - tagged.length} untagged
+          </span>
+        </span>
+      </div>
+
+      {/* Pass-rate bar */}
+      <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', marginBottom: 22, background: 'rgba(255,255,255,0.05)' }}>
+        <div style={{ flex: onPlan.length, background: 'var(--c-accent)' }} title={`${onPlan.length} on plan`} />
+        <div style={{ flex: offPlan.length || 0.001, background: '#EFC97A', opacity: offPlan.length ? 1 : 0 }} title={`${offPlan.length} off plan`} />
+      </div>
+
+      {/* Comparison cards */}
+      {offPlan.length > 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <DisciplineCard
+            label="On plan"
+            sub={`${onPlan.length} trade${onPlan.length !== 1 ? 's' : ''}`}
+            netPnl={sumPnl(onPlan)}
+            avgPnl={avg(onPlan)}
+            winRate={winRate(onPlan)}
+            accent="var(--c-accent)"
+          />
+          <DisciplineCard
+            label="Off plan"
+            sub={`${offPlan.length} trade${offPlan.length !== 1 ? 's' : ''}`}
+            netPnl={sumPnl(offPlan)}
+            avgPnl={avg(offPlan)}
+            winRate={winRate(offPlan)}
+            accent="#EFC97A"
+          />
+        </div>
+      ) : (
+        <div style={{
+          padding: '14px 16px',
+          background: 'rgba(93,202,165,0.06)',
+          border: '1px solid rgba(93,202,165,0.2)',
+          borderRadius: 12,
+          fontSize: 13, color: 'var(--c-text-2)', lineHeight: 1.6,
+        }}>
+          <span style={{ color: '#5DCAA5', fontWeight: 600 }}>Locked in.</span>{' '}
+          Every tagged trade this period was logged on a checklist-passed day. Skip the checklist once and you'll see the cost here.
+        </div>
+      )}
+    </>
+  );
+}
+
+function DisciplineCard({ label, sub, netPnl, avgPnl, winRate, accent }) {
+  return (
+    <div style={{
+      border: '1px solid var(--c-border)', borderRadius: 14,
+      padding: '14px 18px', background: 'var(--c-surface)',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+        <span style={{
+          fontFamily: "'Fraunces', Georgia, serif", fontStyle: 'italic',
+          fontSize: 16, color: accent, letterSpacing: '-0.01em',
+        }}>
+          {label}
+        </span>
+        <span style={{ fontSize: 11, color: 'var(--c-text-2)' }}>{sub}</span>
+      </div>
+      <div style={{
+        fontSize: 24, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
+        letterSpacing: '-0.02em', color: netPnl >= 0 ? 'var(--c-accent)' : '#C65A45',
+        marginBottom: 8, lineHeight: 1.1,
+      }}>
+        {netPnl >= 0 ? '+' : ''}{fmt(netPnl)}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--c-text-2)' }}>
+        <span>Avg <span style={{ color: avgPnl >= 0 ? 'var(--c-accent)' : '#C65A45', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{avgPnl >= 0 ? '+' : ''}{fmt(avgPnl)}</span></span>
+        <span>Win rate <span style={{ color: 'var(--c-text)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{winRate.toFixed(0)}%</span></span>
+      </div>
+    </div>
+  );
+}
+
 function Eyebrow({ children }) {
   return (
     <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
@@ -286,6 +401,9 @@ export default function Stats() {
               )}
             </div>
           )}
+
+          {/* ── Discipline (checklist pass/skip impact) ── */}
+          <DisciplineSection list={list} />
 
           <HR />
 

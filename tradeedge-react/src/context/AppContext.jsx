@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { sb, dbToTrade, dbToPayout, tradeToDb, payoutToDb, fetchSignedUrls } from '../lib/supabase';
+import { mergeChecklistTags, setChecklistTag } from '../lib/checklistTags';
 import { uid } from '../lib/utils';
 
 const AppContext = createContext(null);
@@ -83,8 +84,9 @@ export function AppProvider({ userId, children }) {
         sb.from('payouts').select('*').eq('user_id', uid_).order('date', { ascending: false }),
         sb.from('profiles').select('theme').eq('id', uid_).single(),
       ]);
-      const tradeList  = (t || []).map(dbToTrade);
-      const payoutList = (p || []).map(dbToPayout);
+      const tradeListRaw = (t || []).map(dbToTrade);
+      const tradeList    = mergeChecklistTags(tradeListRaw);
+      const payoutList   = (p || []).map(dbToPayout);
       await fetchSignedUrls(tradeList);
       setTrades(tradeList);
       setPayouts(payoutList);
@@ -164,6 +166,8 @@ export function AppProvider({ userId, children }) {
     if (trade?.image && !trade.image.startsWith('data:')) {
       sb.storage.from('trade-screenshots').remove([trade.image]).catch(() => {});
     }
+    // Clean up the checklist tag so the side-table doesn't grow forever
+    setChecklistTag(tradeId, null);
   }, [trades]);
 
   const updateTrade = useCallback(async (updated) => {

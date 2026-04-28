@@ -229,6 +229,18 @@ function TradeRow({ trade: t, onClick, isLast }) {
               {t.rating}
             </span>
           )}
+          {t.checklistPassed === true && (
+            <span title="Pre-trade checklist passed" style={{
+              fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 6,
+              background: 'rgba(93,202,165,0.12)', color: '#5DCAA5',
+            }}>✓ Plan</span>
+          )}
+          {t.checklistPassed === false && (
+            <span title="Pre-trade checklist not passed that day" style={{
+              fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 6,
+              background: 'rgba(239,201,122,0.12)', color: '#EFC97A',
+            }}>⚠ Off plan</span>
+          )}
           {t.notes && <span style={{ fontSize: 11, color: 'var(--c-text-2)', opacity: 0.4 }}>✎</span>}
         </div>
         <div style={{ fontSize: 11, color: 'var(--c-text-2)', marginTop: 2, opacity: 0.7, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.02em' }}>
