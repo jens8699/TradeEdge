@@ -148,6 +148,73 @@ function generateNotifications(trades) {
     }
   } catch (_) {}
 
+  // ── Drawdown warnings & payout milestones from Prop Firm Tracker ────────────
+  try {
+    const raw = localStorage.getItem('te_prop_firm_accounts');
+    if (raw) {
+      const accounts = JSON.parse(raw);
+      if (Array.isArray(accounts)) {
+        for (const acc of accounts) {
+          if (!acc?.id) continue;
+          const ddPct = acc.ddMax > 0 ? (acc.ddRemaining / acc.ddMax) * 100 : 100;
+          // Drawdown warning: < 25% remaining
+          if (acc.ddMax > 0 && ddPct < 25 && ddPct >= 0) {
+            notes.push({
+              id: `dd_${acc.id}`,
+              type: 'drawdown',
+              icon: '⚠️',
+              title: `${acc.firm}${acc.name ? ' · ' + acc.name : ''} — drawdown warning`,
+              body: `Only $${(acc.ddRemaining || 0).toLocaleString()} left of $${(acc.ddMax || 0).toLocaleString()} max DD (${ddPct.toFixed(0)}% remaining). Consider reducing size.`,
+              ts: new Date().toISOString(),
+              read: false,
+            });
+          }
+          // Near payout milestone
+          if (acc.payoutPct >= 80 && acc.status === 'funded') {
+            notes.push({
+              id: `payout_${acc.id}_${Math.floor(acc.payoutPct / 10)}`,
+              type: 'payout',
+              icon: '💰',
+              title: `${acc.firm} — ${acc.payoutPct.toFixed(0)}% to next payout`,
+              body: `You're close. Don't overtrade — protect what you've built.`,
+              ts: new Date().toISOString(),
+              read: false,
+            });
+          }
+        }
+      }
+    }
+  } catch (_) {}
+
+  // ── Off-plan trade alerts (checklist was skipped) ──────────────────────────
+  try {
+    const raw = localStorage.getItem('te_checklist_tags');
+    if (raw) {
+      const tags = JSON.parse(raw) || {};
+      const offPlanIds = Object.entries(tags).filter(([_, v]) => v === false).map(([id]) => id);
+      if (offPlanIds.length > 0) {
+        const offPlanTrades = trades.filter(t => offPlanIds.includes(t.id));
+        // Aggregate: a single notification summarising your off-plan count this week
+        const weekAgo = Date.now() - 7 * 86400 * 1000;
+        const recentOff = offPlanTrades.filter(t => new Date(t.created_at || t.date).getTime() > weekAgo);
+        if (recentOff.length > 0) {
+          const recentOffPnl = recentOff.reduce((s, t) => s + getPnl(t), 0);
+          notes.push({
+            id: `offplan_${recentOff.length}_${Math.floor(weekAgo / 86400000)}`,
+            type: 'discipline',
+            icon: '🎯',
+            title: `${recentOff.length} off-plan trade${recentOff.length === 1 ? '' : 's'} this week`,
+            body: recentOffPnl < 0
+              ? `Net ${recentOffPnl >= 0 ? '+' : '−'}$${Math.abs(recentOffPnl).toFixed(2)} on those trades. Check Stats → Discipline for the breakdown.`
+              : `Even when you skip the checklist, you're still net positive — but the discipline pattern is worth watching.`,
+            ts: recentOff[0]?.created_at || new Date().toISOString(),
+            read: false,
+          });
+        }
+      }
+    }
+  } catch (_) {}
+
   // Sort newest first
   notes.sort((a, b) => new Date(b.ts) - new Date(a.ts));
 
@@ -176,12 +243,15 @@ function relativeTime(iso) {
 
 // ── Type colours ───────────────────────────────────────────────────────────────
 const TYPE_COLOR = {
-  milestone: '#E07A3B',
-  streak:    '#F59E0B',
-  best_day:  '#E07A3B',
-  insight:   '#A89687',
-  import:    '#A78BFA',
-  welcome:   '#E07A3B',
+  milestone:  '#E07A3B',
+  streak:     '#F59E0B',
+  best_day:   '#E07A3B',
+  insight:    '#A89687',
+  import:     '#A78BFA',
+  welcome:    '#E07A3B',
+  drawdown:   '#C65A45',
+  payout:     '#5DCAA5',
+  discipline: '#EFC97A',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

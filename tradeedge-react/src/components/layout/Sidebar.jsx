@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getGreeting, getMilestone, getStreak } from '../../lib/utils';
 import { sb } from '../../lib/supabase';
+import NotificationsPanel, { NotificationsBell } from '../ui/NotificationsPanel';
 
 const NAV_TRACKER = [
   { id: 'tracker', label: 'Prop Firms' },
@@ -150,6 +151,7 @@ function Avatar({ name, size = 28 }) {
 // ── Main Sidebar ─────────────────────────────────────────────────────────────
 export default function Sidebar({ user, profile, onUpgrade }) {
   const { trades, activeTab, setActiveTab } = useApp();
+  const [notifsOpen, setNotifsOpen] = useState(false);
   const name    = (profile?.name) || user?.user_metadata?.name || user?.email || 'Trader';
   const firstName = name.split(' ')[0];
   const plan    = profile?.plan || 'free';
@@ -166,6 +168,12 @@ export default function Sidebar({ user, profile, onUpgrade }) {
   const monthLabel = now.toLocaleString('default', { month: 'long' });
 
   return (
+    <>
+    <NotificationsPanel
+      trades={trades}
+      isOpen={notifsOpen}
+      onClose={() => setNotifsOpen(false)}
+    />
     <aside className="jm-side" style={{
       width: 220, flexShrink: 0,
       background: 'var(--c-sidebar, var(--c-surface))',
@@ -175,20 +183,29 @@ export default function Sidebar({ user, profile, onUpgrade }) {
       height: '100%', overflow: 'hidden',
     }}>
 
-      {/* ── Wordmark ── */}
+      {/* ── Wordmark + bell ── */}
       <div style={{ padding: '0 22px', marginBottom: 28 }}>
-        <div style={{
-          fontFamily: "'Fraunces', Georgia, serif",
-          fontSize: 22, letterSpacing: '-0.04em',
-          color: 'var(--c-text)', lineHeight: 1,
-        }}>
-          tradeedge<span style={{ color: 'var(--c-accent)' }}>.</span>
-        </div>
-        <div style={{
-          fontSize: 10, color: 'var(--c-text-2)', marginTop: 4,
-          fontStyle: 'italic', letterSpacing: '0.02em', fontFamily: "'Inter', sans-serif",
-        }}>
-          journal · Vol. IV
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontFamily: "'Fraunces', Georgia, serif",
+              fontSize: 22, letterSpacing: '-0.04em',
+              color: 'var(--c-text)', lineHeight: 1,
+            }}>
+              tradeedge<span style={{ color: 'var(--c-accent)' }}>.</span>
+            </div>
+            <div style={{
+              fontSize: 10, color: 'var(--c-text-2)', marginTop: 4,
+              fontStyle: 'italic', letterSpacing: '0.02em', fontFamily: "'Inter', sans-serif",
+            }}>
+              journal · Vol. IV
+            </div>
+          </div>
+          <NotificationsBell
+            trades={trades}
+            isOpen={notifsOpen}
+            onClick={() => setNotifsOpen(o => !o)}
+          />
         </div>
         <SessionPill />
       </div>
@@ -279,5 +296,6 @@ export default function Sidebar({ user, profile, onUpgrade }) {
         </button>
       </div>
     </aside>
+    </>
   );
 }
