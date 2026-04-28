@@ -353,7 +353,7 @@ Keep it brutally honest but constructive. No fluff, no generic platitudes.`;
 
 // ── Trade Row ─────────────────────────────────────────────────────────────────
 
-function TradeRow({ trade: t, onClick, isLast }) {
+function TradeRow({ trade: t, onClick, isLast, selectMode, selected, onToggleSelect }) {
   const isProfit = t.pnl > 0;
   const isLoss   = t.pnl < 0;
   const isLong   = t.direction === 'Long' || t.direction === 'long';
@@ -361,25 +361,45 @@ function TradeRow({ trade: t, onClick, isLast }) {
 
   return (
     <div
-      onClick={onClick}
+      onClick={() => selectMode ? onToggleSelect?.(t.id) : onClick?.()}
       style={{
         display: 'grid',
         gridTemplateColumns: '22px 1fr auto',
         gap: 14, padding: '13px 0',
         borderBottom: isLast ? 'none' : '1px solid var(--c-border)',
         cursor: 'pointer', alignItems: 'center',
-        transition: 'opacity 0.12s',
+        transition: 'opacity 0.12s, background 0.12s',
+        background: selectMode && selected ? 'var(--c-overlay-medium)' : 'transparent',
+        marginLeft: selectMode && selected ? -8 : 0,
+        marginRight: selectMode && selected ? -8 : 0,
+        paddingLeft: selectMode && selected ? 8 : 0,
+        paddingRight: selectMode && selected ? 8 : 0,
+        borderRadius: selectMode && selected ? 6 : 0,
       }}
       onMouseEnter={e => e.currentTarget.style.opacity = '0.72'}
       onMouseLeave={e => e.currentTarget.style.opacity = '1'}
     >
-      {/* Direction arrow */}
-      <div style={{
-        fontSize: 11, fontWeight: 700, color: isLong ? 'var(--c-accent)' : '#A89687',
-        textAlign: 'center', paddingTop: 1,
-      }}>
-        {isLong ? '↑' : '↓'}
-      </div>
+      {/* Direction arrow OR checkbox in select mode */}
+      {selectMode ? (
+        <div style={{
+          width: 16, height: 16, borderRadius: 4,
+          border: `1.5px solid ${selected ? 'var(--c-accent)' : 'var(--c-border)'}`,
+          background: selected ? 'var(--c-accent)' : 'transparent',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff', fontSize: 11, fontWeight: 800, lineHeight: 1,
+          margin: '0 auto', flexShrink: 0,
+          transition: 'all 0.12s',
+        }}>
+          {selected ? '✓' : ''}
+        </div>
+      ) : (
+        <div style={{
+          fontSize: 11, fontWeight: 700, color: isLong ? 'var(--c-accent)' : '#A89687',
+          textAlign: 'center', paddingTop: 1,
+        }}>
+          {isLong ? '↑' : '↓'}
+        </div>
+      )}
 
       {/* Symbol + metadata */}
       <div>
@@ -444,7 +464,7 @@ function TradeRow({ trade: t, onClick, isLast }) {
 
 // ── Date Group ────────────────────────────────────────────────────────────────
 
-function DateGroup({ date, trades, onSelect }) {
+function DateGroup({ date, trades, onSelect, selectMode, selectedIds, onToggleSelect }) {
   const dayPnl = trades.reduce((s, t) => s + t.pnl, 0);
   const wins   = trades.filter(t => t.pnl > 0).length;
   const label  = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -471,7 +491,15 @@ function DateGroup({ date, trades, onSelect }) {
       <div style={{ height: 1, background: 'var(--c-border)', marginBottom: 0 }} />
       {/* Trade rows */}
       {trades.map((t, i) => (
-        <TradeRow key={t.id} trade={t} onClick={() => onSelect(t)} isLast={i === trades.length - 1} />
+        <TradeRow
+          key={t.id}
+          trade={t}
+          onClick={() => onSelect(t)}
+          isLast={i === trades.length - 1}
+          selectMode={selectMode}
+          selected={selectMode && selectedIds?.has(t.id)}
+          onToggleSelect={onToggleSelect}
+        />
       ))}
     </div>
   );
@@ -482,6 +510,19 @@ function DateGroup({ date, trades, onSelect }) {
 export default function History({ showToast }) {
   const { trades, deleteTrade } = useApp();
   const [selectedTrade, setSelectedTrade] = useState(null);
+  // Bulk-select state
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const toggleSelect = id => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()); };
   const [editTrade,     setEditTrade]     = useState(null);
   const [confirmDel,    setConfirmDel]    = useState(null);
   const [setupFilter,   setSetupFilter]   = useState('');
@@ -694,17 +735,31 @@ export default function History({ showToast }) {
               </span>
             </>
           )}
-          <button
-            onClick={handleExport}
-            style={{
-              marginLeft: 'auto', background: 'transparent',
-              border: '1px solid var(--c-border)', color: 'var(--c-text-2)',
-              padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600,
-              cursor: 'pointer', fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            Export CSV
-          </button>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+            <button
+              onClick={() => setSelectMode(s => !s)}
+              style={{
+                background: selectMode ? 'rgba(224,122,59,0.1)' : 'transparent',
+                border: `1px solid ${selectMode ? 'rgba(224,122,59,0.3)' : 'var(--c-border)'}`,
+                color: selectMode ? 'var(--c-accent)' : 'var(--c-text-2)',
+                padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600,
+                cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              {selectMode ? 'Done' : 'Select'}
+            </button>
+            <button
+              onClick={handleExport}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--c-border)', color: 'var(--c-text-2)',
+                padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600,
+                cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              Export CSV
+            </button>
+          </div>
         </div>
       )}
 
@@ -721,12 +776,28 @@ export default function History({ showToast }) {
         </div>
       ) : grouped ? (
         grouped.map(([date, dayTrades]) => (
-          <DateGroup key={date} date={date} trades={dayTrades} onSelect={setSelectedTrade} />
+          <DateGroup
+            key={date}
+            date={date}
+            trades={dayTrades}
+            onSelect={setSelectedTrade}
+            selectMode={selectMode}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+          />
         ))
       ) : (
         <div>
           {filtered.map((t, i) => (
-            <TradeRow key={t.id} trade={t} onClick={() => setSelectedTrade(t)} isLast={i === filtered.length - 1} />
+            <TradeRow
+              key={t.id}
+              trade={t}
+              onClick={() => setSelectedTrade(t)}
+              isLast={i === filtered.length - 1}
+              selectMode={selectMode}
+              selected={selectMode && selectedIds.has(t.id)}
+              onToggleSelect={toggleSelect}
+            />
           ))}
         </div>
       )}
@@ -779,6 +850,116 @@ export default function History({ showToast }) {
 
       {editTrade && (
         <EditTradeModal trade={editTrade} onClose={() => setEditTrade(null)} showToast={showToast} />
+      )}
+
+      {/* ── Floating bulk action bar ── */}
+      {selectMode && (
+        <div style={{
+          position: 'fixed',
+          left: '50%', transform: 'translateX(-50%)',
+          bottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
+          background: 'var(--c-surface)',
+          border: '1px solid var(--c-border)',
+          borderRadius: 14,
+          boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
+          padding: '10px 14px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          zIndex: 9000, maxWidth: '92vw',
+        }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text)', whiteSpace: 'nowrap' }}>
+            {selectedIds.size} selected
+          </span>
+          <button
+            onClick={() => {
+              const all = filtered.map(t => t.id);
+              const allSelected = all.every(id => selectedIds.has(id));
+              setSelectedIds(allSelected ? new Set() : new Set(all));
+            }}
+            style={{
+              fontSize: 11, fontWeight: 600, color: 'var(--c-text-2)',
+              background: 'transparent', border: '1px solid var(--c-border)',
+              borderRadius: 8, padding: '6px 10px', cursor: 'pointer', fontFamily: 'inherit',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {filtered.every(t => selectedIds.has(t.id)) ? 'Clear' : 'All in view'}
+          </button>
+          <button
+            onClick={() => selectedIds.size > 0 && setBulkConfirm(true)}
+            disabled={selectedIds.size === 0}
+            style={{
+              fontSize: 11, fontWeight: 600,
+              color: selectedIds.size === 0 ? 'var(--c-text-2)' : '#C65A45',
+              background: selectedIds.size === 0 ? 'transparent' : 'rgba(198,90,69,0.08)',
+              border: `1px solid ${selectedIds.size === 0 ? 'var(--c-border)' : 'rgba(198,90,69,0.3)'}`,
+              borderRadius: 8, padding: '6px 12px',
+              cursor: selectedIds.size === 0 ? 'default' : 'pointer',
+              fontFamily: 'inherit', whiteSpace: 'nowrap',
+              opacity: selectedIds.size === 0 ? 0.5 : 1,
+            }}
+          >
+            Delete {selectedIds.size || ''}
+          </button>
+          <button
+            onClick={exitSelectMode}
+            style={{
+              fontSize: 11, fontWeight: 500, color: 'var(--c-text-2)',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', padding: '6px 6px',
+            }}
+            title="Exit select mode"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* ── Bulk delete confirmation ── */}
+      {bulkConfirm && (
+        <>
+          <div
+            onClick={() => !bulkDeleting && setBulkConfirm(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 9998 }}
+          />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+            background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+            borderRadius: 16, padding: '28px 28px 24px', maxWidth: 380, width: '90%', zIndex: 9999,
+          }}>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 20, color: 'var(--c-text)', marginBottom: 10, letterSpacing: '-0.02em' }}>
+              Delete {selectedIds.size} trade{selectedIds.size === 1 ? '' : 's'}?
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--c-text-2)', margin: '0 0 22px', lineHeight: 1.6 }}>
+              This can't be undone. They'll be removed from your journal and your stats will refresh.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setBulkConfirm(false)}
+                disabled={bulkDeleting}
+                style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid var(--c-border)', background: 'transparent', color: 'var(--c-text-2)', fontSize: 13, fontWeight: 600, cursor: bulkDeleting ? 'default' : 'pointer', fontFamily: 'inherit', opacity: bulkDeleting ? 0.5 : 1 }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setBulkDeleting(true);
+                  const ids = [...selectedIds];
+                  for (const id of ids) {
+                    try { await deleteTrade(id); } catch {}
+                  }
+                  setBulkDeleting(false);
+                  setBulkConfirm(false);
+                  exitSelectMode();
+                  showToast?.(`${ids.length} trade${ids.length === 1 ? '' : 's'} deleted`, 'success', 3000);
+                }}
+                disabled={bulkDeleting}
+                style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid rgba(198,90,69,0.35)', background: 'rgba(198,90,69,0.12)', color: '#C65A45', fontSize: 13, fontWeight: 600, cursor: bulkDeleting ? 'default' : 'pointer', fontFamily: 'inherit', opacity: bulkDeleting ? 0.6 : 1 }}
+              >
+                {bulkDeleting ? 'Deleting…' : `Delete ${selectedIds.size}`}
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
