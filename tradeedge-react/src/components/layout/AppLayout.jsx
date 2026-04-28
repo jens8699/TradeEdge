@@ -22,6 +22,8 @@ const PropFirmTracker = lazy(() => import('../views/PropFirmTracker'));
 const WeeklyDigest   = lazy(() => import('../views/WeeklyDigest'));
 import UpgradeModal from '../modals/UpgradeModal';
 import OnboardingModal, { isOnboardingDone } from '../modals/OnboardingModal';
+import ShortcutsCheatSheet from '../ui/ShortcutsCheatSheet';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import ErrorBoundary from '../ErrorBoundary';
 import { getGreeting } from '../../lib/utils';
 
@@ -70,6 +72,11 @@ export default function AppLayout({ user, profile, showToast }) {
     if (!trades || trades.length > 0) return;
     setShowOnboarding(true);
   }, [loading, trades]);
+
+  // Keyboard shortcuts — vim-style "g <letter>" navigation + ? for help
+  const { showHelp, setShowHelp } = useKeyboardShortcuts({
+    onAction: ({ tab }) => { if (tab) setActiveTab(tab); },
+  });
 
   if (loading) {
     return (
@@ -132,6 +139,7 @@ export default function AppLayout({ user, profile, showToast }) {
           onClose={() => setShowOnboarding(false)}
         />
       )}
+      <ShortcutsCheatSheet open={showHelp} onClose={() => setShowHelp(false)} />
     </div>
   );
 }

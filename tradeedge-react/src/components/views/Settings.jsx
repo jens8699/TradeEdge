@@ -332,6 +332,9 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
       >
         Replay welcome tour →
       </button>
+      <div style={{ fontSize: 13, color: 'var(--c-text-2)', padding: '6px 0' }}>
+        Press <kbd style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 600, background: 'var(--c-overlay-medium)', border: '1px solid var(--c-border)', borderRadius: 4, padding: '1px 6px', color: 'var(--c-text)' }}>?</kbd> anywhere to see keyboard shortcuts
+      </div>
 
       <HR />
 
