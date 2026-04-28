@@ -1080,15 +1080,18 @@ export default function Connections({ user, showToast }) {
   const totalTrades = connectedAccounts.reduce((s, a) => s + (a.trade_count || 0), 0);
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 2px' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 700, color: 'var(--c-text)' }}>
-          Connected Accounts
-        </h2>
-        <p style={{ margin: 0, fontSize: '13px', color: 'var(--c-text-2)' }}>
+    <div style={{ maxWidth: '900px', padding: '36px 44px 64px', boxSizing: 'border-box' }}>
+      {/* Hi-Fi Header */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
+          Integrations
+        </div>
+        <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 34, letterSpacing: '-0.03em', color: 'var(--c-text)', lineHeight: 1.1, marginBottom: 10 }}>
+          Connections<span style={{ color: 'var(--c-accent)' }}>.</span>
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--c-text-2)', lineHeight: 1.6 }}>
           Link your prop firm and brokerage accounts. TradeEdge automatically syncs your trades so you never have to log them manually.
-        </p>
+        </div>
       </div>
 
       {/* Summary bar */}
@@ -1101,12 +1104,9 @@ export default function Connections({ user, showToast }) {
             { label: 'Trades synced', value: totalTrades.toLocaleString() },
             { label: 'Auto-sync', value: 'Active' },
           ].map(s => (
-            <div key={s.label} style={{
-              background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-              borderRadius: '14px', padding: '14px 16px',
-            }}>
-              <p style={{ margin: '0 0 4px', fontSize: '22px', fontWeight: 700, color: 'var(--c-text)' }}>{s.value}</p>
-              <p style={{ margin: 0, fontSize: '11px', color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</p>
+            <div key={s.label} style={{ border: '1px solid var(--c-border)', borderRadius: 14, padding: '14px 16px' }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--c-text)', fontFamily: "'Inter', sans-serif", marginBottom: 4 }}>{s.value}</div>
+              <div style={{ fontSize: 10, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{s.label}</div>
             </div>
           ))}
         </div>

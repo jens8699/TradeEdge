@@ -3,10 +3,10 @@ import { useApp } from '../../context/AppContext';
 import { computeStats } from '../../lib/utils';
 
 const SESSIONS = [
-  { id: 'sydney',   label: 'Sydney',   open: 21, close: 6  },
-  { id: 'tokyo',    label: 'Tokyo',    open: 0,  close: 9  },
-  { id: 'london',   label: 'London',   open: 7,  close: 16 },
-  { id: 'newyork',  label: 'New York', open: 13, close: 21 },
+  { id: 'sydney',  label: 'Sydney',   open: 21, close: 6  },
+  { id: 'tokyo',   label: 'Tokyo',    open: 0,  close: 9  },
+  { id: 'london',  label: 'London',   open: 7,  close: 16 },
+  { id: 'newyork', label: 'New York', open: 13, close: 21 },
 ];
 
 function isActive(s) {
@@ -15,31 +15,50 @@ function isActive(s) {
 }
 
 function getClaudeKey() { return localStorage.getItem('jens_claude_key') || ''; }
-function getElKey()     { return localStorage.getItem('jens_el_key') || ''; }
+function getElKey()     { return localStorage.getItem('jens_el_key')     || ''; }
+
+// ── Layout helpers ────────────────────────────────────────────────────────────
+
+function HR() {
+  return <div style={{ height: 1, background: 'var(--c-border)', margin: '24px 0' }} />;
+}
+
+function SectionLabel({ children, action }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+      <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+        {children}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function MarketBrief({ showToast }) {
   const { trades } = useApp();
-  const [clock, setClock] = useState('');
-  const [sessions, setSessions] = useState(SESSIONS.map(s => ({ ...s, active: isActive(s) })));
-  const [pasted, setPasted] = useState('');
-  const [briefHtml, setBriefHtml] = useState('');
+  const [clock, setClock]           = useState('');
+  const [sessions, setSessions]     = useState(SESSIONS.map(s => ({ ...s, active: isActive(s) })));
+  const [pasted, setPasted]         = useState('');
+  const [briefHtml, setBriefHtml]   = useState('');
   const [generating, setGenerating] = useState(false);
-  const [topics, setTopics] = useState([]);
+  const [topics, setTopics]         = useState([]);
   const [topicLoading, setTopicLoading] = useState(false);
   const [customQuestion, setCustomQuestion] = useState('');
-  const [ttsMode, setTtsMode] = useState('el');
+  const [ttsMode, setTtsMode]       = useState('el');
   const [ttsPlaying, setTtsPlaying] = useState(false);
-  const [elVoices, setElVoices] = useState([]);
+  const [elVoices, setElVoices]     = useState([]);
   const [selectedVoice, setSelectedVoice] = useState(localStorage.getItem('jens_el_voice') || '');
   const [elKeyStatus, setElKeyStatus] = useState('');
   const rawBriefText = useRef('');
-  const audioObj = useRef(null);
+  const audioObj     = useRef(null);
 
   // Clock
   useEffect(() => {
     const tick = () => {
       const now = new Date();
-      const pad = n => String(n).padStart(2,'0');
+      const pad = n => String(n).padStart(2, '0');
       setClock(pad(now.getUTCHours()) + ':' + pad(now.getUTCMinutes()) + ':' + pad(now.getUTCSeconds()));
       setSessions(SESSIONS.map(s => ({ ...s, active: isActive(s) })));
     };
@@ -73,8 +92,8 @@ export default function MarketBrief({ showToast }) {
     const key = getClaudeKey();
     if (!key) return;
     setTopicLoading(true);
-    const today = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
-    const prompt = `Today is ${today}. You are a financial markets assistant for a day trader. Generate 4 brief, current market topics that a day trader might want to know about today. Cover: macro/Fed, one equity sector, one technical pattern or market structure observation, and one volatility/risk factor. For each topic return JSON with: "category" (10 chars max), "title" (6-10 words), "teaser" (20-30 words), "color" (one of: #E07A3B, #E07A3B, #A89687, #EFC97A). Return only a JSON array, no markdown.`;
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    const prompt = `Today is ${today}. You are a financial markets assistant for a day trader. Generate 4 brief, current market topics that a day trader might want to know about today. Cover: macro/Fed, one equity sector, one technical pattern or market structure observation, and one volatility/risk factor. For each topic return JSON with: "category" (10 chars max), "title" (6-10 words), "teaser" (20-30 words), "color" (one of: #E07A3B, #A89687, #EFC97A). Return only a JSON array, no markdown.`;
     try {
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -95,14 +114,16 @@ export default function MarketBrief({ showToast }) {
   const generateBrief = async (contextText) => {
     const key = getClaudeKey();
     if (!key) {
-      setBriefHtml('<p style="color:#8B8882;font-size:13px;">Go to <strong>Settings</strong> to add your Claude API key.</p>');
+      setBriefHtml('<p style="color:var(--c-text-2);font-size:13px;">Go to <strong>Settings</strong> to add your Claude API key.</p>');
       return;
     }
     setGenerating(true);
     const recentTrades = trades.slice(0, 10);
     const stats = computeStats(recentTrades);
-    const tradeSummary = recentTrades.length ? `Recent trades: ${recentTrades.map(t => `${t.symbol} ${t.direction} (${t.outcome}, ${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)})`).join(', ')}. Win rate: ${stats.winRate.toFixed(0)}%, R:R: ${stats.rr.toFixed(2)}.` : 'No recent trades.';
-    const today = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+    const tradeSummary = recentTrades.length
+      ? `Recent trades: ${recentTrades.map(t => `${t.symbol} ${t.direction} (${t.outcome}, ${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)})`).join(', ')}. Win rate: ${stats.winRate.toFixed(0)}%, R:R: ${stats.rr.toFixed(2)}.`
+      : 'No recent trades.';
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
     const prompt = `You are an expert trading coach and market analyst. Today is ${today}.
 
 Market context provided by trader:
@@ -136,12 +157,16 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
       const riskLevel = riskMatch ? riskMatch[1].toLowerCase() : null;
       let html = text;
       if (riskLevel) {
-        const badge = `<div class="jm-risk-badge jm-risk-${riskLevel}"><span>${riskLevel === 'low' ? '🟢' : riskLevel === 'medium' ? '🟡' : '🔴'}</span> Risk: ${riskLevel.charAt(0).toUpperCase()+riskLevel.slice(1)}</div>`;
+        const riskColor = riskLevel === 'low' ? '#4ade80' : riskLevel === 'medium' ? '#EFC97A' : '#C65A45';
+        const badge = `<div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid ${riskColor}44;background:${riskColor}12;margin-bottom:14px;">
+          <span>${riskLevel === 'low' ? '🟢' : riskLevel === 'medium' ? '🟡' : '🔴'}</span>
+          <span style="font-size:11px;font-weight:700;color:${riskColor};letter-spacing:0.08em;text-transform:uppercase;">Risk: ${riskLevel}</span>
+        </div>`;
         html = badge + html;
       }
       setBriefHtml(html);
     } catch(e) {
-      setBriefHtml(`<p style="color:#F09595;">Error: ${e.message}</p>`);
+      setBriefHtml(`<p style="color:#C65A45;">Error: ${e.message}</p>`);
     }
     setGenerating(false);
   };
@@ -160,8 +185,8 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
       });
       const data = await resp.json();
       const text = data.content?.[0]?.text || '';
-      rawBriefText.current = text.replace(/<[^>]+>/g,'');
-      setBriefHtml(prev => prev + `<div class="jm-brief-section" style="margin-top:10px;"><h3 style="color:#A89687;">❓ ${customQuestion}</h3>${text}</div>`);
+      rawBriefText.current = text.replace(/<[^>]+>/g, '');
+      setBriefHtml(prev => prev + `<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--c-border)"><h3 style="font-size:13px;color:var(--c-text-2);margin:0 0 8px;">❓ ${customQuestion}</h3>${text}</div>`);
       setCustomQuestion('');
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
     setGenerating(false);
@@ -182,7 +207,6 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
       window.speechSynthesis.speak(utt);
       setTtsPlaying(true); return;
     }
-    // ElevenLabs
     const key = getElKey();
     if (!key) { showToast('Add ElevenLabs key in Settings', 'warn'); return; }
     const voiceId = selectedVoice || (elVoices[0]?.id);
@@ -195,8 +219,8 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
         body: JSON.stringify({ text: text.slice(0, 2500), model_id: 'eleven_multilingual_v2', voice_settings: { stability: 0.5, similarity_boost: 0.75 } })
       });
       if (!resp.ok) throw new Error('ElevenLabs ' + resp.status);
-      const blob = await resp.blob();
-      const url  = URL.createObjectURL(blob);
+      const blob  = await resp.blob();
+      const url   = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audioObj.current = audio;
       audio.onended = () => { setTtsPlaying(false); URL.revokeObjectURL(url); };
@@ -205,144 +229,287 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
   };
 
   const hasKey = !!getClaudeKey();
+  const todayTrades = trades.filter(t => t.date === new Date().toISOString().slice(0, 10));
+  const todayStats  = computeStats(todayTrades);
+  const localTime   = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-  // Today's quick stats
-  const todayTrades = trades.filter(t => t.date === new Date().toISOString().slice(0,10));
-  const todayStats = computeStats(todayTrades);
-  const localTime = new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+  const inputStyle = {
+    width: '100%', boxSizing: 'border-box',
+    background: 'transparent', border: '1px solid var(--c-border)', borderRadius: 8,
+    padding: '9px 12px', fontSize: 13, color: 'var(--c-text)',
+    fontFamily: "'Inter', sans-serif", outline: 'none',
+  };
 
   return (
-    <div className="jm-view">
-      <div className="jm-greeting">
-        <p className="jm-hello">Before you trade</p>
-        <h1 className="jm-page-title">Market <span>Brief</span></h1>
+    <div style={{ padding: '36px 44px', maxWidth: 760, paddingBottom: 64 }}>
+
+      {/* Header */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
+          Before you trade
+        </div>
+        <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 34, letterSpacing: '-0.03em', color: 'var(--c-text)', lineHeight: 1.1 }}>
+          Market <em style={{ color: 'var(--c-accent)', fontStyle: 'italic' }}>Brief</em>
+        </div>
       </div>
 
       {/* Clock + sessions */}
-      <div className="jm-clock-row">
-        <span className="jm-clock">{clock}</span>
-        <span className="jm-clock-tz">UTC</span>
-        <span style={{ fontSize:'12px', color:'#6B6862', marginLeft:'8px' }}>({localTime} local)</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 28, fontWeight: 700, color: 'var(--c-text)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+          {clock}
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.1em', fontFamily: "'JetBrains Mono', monospace" }}>UTC</div>
+        <div style={{ fontSize: 11, color: 'var(--c-text-2)', opacity: 0.6 }}>({localTime} local)</div>
       </div>
-      <div className="jm-session-bar">
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
         {sessions.map(s => (
-          <div key={s.id} className={`jm-session-pill ${s.active ? 'active' : 'inactive'}`}>
-            <div className="jm-session-dot" />
-            {s.label}
+          <div
+            key={s.id}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '5px 12px', borderRadius: 20,
+              border: `1px solid ${s.active ? 'rgba(224,122,59,0.4)' : 'var(--c-border)'}`,
+              background: s.active ? 'rgba(224,122,59,0.08)' : 'transparent',
+            }}
+          >
+            <div style={{
+              width: 5, height: 5, borderRadius: '50%',
+              background: s.active ? 'var(--c-accent)' : 'var(--c-text-2)',
+              boxShadow: s.active ? '0 0 5px var(--c-accent)' : 'none',
+            }} />
+            <span style={{ fontSize: 12, fontWeight: s.active ? 600 : 400, color: s.active ? 'var(--c-accent)' : 'var(--c-text-2)' }}>
+              {s.label}
+            </span>
           </div>
         ))}
       </div>
 
-      {/* Today's trading snapshot */}
+      {/* Today's snapshot */}
       {todayTrades.length > 0 && (
-        <div style={{
-          display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'8px', marginBottom:'16px',
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 24 }}>
           {[
-            { label: 'Trades', val: todayStats.count, color:'var(--c-text)' },
-            { label: 'P&L', val: `${todayStats.totalPnl >= 0 ? '+' : ''}$${todayStats.totalPnl.toFixed(0)}`, color: todayStats.totalPnl >= 0 ? '#E07A3B' : '#F09595' },
-            { label: 'Win Rate', val: `${todayStats.winRate.toFixed(0)}%`, color:'var(--c-text)' },
-            { label: 'W/L', val: `${todayStats.wins}/${todayStats.losses}`, color:'var(--c-text)' },
+            { label: 'Trades',   val: todayStats.count,                                                                                  color: 'var(--c-text)' },
+            { label: 'P&L',      val: `${todayStats.totalPnl >= 0 ? '+' : ''}$${todayStats.totalPnl.toFixed(0)}`,                       color: todayStats.totalPnl >= 0 ? 'var(--c-accent)' : '#C65A45' },
+            { label: 'Win Rate', val: `${todayStats.winRate.toFixed(0)}%`,                                                              color: 'var(--c-text)' },
+            { label: 'W / L',    val: `${todayStats.wins} / ${todayStats.losses}`,                                                      color: 'var(--c-text)' },
           ].map(s => (
-            <div key={s.label} style={{ background:'var(--c-surface)', border:'1px solid var(--c-border)', borderRadius:'10px', padding:'8px 10px', textAlign:'center' }}>
-              <p style={{ fontSize:'9px', color:'#6B6862', textTransform:'uppercase', letterSpacing:'0.5px', margin:'0 0 3px', fontWeight:600 }}>{s.label}</p>
-              <p style={{ fontSize:'14px', fontWeight:800, color:s.color, margin:0, fontVariantNumeric:'tabular-nums' }}>{s.val}</p>
+            <div key={s.label} style={{ border: '1px solid var(--c-border)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+              <div style={{ fontSize: 10, color: 'var(--c-text-2)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>{s.label}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: s.color, fontFamily: "'Inter', sans-serif" }}>{s.val}</div>
             </div>
           ))}
         </div>
       )}
 
+      <HR />
+
       {/* Today's topics */}
-      <div style={{ marginBottom:'20px' }}>
-        <div className="jm-brief-block-header">
-          <span>Today's topics</span>
-          <button className="jm-brief-refresh-btn" onClick={loadTopics}>↻ Refresh</button>
-        </div>
-        <div className="jm-topic-grid">
-          {topicLoading && <p style={{ color:'#5F5C56', fontSize:'13px', gridColumn:'1/-1', display:'flex', alignItems:'center', gap:'10px' }}><span className="jm-spinner" />Loading topics…</p>}
-          {!topicLoading && !hasKey && <p style={{ color:'#5F5C56', fontSize:'13px', gridColumn:'1/-1' }}>Go to Settings to add your Claude API key.</p>}
-          {!topicLoading && hasKey && topics.length === 0 && <p style={{ color:'#5F5C56', fontSize:'13px', gridColumn:'1/-1' }}>No topics loaded yet. Click Refresh.</p>}
-          {topics.map((t, i) => (
-            <div key={i} className="jm-topic-card" onClick={() => generateBrief(t.title + ': ' + t.teaser)}>
-              <div className="jm-topic-cat" style={{ color: t.color }}>{t.category}</div>
-              <div className="jm-topic-title">{t.title}</div>
-              <div className="jm-topic-teaser">{t.teaser}</div>
-            </div>
-          ))}
-        </div>
+      <SectionLabel
+        action={
+          <button
+            onClick={loadTopics}
+            style={{ fontSize: 11, color: 'var(--c-text-2)', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: "'Inter', sans-serif", letterSpacing: '0.04em' }}
+          >
+            ↻ Refresh
+          </button>
+        }
+      >
+        Today's topics
+      </SectionLabel>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10, marginBottom: 24 }}>
+        {topicLoading && (
+          <div style={{ gridColumn: '1/-1', fontSize: 13, color: 'var(--c-text-2)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid var(--c-accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            Loading topics…
+          </div>
+        )}
+        {!topicLoading && !hasKey && (
+          <div style={{ gridColumn: '1/-1', fontSize: 13, color: 'var(--c-text-2)' }}>Go to Settings to add your Claude API key.</div>
+        )}
+        {!topicLoading && hasKey && topics.length === 0 && (
+          <div style={{ gridColumn: '1/-1', fontSize: 13, color: 'var(--c-text-2)' }}>No topics loaded. Click Refresh.</div>
+        )}
+        {topics.map((t, i) => (
+          <button
+            key={i}
+            onClick={() => generateBrief(t.title + ': ' + t.teaser)}
+            style={{
+              textAlign: 'left', padding: '14px 16px', borderRadius: 12,
+              border: '1px solid var(--c-border)', background: 'transparent',
+              cursor: 'pointer', transition: 'border-color 0.15s', fontFamily: "'Inter', sans-serif",
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(224,122,59,0.4)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--c-border)'}
+          >
+            <div style={{ fontSize: 10, color: t.color || 'var(--c-accent)', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 5 }}>{t.category}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text)', marginBottom: 5, lineHeight: 1.3 }}>{t.title}</div>
+            <div style={{ fontSize: 12, color: 'var(--c-text-2)', lineHeight: 1.5 }}>{t.teaser}</div>
+          </button>
+        ))}
       </div>
+
+      <HR />
 
       {/* Paste context */}
-      <div className="jm-brief-paste">
-        <span className="jm-brief-paste-label">Paste market context (optional)</span>
-        <textarea className="jm-in" rows={4} placeholder="Paste in a headline, economic calendar, or market notes…" value={pasted} onChange={e => setPasted(e.target.value)} />
-        <p className="jm-brief-paste-hint">Paste anything: pre-market movers, economic data, news headlines, price levels…</p>
+      <SectionLabel>Paste market context</SectionLabel>
+      <textarea
+        style={{ ...inputStyle, resize: 'vertical', minHeight: 90, marginBottom: 6, lineHeight: 1.6 }}
+        rows={4}
+        placeholder="Paste in a headline, economic calendar, or market notes…"
+        value={pasted}
+        onChange={e => setPasted(e.target.value)}
+      />
+      <div style={{ fontSize: 12, color: 'var(--c-text-2)', marginBottom: 16, opacity: 0.7 }}>
+        Paste anything: pre-market movers, economic data, news headlines, price levels…
       </div>
 
-      {/* Generate button */}
-      <div style={{ display:'flex', gap:'10px', marginBottom:'14px', flexWrap:'wrap' }}>
-        <button className="jm-btn" disabled={generating} onClick={() => generateBrief(pasted)}>
-          {generating ? <><span className="jm-spinner" style={{ marginRight:'6px' }} />Generating…</> : '✦ Generate Brief'}
+      {/* Generate + Listen */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+        <button
+          disabled={generating}
+          onClick={() => generateBrief(pasted)}
+          style={{
+            padding: '10px 22px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+            background: 'rgba(224,122,59,0.1)', border: '1px solid rgba(224,122,59,0.35)',
+            color: 'var(--c-accent)', cursor: generating ? 'default' : 'pointer',
+            opacity: generating ? 0.6 : 1, fontFamily: "'Inter', sans-serif",
+            display: 'flex', alignItems: 'center', gap: 7,
+          }}
+        >
+          {generating
+            ? <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid var(--c-accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Generating…</>
+            : '✦ Generate Brief'
+          }
         </button>
         {briefHtml && (
-          <button onClick={speakBrief}
-            style={{ background:'transparent', border:'0.5px solid #2A2720', color: ttsPlaying ? '#E07A3B' : '#8B8882', padding:'11px 18px', borderRadius:'16px', fontSize:'13px', fontWeight:500, cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s' }}>
+          <button
+            onClick={speakBrief}
+            style={{
+              padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+              background: 'transparent', border: '1px solid var(--c-border)',
+              color: ttsPlaying ? 'var(--c-accent)' : 'var(--c-text-2)',
+              cursor: 'pointer', fontFamily: "'Inter', sans-serif", transition: 'all 0.15s',
+            }}
+          >
             {ttsPlaying ? '⏸ Stop' : '▶ Listen'}
           </button>
         )}
       </div>
 
       {/* TTS settings */}
-      <div className="jm-tts-panel">
-        <div className="jm-tts-modes">
-          <button className={`jm-tts-mode-btn${ttsMode === 'el' ? ' on' : ''}`} onClick={() => setTtsMode('el')}>🎙 ElevenLabs</button>
-          <button className={`jm-tts-mode-btn${ttsMode === 'browser' ? ' on' : ''}`} onClick={() => setTtsMode('browser')}>🔊 Browser</button>
+      <div style={{ marginBottom: 20, padding: '14px 16px', border: '1px solid var(--c-border)', borderRadius: 12 }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+          {[['el', '🎙 ElevenLabs'], ['browser', '🔊 Browser']].map(([mode, label]) => (
+            <button
+              key={mode}
+              onClick={() => setTtsMode(mode)}
+              style={{
+                padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+                background: ttsMode === mode ? 'var(--c-accent)' : 'transparent',
+                border: ttsMode === mode ? '1px solid var(--c-accent)' : '1px solid var(--c-border)',
+                color: ttsMode === mode ? '#17150F' : 'var(--c-text-2)',
+                cursor: 'pointer', fontFamily: "'Inter', sans-serif", transition: 'all 0.15s',
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
         {ttsMode === 'el' && (
-          <div style={{ display:'flex', gap:'10px', alignItems:'center', flexWrap:'wrap' }}>
-            <select className="jm-in" style={{ flex:1, minWidth:'160px' }}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+            <select
               value={selectedVoice}
-              onChange={e => { setSelectedVoice(e.target.value); localStorage.setItem('jens_el_voice', e.target.value); }}>
+              onChange={e => { setSelectedVoice(e.target.value); localStorage.setItem('jens_el_voice', e.target.value); }}
+              style={{
+                flex: 1, minWidth: 160, background: 'transparent', border: '1px solid var(--c-border)',
+                borderRadius: 8, padding: '7px 10px', fontSize: 12, color: 'var(--c-text)',
+                fontFamily: "'Inter', sans-serif", outline: 'none',
+              }}
+            >
               {elVoices.length === 0 && <option>— Add key in Settings first —</option>}
               {elVoices.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
             </select>
-            {elKeyStatus && <span style={{ fontSize:'11px', color:'#6B6862' }}>{elKeyStatus}</span>}
+            {elKeyStatus && <span style={{ fontSize: 11, color: 'var(--c-text-2)' }}>{elKeyStatus}</span>}
           </div>
         )}
-        <p className="jm-tts-note">
+        <div style={{ fontSize: 11, color: 'var(--c-text-2)', opacity: 0.7 }}>
           {ttsMode === 'el' ? 'Uses your ElevenLabs API key from Settings.' : 'Uses your browser\'s built-in text-to-speech engine (free, no key needed).'}
-        </p>
+        </div>
       </div>
 
       {/* Custom question */}
-      <div className="jm-brief-ask-row">
-        <input type="text" className="jm-in" placeholder="Ask anything: 'What's the ATR on NQ today?'…"
-          value={customQuestion} onChange={e => setCustomQuestion(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && askQuestion()} />
-        <button className="jm-btn" disabled={generating || !customQuestion.trim()} onClick={askQuestion}>Ask</button>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+        <input
+          type="text"
+          style={{ ...inputStyle, flex: 1 }}
+          placeholder="Ask anything: 'What's the ATR on NQ today?'…"
+          value={customQuestion}
+          onChange={e => setCustomQuestion(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && askQuestion()}
+        />
+        <button
+          disabled={generating || !customQuestion.trim()}
+          onClick={askQuestion}
+          style={{
+            padding: '9px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+            background: 'rgba(224,122,59,0.1)', border: '1px solid rgba(224,122,59,0.35)',
+            color: 'var(--c-accent)', cursor: (generating || !customQuestion.trim()) ? 'default' : 'pointer',
+            opacity: (generating || !customQuestion.trim()) ? 0.5 : 1,
+            fontFamily: "'Inter', sans-serif", flexShrink: 0, transition: 'opacity 0.15s',
+          }}
+        >
+          Ask
+        </button>
       </div>
 
       {/* Brief result */}
       {briefHtml && (
-        <div className="jm-brief-result" dangerouslySetInnerHTML={{ __html: briefHtml }} />
+        <>
+          <div
+            style={{
+              fontSize: 13, color: 'var(--c-text)', lineHeight: 1.7,
+              border: '1px solid var(--c-border)', borderRadius: 14, padding: '20px 22px',
+              marginBottom: 12,
+            }}
+            dangerouslySetInnerHTML={{ __html: briefHtml }}
+          />
+          <div style={{ fontSize: 11, color: 'var(--c-text-2)', opacity: 0.6, marginBottom: 28, lineHeight: 1.5 }}>
+            AI-generated for informational purposes only. Not financial advice. Always do your own analysis before trading.
+          </div>
+        </>
       )}
 
-      {briefHtml && (
-        <p className="jm-brief-disclaimer">
-          AI-generated for informational purposes only. Not financial advice. Always do your own analysis before trading.
-        </p>
-      )}
+      <HR />
 
       {/* News sources */}
-      <div style={{ marginTop:'20px' }}>
-        <div className="jm-brief-block-header">
-          <span>News sources</span>
-        </div>
-        <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
-          {[['Reuters', 'https://reuters.com/finance'], ['Bloomberg', 'https://bloomberg.com/markets'], ['CNBC', 'https://cnbc.com/markets'], ['MarketWatch', 'https://marketwatch.com'], ['Benzinga', 'https://benzinga.com'], ['Investing.com', 'https://investing.com']].map(([label, url]) => (
-            <a key={label} href={url} target="_blank" rel="noreferrer" className="jm-news-src-btn">{label}</a>
-          ))}
-        </div>
+      <SectionLabel>News sources</SectionLabel>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {[
+          ['Reuters',      'https://reuters.com/finance'],
+          ['Bloomberg',    'https://bloomberg.com/markets'],
+          ['CNBC',         'https://cnbc.com/markets'],
+          ['MarketWatch',  'https://marketwatch.com'],
+          ['Benzinga',     'https://benzinga.com'],
+          ['Investing.com','https://investing.com'],
+        ].map(([label, url]) => (
+          <a
+            key={label}
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+              border: '1px solid var(--c-border)', color: 'var(--c-text-2)',
+              textDecoration: 'none', transition: 'border-color 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(224,122,59,0.4)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--c-border)'}
+          >
+            {label}
+          </a>
+        ))}
       </div>
     </div>
   );
