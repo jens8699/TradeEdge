@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { fmt, fmtR } from '../../lib/utils';
 import EditTradeModal from '../modals/EditTradeModal';
+import { setCritique as persistCritique } from '../../lib/tradeCritiques';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -12,11 +13,24 @@ const SESSION_COLORS = {
 const RATING_COLORS = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#C65A45' };
 const RATING_LABELS = { A: 'Perfect', B: 'Good', C: 'Average', D: 'Poor' };
 
+// Simple relative-time formatter
+function relativeTime(iso) {
+  if (!iso) return '';
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60)     return 'just now';
+  if (diff < 3600)   return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400)  return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 // ── Trade Detail Modal ────────────────────────────────────────────────────────
 
 function TradeDetailModal({ trade: t, onClose, onEdit, onDelete }) {
   const [imgOpen, setImgOpen] = useState(false);
-  const [critique, setCritique] = useState(null);     // string | null
+  // Hydrate from any persisted critique merged onto the trade by AppContext
+  const [critique, setCritique] = useState(t?.aiCritique || null);
+  const [critiqueAt, setCritiqueAt] = useState(t?.aiCritiqueAt || null);
   const [critiqueLoading, setCritiqueLoading] = useState(false);
   const [critiqueError, setCritiqueError] = useState('');
   if (!t) return null;
@@ -77,7 +91,10 @@ Keep it brutally honest but constructive. No fluff, no generic platitudes.`;
         throw new Error(errMsg);
       }
       const data = await resp.json();
-      setCritique(data.content?.[0]?.text || '(no response)');
+      const text = data.content?.[0]?.text || '(no response)';
+      setCritique(text);
+      setCritiqueAt(new Date().toISOString());
+      persistCritique(t.id, text);
     } catch (e) {
       setCritiqueError(e.message || 'Critique failed');
     }
@@ -263,20 +280,35 @@ Keep it brutally honest but constructive. No fluff, no generic platitudes.`;
               border: '1px solid rgba(224,122,59,0.25)',
               background: 'rgba(224,122,59,0.04)',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 10 }}>
-                <span style={{
-                  fontSize: 10, fontWeight: 700, letterSpacing: '0.16em',
-                  color: 'var(--c-accent)', textTransform: 'uppercase',
-                  fontFamily: "'JetBrains Mono', monospace",
-                }}>
-                  AI critique
-                </span>
-                <button
-                  onClick={runCritique}
-                  style={{ fontSize: 10.5, color: 'var(--c-text-2)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontFamily: 'inherit' }}
-                >
-                  Regenerate
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, letterSpacing: '0.16em',
+                    color: 'var(--c-accent)', textTransform: 'uppercase',
+                    fontFamily: "'JetBrains Mono', monospace",
+                  }}>
+                    AI critique
+                  </span>
+                  {critiqueAt && (
+                    <span style={{ fontSize: 10, color: 'var(--c-text-2)', opacity: 0.7 }}>
+                      Generated {relativeTime(critiqueAt)}
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button
+                    onClick={runCritique}
+                    style={{ fontSize: 10.5, color: 'var(--c-text-2)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontFamily: 'inherit' }}
+                  >
+                    Regenerate
+                  </button>
+                  <button
+                    onClick={() => { persistCritique(t.id, null); setCritique(null); setCritiqueAt(null); }}
+                    style={{ fontSize: 10.5, color: 'var(--c-text-2)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontFamily: 'inherit' }}
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
               <div style={{
                 fontSize: 13, color: 'var(--c-text)', lineHeight: 1.65,
