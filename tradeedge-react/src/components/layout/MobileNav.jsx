@@ -58,9 +58,10 @@ export default function MobileNav() {
     { id: 'payouts',      icon: '$', label: 'Payouts' },
     { id: 'brief',        icon: '◎', label: 'Market Brief' },
     { id: 'insights',     icon: '◇', label: 'AI Insights' },
+    { id: 'digest',       icon: '⤓', label: 'Weekly Digest' },
     { id: 'settings',     icon: '⚙', label: 'Settings' },
   ];
-  const moreActive = ['tracker','brief','insights','settings','history','payouts','calendar','social','connections'].includes(activeTab);
+  const moreActive = ['tracker','brief','insights','digest','settings','history','payouts','calendar','social','connections'].includes(activeTab);
 
   const go = (tab) => { setActiveTab(tab); setMoreOpen(false); };
 

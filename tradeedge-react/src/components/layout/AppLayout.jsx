@@ -17,6 +17,7 @@ import PreTradeChecklist from '../views/PreTradeChecklist';
 import PrivacyPolicy from '../views/PrivacyPolicy';
 import TermsOfService from '../views/TermsOfService';
 import PropFirmTracker from '../views/PropFirmTracker';
+import WeeklyDigest from '../views/WeeklyDigest';
 import UpgradeModal from '../modals/UpgradeModal';
 import OnboardingModal, { isOnboardingDone } from '../modals/OnboardingModal';
 import ErrorBoundary from '../ErrorBoundary';
@@ -81,6 +82,7 @@ export default function AppLayout({ user, profile, showToast }) {
             {activeTab === 'payouts'  && <Payouts showToast={showToast} />}
             {activeTab === 'brief'    && <MarketBrief showToast={showToast} />}
             {activeTab === 'insights' && <Insights showToast={showToast} />}
+            {activeTab === 'digest'   && <WeeklyDigest />}
             {activeTab === 'calendar'  && <Calendar />}
             {activeTab === 'social'       && <Social user={user} profile={profile} showToast={showToast} />}
             {activeTab === 'connections'  && <Connections user={user} showToast={showToast} />}

@@ -292,6 +292,31 @@ html[data-theme="light"] body { background:#E8E2D6; color:#0D0C09; }
   .tp-auth-card { padding:18px; }
 }
 
+/* ── PRINT (Weekly digest → Save as PDF) ──
+   Hide app chrome (sidebar, nav, bell, toolbar) and switch to a clean
+   print-friendly look. Triggered by window.print() in WeeklyDigest. */
+@media print {
+  body { background: #fff !important; padding: 0 !important; }
+  .jm, .jm-app, .jm-main { background: #fff !important; overflow: visible !important; }
+  .jm-side, .mobile-nav, .digest-toolbar { display: none !important; }
+  /* Force light text colors on a white page */
+  .digest-root,
+  .digest-root * {
+    color: #1A1614 !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+  /* Re-style accent / warn pieces so they survive the print color force */
+  .digest-root .digest-pos { color: #C2521C !important; }
+  .digest-root .digest-neg { color: #A33A28 !important; }
+  /* Don't break sections across pages where avoidable */
+  .digest-root .digest-section { break-inside: avoid; page-break-inside: avoid; }
+  /* Tighten the page */
+  .digest-root { padding: 24px !important; max-width: 100% !important; }
+  /* Allow border colors to print as grey */
+  .digest-root [style*="border"] { border-color: #D6CDB8 !important; }
+}
+
 /* ── DASHBOARD TRADE ROW ── */
 .dash-trade-row {
   display:flex; align-items:center; gap:10px;

@@ -21,6 +21,7 @@ const NAV_MAIN = [
 const NAV_INTEL = [
   { id: 'insights', label: 'AI Insights'  },
   { id: 'brief',    label: 'Market Brief' },
+  { id: 'digest',   label: 'Weekly Digest' },
 ];
 
 const NAV_SOCIAL = [
