@@ -159,6 +159,102 @@ function DisciplineSection({ list }) {
   );
 }
 
+// ── Rule adherence section ─────────────────────────────────────────────────
+// Reads `t.ruleViolations` (merged onto trades by AppContext from the
+// ruleViolations side-table) and shows how often rules were broken across
+// the period, plus the cost.
+function RuleAdherenceSection({ list }) {
+  const flagged = list.filter(t => Array.isArray(t.ruleViolations) && t.ruleViolations.length > 0);
+  if (flagged.length === 0) return null; // nothing to say if no violations recorded
+
+  const clean = list.filter(t => !t.ruleViolations || t.ruleViolations.length === 0);
+  const sum = arr => arr.reduce((s, t) => s + (t.pnl || 0), 0);
+
+  // Per-rule breakdown
+  const byRule = {};
+  for (const t of flagged) {
+    for (const v of t.ruleViolations) {
+      const key = v.type || v.ruleId || 'unknown';
+      if (!byRule[key]) {
+        byRule[key] = { type: v.type, count: 0, label: ruleTypeLabel(v.type), netPnl: 0, sampleMessage: v.message };
+      }
+      byRule[key].count++;
+      byRule[key].netPnl += t.pnl || 0;
+    }
+  }
+  const ruleRows = Object.values(byRule).sort((a, b) => b.count - a.count);
+
+  return (
+    <>
+      <HR />
+      <Eyebrow>Rule adherence</Eyebrow>
+
+      {/* Headline */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, marginBottom: 18, flexWrap: 'wrap' }}>
+        <span style={{
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 38, fontWeight: 600, color: '#C65A45',
+          letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', lineHeight: 1,
+        }}>
+          {flagged.length}
+        </span>
+        <span style={{ fontSize: 12, color: 'var(--c-text-2)', lineHeight: 1.6 }}>
+          trade{flagged.length === 1 ? '' : 's'} broke at least one of your rules.<br />
+          <span style={{ opacity: 0.7 }}>
+            Net P&L on those trades: <strong style={{ color: sum(flagged) >= 0 ? 'var(--c-accent)' : '#C65A45' }}>
+              {sum(flagged) >= 0 ? '+' : ''}{fmt(sum(flagged))}
+            </strong>
+            {' · '}
+            Clean trades: <strong style={{ color: sum(clean) >= 0 ? 'var(--c-accent)' : '#C65A45' }}>
+              {sum(clean) >= 0 ? '+' : ''}{fmt(sum(clean))}
+            </strong>
+          </span>
+        </span>
+      </div>
+
+      {/* Per-rule rows */}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {ruleRows.map((r, i) => (
+          <div key={r.type || i} style={{
+            display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 16,
+            padding: '12px 0', alignItems: 'center',
+            borderBottom: i < ruleRows.length - 1 ? '1px solid var(--c-border)' : 'none',
+          }}>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-text)', marginBottom: 3 }}>
+                {r.label}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--c-text-2)', lineHeight: 1.5 }}>
+                {r.sampleMessage || 'Broken on this trade.'}
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--c-text-2)', whiteSpace: 'nowrap', textAlign: 'right' }}>
+              {r.count}× broken
+            </div>
+            <div style={{
+              fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+              minWidth: 80, textAlign: 'right',
+              color: r.netPnl >= 0 ? 'var(--c-accent)' : '#C65A45',
+            }}>
+              {r.netPnl >= 0 ? '+' : ''}{fmt(r.netPnl)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function ruleTypeLabel(type) {
+  switch (type) {
+    case 'daily_loss': return 'Daily loss stop';
+    case 'daily_cap':  return 'Daily trade cap';
+    case 'max_risk':   return 'Max risk per trade';
+    case 'min_rr':     return 'Minimum R:R';
+    default:           return 'Rule';
+  }
+}
+
 function DisciplineCard({ label, sub, netPnl, avgPnl, winRate, accent }) {
   return (
     <div style={{
@@ -404,6 +500,9 @@ export default function Stats() {
 
           {/* ── Discipline (checklist pass/skip impact) ── */}
           <DisciplineSection list={list} />
+
+          {/* ── Rule adherence (trading rule violations) ── */}
+          <RuleAdherenceSection list={list} />
 
           <HR />
 

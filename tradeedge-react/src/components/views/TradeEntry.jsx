@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { sb } from '../../lib/supabase';
 import { setChecklistTag } from '../../lib/checklistTags';
 import { checkAgainst as checkRules } from '../../lib/tradingRules';
+import { setViolations as persistViolations } from '../../lib/ruleViolations';
 
 const DRAFT_KEY = 'te_trade_draft';
 const CHECKLIST_SESSION_KEY = 'te_checklist_session';
@@ -236,6 +237,10 @@ export default function TradeEntry({ showToast }) {
     // Persist the checklist tag locally (no Supabase column for this yet).
     if (checklistPassed === true || checklistPassed === false) {
       setChecklistTag(tradeId, checklistPassed);
+    }
+    // Stamp any active rule violations so Stats can show adherence over time.
+    if (ruleViolations && ruleViolations.length > 0) {
+      persistViolations(tradeId, ruleViolations);
     }
     showToast(imagePath ? 'Trade saved with screenshot' : result.offline ? 'Saved offline — syncs when back online' : 'Trade saved', result.offline ? 'warn' : 'success', result.offline ? 4000 : 3000);
     setSaveMsg('');
