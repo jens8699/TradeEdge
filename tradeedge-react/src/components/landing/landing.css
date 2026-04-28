@@ -189,10 +189,11 @@
 .lp-eyebrow-label {
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--lp-text3);
-  margin-bottom: 20px;
+  color: var(--lp-accent);
+  margin-bottom: 14px;
+  display: block;
 }
 
 /* ── HERO ── */
@@ -713,32 +714,45 @@
 }
 .lp-compare-row:last-child { border-bottom: none; }
 .lp-compare-row > div {
-  padding: 16px 20px;
+  padding: 18px 20px;
   color: #A89687;
   display: flex;
   align-items: center;
 }
 .lp-compare-row.head > div {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #7A6A5C;
-  font-family: 'JetBrains Mono', monospace;
+  color: #A89687;
   padding-top: 18px;
   padding-bottom: 18px;
   background: #1C1613;
 }
-.lp-compare-row .col-us,
-.lp-compare-row .us {
-  background: rgba(224, 122, 59, 0.07);
-  border-left: 1px solid rgba(224, 122, 59, 0.25);
-  border-right: 1px solid rgba(224, 122, 59, 0.25);
+.lp-compare-row.head .us {
+  color: #E07A3B;
+  font-weight: 600;
+}
+.lp-compare-row .col-us {
+  background: rgba(224, 122, 59, 0.08);
+  border-left: 1px solid rgba(224, 122, 59, 0.2);
+  border-right: 1px solid rgba(224, 122, 59, 0.2);
   color: #F0E6D8;
 }
-.lp-compare-label { color: #A89687; }
-.lp-compare-row .lp-check { color: #E07A3B; font-weight: 600; }
-.lp-compare-row .lp-x { color: #3D2E25; font-size: 18px; }
-.lp-price { font-weight: 600; }
+.lp-compare-label {
+  font-family: 'Fraunces', serif;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  color: #DDCBB6;
+  font-weight: 400;
+}
+.lp-compare-row .lp-check { color: #E07A3B; font-weight: 600; font-size: 18px; }
+.lp-compare-row .lp-x { color: #555; font-size: 18px; }
+.lp-price {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
 .lp-price.us { color: #E07A3B; }
 .hide-mobile { /* shown on desktop by default */ }
 
@@ -775,22 +789,24 @@
 }
 .lp-price-tier {
   font-family: 'Fraunces', serif;
-  font-size: 16px;
-  color: var(--lp-text2);
-  margin-bottom: 12px;
+  font-size: 22px;
+  color: var(--lp-text);
+  margin-bottom: 0;
   font-weight: 400;
+  letter-spacing: -0.02em;
 }
 .lp-price-amount {
-  font-size: 48px;
-  font-weight: 700;
+  font-size: 56px;
+  font-weight: 600;
   color: var(--lp-text);
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
+  margin-top: 18px;
   margin-bottom: 12px;
   line-height: 1;
 }
 .lp-per {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 400;
   color: var(--lp-text3);
   letter-spacing: 0;
@@ -798,27 +814,30 @@
 .lp-price-desc {
   font-size: 14px;
   color: var(--lp-text2);
-  margin-bottom: 24px;
+  margin-bottom: 28px;
   line-height: 1.5;
 }
 .lp-price-list {
-  margin-bottom: 28px;
+  margin: 28px 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
 }
 .lp-price-list li {
   font-size: 14px;
-  color: var(--lp-text2);
-  padding-left: 20px;
+  color: var(--lp-text);
+  padding: 10px 0 10px 22px;
   position: relative;
+  list-style: none;
 }
 .lp-price-list li::before {
-  content: '→';
+  content: '✓';
   position: absolute;
   left: 0;
+  top: 10px;
   color: var(--lp-accent);
-  font-size: 13px;
+  font-weight: 600;
 }
 .lp-backtest-addon {
   border: 1.5px dashed var(--lp-border);
@@ -857,13 +876,17 @@
   gap: 16px;
   padding: 22px 0;
   cursor: pointer;
-  font-size: 17px;
-  font-weight: 500;
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
   color: var(--lp-text);
   user-select: none;
 }
 .lp-faq-plus {
-  font-size: 22px;
+  font-size: 24px;
+  font-weight: 300;
   color: var(--lp-accent);
   line-height: 1;
   flex-shrink: 0;
@@ -880,8 +903,7 @@
 .lp-final-cta {
   padding: 120px 0;
   text-align: center;
-  background: var(--lp-bg2);
-  border-top: 1px solid var(--lp-border-soft);
+  background: var(--lp-bg);
 }
 .lp-final-h2 {
   font-family: 'Fraunces', serif;
@@ -902,9 +924,9 @@
 
 /* ── FOOTER ── */
 .lp-footer {
-  border-top: 1px solid var(--lp-border-soft);
-  background: var(--lp-surface);
-  padding: 64px 0 40px;
+  border-top: 1px solid var(--lp-border);
+  background: var(--lp-bg2);
+  padding: 50px 0 36px;
 }
 .lp-footer-row {
   display: grid;

@@ -89,7 +89,7 @@ function FaqItem({ q, a }) {
 }
 
 // ── Main Landing Page ─────────────────────────────────────────────────────────
-export default function LandingPage({ onSignIn, onStartTrial }) {
+export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onShowTerms }) {
   useLenis();
   return (
     <div className="lp-root">
@@ -541,7 +541,14 @@ export default function LandingPage({ onSignIn, onStartTrial }) {
               <a href="#">About</a>
               <a href="#">Blog</a>
               <a href="#">Contact</a>
-              <a href="#">Privacy</a>
+              <a
+                href="#privacy"
+                onClick={e => { e.preventDefault(); onShowPrivacy && onShowPrivacy(); }}
+              >Privacy</a>
+              <a
+                href="#terms"
+                onClick={e => { e.preventDefault(); onShowTerms && onShowTerms(); }}
+              >Terms</a>
             </div>
           </div>
           <div className="lp-footer-legal">

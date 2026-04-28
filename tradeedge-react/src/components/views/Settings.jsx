@@ -64,7 +64,7 @@ function ActionButton({ onClick, children, variant = 'primary', disabled }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Settings({ user, profile, showToast, onUpgrade }) {
-  const { exportData, importData, isOnline, syncPending, doSync, offlineQueueCount, theme, toggleTheme } = useApp();
+  const { exportData, importData, isOnline, syncPending, doSync, offlineQueueCount, theme, toggleTheme, setActiveTab } = useApp();
 
   const [name,        setName]        = useState(profile?.name || user?.user_metadata?.name || '');
   const [nameMsg,     setNameMsg]     = useState('');
@@ -317,6 +317,27 @@ export default function Settings({ user, profile, showToast, onUpgrade }) {
           </div>
         </>
       )}
+
+      <HR />
+
+      {/* ── Legal ── */}
+      <SectionLabel>Legal</SectionLabel>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 4 }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab('privacy')}
+          style={{ background: 'none', border: 'none', padding: '6px 0', textAlign: 'left', color: 'var(--c-text)', fontSize: 13, cursor: 'pointer', fontFamily: "'Inter', sans-serif" }}
+        >
+          Privacy Policy →
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('terms')}
+          style={{ background: 'none', border: 'none', padding: '6px 0', textAlign: 'left', color: 'var(--c-text)', fontSize: 13, cursor: 'pointer', fontFamily: "'Inter', sans-serif" }}
+        >
+          Terms of Service →
+        </button>
+      </div>
 
       <HR />
 

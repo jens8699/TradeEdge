@@ -14,12 +14,26 @@ import Calendar from '../views/Calendar';
 import Social from '../views/Social';
 import Connections from '../views/Connections';
 import PreTradeChecklist from '../views/PreTradeChecklist';
+import PrivacyPolicy from '../views/PrivacyPolicy';
+import TermsOfService from '../views/TermsOfService';
 import UpgradeModal from '../modals/UpgradeModal';
 import ErrorBoundary from '../ErrorBoundary';
 import { getGreeting } from '../../lib/utils';
 
+function LegalBack({ onBack, label }) {
+  return (
+    <button
+      type="button"
+      onClick={onBack}
+      style={{ background: 'none', border: 'none', padding: 0, marginBottom: 16, color: 'var(--c-text-2)', fontSize: 12, cursor: 'pointer', letterSpacing: '0.04em', fontFamily: "'Inter', sans-serif" }}
+    >
+      ← Back to {label}
+    </button>
+  );
+}
+
 export default function AppLayout({ user, profile, showToast }) {
-  const { activeTab, loading } = useApp();
+  const { activeTab, setActiveTab, loading } = useApp();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const name = (profile?.name) || user?.user_metadata?.name || user?.email || 'Trader';
   const { full: greet } = getGreeting(name);
@@ -56,6 +70,18 @@ export default function AppLayout({ user, profile, showToast }) {
             {activeTab === 'social'       && <Social user={user} profile={profile} showToast={showToast} />}
             {activeTab === 'connections'  && <Connections user={user} showToast={showToast} />}
             {activeTab === 'settings'     && <Settings user={user} profile={profile} showToast={showToast} onUpgrade={() => setShowUpgrade(true)} />}
+            {activeTab === 'privacy'      && (
+              <div className="jm-view">
+                <LegalBack onBack={() => setActiveTab('settings')} label="Settings" />
+                <PrivacyPolicy />
+              </div>
+            )}
+            {activeTab === 'terms'        && (
+              <div className="jm-view">
+                <LegalBack onBack={() => setActiveTab('settings')} label="Settings" />
+                <TermsOfService />
+              </div>
+            )}
           </ErrorBoundary>
         </main>
       </div>

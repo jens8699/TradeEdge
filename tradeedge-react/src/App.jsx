@@ -4,12 +4,14 @@ import { AppProvider } from './context/AppContext';
 import AuthScreen from './components/auth/AuthScreen';
 import AppLayout from './components/layout/AppLayout';
 import LandingPage from './components/landing/LandingPage';
+import LegalLayout from './components/legal/LegalLayout';
 import { useToast, ToastContainer } from './hooks/useToast';
 
 export default function App() {
   const [authState, setAuthState] = useState({ status: 'loading', user: null, profile: null });
   const [authPanel,  setAuthPanel]  = useState('login');
   const [showLanding, setShowLanding] = useState(true);
+  const [legalPage,  setLegalPage]  = useState(null); // 'privacy' | 'terms' | null
   const { toasts, show: showToast } = useToast();
 
   useEffect(() => {
@@ -65,6 +67,16 @@ export default function App() {
     );
   }
 
+  // Legal pages — shown standalone for guests reaching them from the footer
+  if (legalPage && status !== 'authed') {
+    return (
+      <>
+        <LegalLayout page={legalPage} onBack={() => setLegalPage(null)} />
+        <ToastContainer toasts={toasts} />
+      </>
+    );
+  }
+
   // Authenticated → show app
   if (status === 'authed' && user) {
     return (
@@ -82,6 +94,8 @@ export default function App() {
         <LandingPage
           onSignIn={() => { setShowLanding(false); setAuthPanel('login'); }}
           onStartTrial={() => { setShowLanding(false); setAuthPanel('register'); }}
+          onShowPrivacy={() => setLegalPage('privacy')}
+          onShowTerms={() => setLegalPage('terms')}
         />
         <ToastContainer toasts={toasts} />
       </>
