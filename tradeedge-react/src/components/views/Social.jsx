@@ -84,7 +84,16 @@ function ProfileCard({ p, isFollowing, onToggleFollow, isSelf, followerCount }) 
         <div style={{ width: 1, background: 'var(--c-border)' }} />
         <StatBubble label="Win Rate" val={p.win_rate != null ? p.win_rate.toFixed(0) + '%' : '—'} color={p.win_rate >= 50 ? 'var(--c-accent)' : '#C65A45'} />
         <div style={{ width: 1, background: 'var(--c-border)' }} />
-        <StatBubble label="P&L" val={p.total_pnl != null ? fmt(p.total_pnl) : '—'} color={p.total_pnl >= 0 ? 'var(--c-accent)' : '#C65A45'} />
+        {/* Show P&L only if (a) it's the user's own preview OR (b) the profile has opted to share P&L */}
+        {(isSelf || p.share_pnl) ? (
+          <StatBubble
+            label="P&L"
+            val={p.total_pnl != null ? fmt(p.total_pnl) : '—'}
+            color={p.total_pnl >= 0 ? 'var(--c-accent)' : '#C65A45'}
+          />
+        ) : (
+          <StatBubble label="P&L" val="Private" color="var(--c-text-2)" />
+        )}
       </div>
     </div>
   );
@@ -141,6 +150,7 @@ export default function Social({ user, profile, showToast }) {
   const [username,    setUsername]    = useState(profile?.username    || '');
   const [bio,         setBio]         = useState(profile?.bio         || '');
   const [isPublic,    setIsPublic]    = useState(profile?.is_public   || false);
+  const [sharePnl,    setSharePnl]    = useState(profile?.share_pnl   || false);
   const [avatarColor, setAvatarColor] = useState(profile?.avatar_color || '#E07A3B');
   const [profileMsg,  setProfileMsg]  = useState('');
   const [saving,      setSaving]      = useState(false);
@@ -151,9 +161,9 @@ export default function Social({ user, profile, showToast }) {
   const myCard = useMemo(() => ({
     id: userId,
     name: profile?.name || user?.email || 'You',
-    username, bio, avatar_color: avatarColor, is_public: isPublic,
+    username, bio, avatar_color: avatarColor, is_public: isPublic, share_pnl: sharePnl,
     trade_count: myStats.count, win_rate: myStats.winRate, total_pnl: myStats.totalPnl,
-  }), [profile, user, username, bio, avatarColor, isPublic, myStats]);
+  }), [profile, user, username, bio, avatarColor, isPublic, sharePnl, myStats]);
 
   useEffect(() => {
     if (!userId) return;
@@ -177,7 +187,7 @@ export default function Social({ user, profile, showToast }) {
 
       const { data: profs, error: profErr } = await sb
         .from('profiles')
-        .select('id, name, username, bio, avatar_color, is_public, trade_count, win_rate, total_pnl')
+        .select('id, name, username, bio, avatar_color, is_public, share_pnl, trade_count, win_rate, total_pnl')
         .eq('is_public', true)
         .neq('id', userId);
 
@@ -230,6 +240,7 @@ export default function Social({ user, profile, showToast }) {
       username: username.trim() || null,
       bio:      bio.trim()      || null,
       is_public: isPublic,
+      share_pnl: sharePnl,
       avatar_color: avatarColor,
       trade_count: myStats.count,
       win_rate:    myStats.winRate,
@@ -532,6 +543,41 @@ export default function Social({ user, profile, showToast }) {
                       width: 18, height: 18, borderRadius: '50%', background: '#fff',
                       position: 'absolute', top: 2,
                       left: isPublic ? 22 : 2,
+                      transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    }} />
+                  </div>
+                </div>
+
+                {/* Share P&L toggle — only meaningful if profile is public */}
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  paddingTop: 14, marginTop: 14, borderTop: '1px solid var(--c-border)',
+                  opacity: isPublic ? 1 : 0.45,
+                }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--c-text)', marginBottom: 3 }}>
+                      Share dollar P&amp;L
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--c-text-2)' }}>
+                      {sharePnl
+                        ? 'Followers can see your total $ P&L'
+                        : 'Win rate &amp; trade count are still visible — $ P&L is hidden'}
+                    </div>
+                  </div>
+                  <div
+                    onClick={() => isPublic && setSharePnl(p => !p)}
+                    style={{
+                      width: 44, height: 24, borderRadius: 12,
+                      cursor: isPublic ? 'pointer' : 'not-allowed', flexShrink: 0,
+                      background: sharePnl ? 'var(--c-accent)' : 'rgba(255,255,255,0.1)',
+                      border: '1px solid var(--c-border)',
+                      position: 'relative', transition: 'background 0.2s',
+                    }}
+                  >
+                    <div style={{
+                      width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                      position: 'absolute', top: 2,
+                      left: sharePnl ? 22 : 2,
                       transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                     }} />
                   </div>

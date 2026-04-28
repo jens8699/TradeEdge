@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { sb, dbToTrade, dbToPayout, tradeToDb, payoutToDb, fetchSignedUrls } from '../lib/supabase';
 import { mergeChecklistTags, setChecklistTag } from '../lib/checklistTags';
-import { uid } from '../lib/utils';
+import { uid, computeStats } from '../lib/utils';
 
 const AppContext = createContext(null);
 
@@ -134,6 +134,32 @@ export function AppProvider({ userId, children }) {
     if (synced > 0) await load(userId);
     setSyncPending(oqGet().length > 0);
   }, [userId, load]);
+
+  // ── Auto-sync public profile stats whenever trades change ──────────────────
+  // Debounced 2s — keeps profiles.trade_count / win_rate / total_pnl fresh so
+  // followers see live numbers. Silently no-op for users who haven't set
+  // is_public=true (the update will succeed but isn't visible in Discover).
+  useEffect(() => {
+    if (!userId) return;
+    if (loading) return; // avoid syncing the empty initial state
+    if (!navigator.onLine) return;
+    const handle = setTimeout(async () => {
+      try {
+        const s = computeStats(trades);
+        await sb.from('profiles').update({
+          trade_count: s.count,
+          win_rate:    s.winRate,
+          total_pnl:   s.totalPnl,
+        }).eq('id', userId);
+      } catch (e) {
+        // Migration may not have been run yet — silently ignore "column not found"
+        if (!String(e?.message || '').includes('column')) {
+          console.warn('Public stats sync failed:', e);
+        }
+      }
+    }, 2000);
+    return () => clearTimeout(handle);
+  }, [trades, userId, loading]);
 
   // ── Trade CRUD ──────────────────────────────────────────────────────────────
 
