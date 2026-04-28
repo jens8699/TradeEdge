@@ -205,7 +205,7 @@ export default function TradeEntry({ showToast }) {
   });
 
   return (
-    <div style={{ padding: '36px 44px', maxWidth: 820, paddingBottom: 48 }}>
+    <div style={{ padding: '36px 44px', maxWidth: 840, paddingBottom: 48 }}>
 
       {/* ── Editorial header ── */}
       <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>

@@ -377,7 +377,7 @@ export default function History({ showToast }) {
   };
 
   return (
-    <div style={{ padding: '36px 44px', maxWidth: 980, paddingBottom: 64 }}>
+    <div style={{ padding: '36px 44px', paddingBottom: 64 }}>
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>

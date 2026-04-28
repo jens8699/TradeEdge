@@ -1080,7 +1080,7 @@ export default function Connections({ user, showToast }) {
   const totalTrades = connectedAccounts.reduce((s, a) => s + (a.trade_count || 0), 0);
 
   return (
-    <div style={{ maxWidth: '900px', padding: '36px 44px 64px', boxSizing: 'border-box' }}>
+    <div style={{ padding: '36px 44px 64px', boxSizing: 'border-box' }}>
       {/* Hi-Fi Header */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>

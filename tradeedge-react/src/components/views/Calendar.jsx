@@ -73,7 +73,7 @@ export default function Calendar() {
   };
 
   return (
-    <div style={{ padding: '36px 44px', maxWidth: 980, paddingBottom: 48 }}>
+    <div style={{ padding: '36px 44px', paddingBottom: 48 }}>
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>

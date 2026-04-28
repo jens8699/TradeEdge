@@ -553,7 +553,7 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
   const PERIOD_LABELS = { day: 'Today', week: 'Week', month: 'Month', all: 'All' };
 
   return (
-    <div style={{ padding: '36px 44px', maxWidth: 820, paddingBottom: 64 }}>
+    <div style={{ padding: '36px 44px', paddingBottom: 64 }}>
 
       {/* Header */}
       <div style={{ marginBottom: 16 }}>

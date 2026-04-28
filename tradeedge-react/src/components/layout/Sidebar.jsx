@@ -161,7 +161,7 @@ export default function Sidebar({ user, profile, onUpgrade }) {
   const monthLabel = now.toLocaleString('default', { month: 'long' });
 
   return (
-    <aside style={{
+    <aside className="jm-side" style={{
       width: 220, flexShrink: 0,
       background: 'var(--c-sidebar, var(--c-surface))',
       borderRight: '1px solid var(--c-border)',

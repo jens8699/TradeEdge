@@ -126,7 +126,7 @@ export default function Dashboard({ user, profile }) {
   const stroke     = sparkIsUp ? '#E07A3B' : '#C65A45';
 
   return (
-    <div style={{ padding: '36px 44px', maxWidth: 980, paddingBottom: 48 }}>
+    <div style={{ padding: '36px 44px', paddingBottom: 48 }}>
 
       {/* ── Editorial header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>

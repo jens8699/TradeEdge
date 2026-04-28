@@ -107,7 +107,7 @@ export default function MobileNav() {
         </span>
       </div>
 
-      <nav className="mobile-nav" style={{ display:'flex' }}>
+      <nav className="mobile-nav">
         {nav.map(n => (
           <button key={n.id} className={`mn-btn${activeTab === n.id ? ' on' : ''}`}
             onClick={() => go(n.id)}>

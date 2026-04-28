@@ -241,7 +241,7 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
   };
 
   return (
-    <div style={{ padding: '36px 44px', maxWidth: 760, paddingBottom: 64 }}>
+    <div style={{ padding: '36px 44px', paddingBottom: 64 }}>
 
       {/* Header */}
       <div style={{ marginBottom: 20 }}>

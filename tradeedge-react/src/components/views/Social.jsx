@@ -268,7 +268,7 @@ export default function Social({ user, profile, showToast }) {
   // ── DB error state ──────────────────────────────────────────────────────────
   if (dbError) {
     return (
-      <div style={{ padding: '36px 44px', maxWidth: 720 }}>
+      <div style={{ padding: '36px 44px' }}>
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>Community</div>
           <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 34, letterSpacing: '-0.03em', color: 'var(--c-text)', lineHeight: 1.1 }}>
@@ -312,7 +312,7 @@ export default function Social({ user, profile, showToast }) {
 
   // ── Main render ─────────────────────────────────────────────────────────────
   return (
-    <div style={{ padding: '36px 44px', maxWidth: 720, paddingBottom: 64 }}>
+    <div style={{ padding: '36px 44px', paddingBottom: 64 }}>
 
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
