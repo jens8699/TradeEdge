@@ -172,6 +172,38 @@ export default function TradeEntry({ showToast }) {
     reader.readAsDataURL(file);
   }, []);
 
+  // Paste-from-clipboard support — paste a screenshot directly into the form.
+  // Skips when the user is actively typing in an input/textarea (so pasting
+  // text into the notes field still works as expected).
+  useEffect(() => {
+    function onPaste(e) {
+      const target = e.target;
+      const tag = target?.tagName;
+      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      // Find an image item; ignore the rest
+      for (const item of items) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          // Only swallow the paste event if it actually has an image
+          if (!isEditable || !e.clipboardData.getData('text')) {
+            e.preventDefault();
+          }
+          const file = item.getAsFile();
+          if (file) {
+            handleFile(file);
+            try {
+              showToast?.('Screenshot pasted', 'success', 2000);
+            } catch {}
+          }
+          return;
+        }
+      }
+    }
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [handleFile, showToast]);
+
   const save = async () => {
     const { date, symbol, direction, accounts, riskPer, rewardPer, outcome, setup, notes } = form;
     let pnl = parseFloat(form.pnl);
@@ -547,7 +579,7 @@ export default function TradeEntry({ showToast }) {
           ) : (
             <div style={{ fontSize: 13, color: 'var(--c-text-2)', lineHeight: 1.6 }}>
               Drop your chart screenshot here<br />
-              <span style={{ fontSize: 11, opacity: 0.6 }}>or click to browse</span>
+              <span style={{ fontSize: 11, opacity: 0.6 }}>or click to browse · or paste with ⌘V / Ctrl-V</span>
             </div>
           )}
         </div>
