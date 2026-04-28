@@ -16,7 +16,73 @@ const RATING_LABELS = { A: 'Perfect', B: 'Good', C: 'Average', D: 'Poor' };
 
 function TradeDetailModal({ trade: t, onClose, onEdit, onDelete }) {
   const [imgOpen, setImgOpen] = useState(false);
+  const [critique, setCritique] = useState(null);     // string | null
+  const [critiqueLoading, setCritiqueLoading] = useState(false);
+  const [critiqueError, setCritiqueError] = useState('');
   if (!t) return null;
+
+  async function runCritique() {
+    if (critiqueLoading) return;
+    setCritiqueLoading(true);
+    setCritiqueError('');
+    setCritique(null);
+    try {
+      // Build a focused trade summary. Keep it scannable for Claude.
+      const isProfitLocal = (t.pnl || 0) > 0;
+      const r = (t.pnl != null && t.risk) ? (t.pnl / t.risk).toFixed(2) : null;
+      const summary = [
+        `Symbol: ${t.symbol}`,
+        `Direction: ${t.direction || 'unknown'}`,
+        t.entry ? `Entry price: ${t.entry}` : null,
+        t.exit  ? `Exit price: ${t.exit}`   : null,
+        t.qty   ? `Quantity: ${t.qty}`      : null,
+        `Outcome: ${t.outcome || (isProfitLocal ? 'win' : t.pnl < 0 ? 'loss' : 'breakeven')}`,
+        `P&L: ${(t.pnl || 0).toFixed(2)} USD`,
+        t.risk    ? `Risk: ${t.risk.toFixed(2)} USD` : null,
+        t.reward  ? `Target: ${t.reward.toFixed(2)} USD` : null,
+        r != null ? `R-multiple: ${r}R` : null,
+        t.setup    ? `Setup: ${t.setup}`    : null,
+        t.session  ? `Session: ${t.session}` : null,
+        t.rating   ? `Self-rating: ${t.rating}` : null,
+        t.checklistPassed === true  ? `Checklist: passed (on plan)` : null,
+        t.checklistPassed === false ? `Checklist: skipped (off plan)` : null,
+        t.notes    ? `Trader's notes: ${t.notes}` : null,
+        `Date: ${t.date}`,
+      ].filter(Boolean).join('\n');
+
+      const prompt = `You are an experienced trading coach reviewing one specific trade from a prop firm trader's journal. Be direct, specific, and concise. No generic advice — anchor every observation in the actual trade data below.
+
+${summary}
+
+Give a tight critique in 4 short paragraphs (≈ 90 words each, no headings, no bullet lists):
+1. **What you can tell from this trade alone.** Lead with the single most important read.
+2. **What was likely good about the execution** (or honest assessment if very little was good).
+3. **Where it could have been better** — specific actionable points.
+4. **One question to journal next time** — something the trader should write down before the next similar setup.
+
+Keep it brutally honest but constructive. No fluff, no generic platitudes.`;
+
+      const resp = await fetch('/api/claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 800,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+      if (!resp.ok) {
+        let errMsg = `HTTP ${resp.status}`;
+        try { const err = await resp.json(); errMsg = err.error?.message || err.error || errMsg; } catch {}
+        throw new Error(errMsg);
+      }
+      const data = await resp.json();
+      setCritique(data.content?.[0]?.text || '(no response)');
+    } catch (e) {
+      setCritiqueError(e.message || 'Critique failed');
+    }
+    setCritiqueLoading(false);
+  }
   const isProfit = t.pnl > 0;
   const isLoss   = t.pnl < 0;
   const pnlColor = isProfit ? 'var(--c-accent)' : isLoss ? '#C65A45' : 'var(--c-text-2)';
@@ -144,6 +210,83 @@ function TradeDetailModal({ trade: t, onClose, onEdit, onDelete }) {
             />
           </div>
         )}
+
+        {/* AI Critique */}
+        <div style={{ margin: '0 24px 18px' }}>
+          {!critique && !critiqueLoading && !critiqueError && (
+            <button
+              onClick={runCritique}
+              style={{
+                width: '100%', padding: '11px 14px', borderRadius: 12,
+                border: '1px dashed rgba(224,122,59,0.4)',
+                background: 'rgba(224,122,59,0.05)',
+                color: 'var(--c-accent)', fontSize: 13, fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}
+            >
+              <span>🧠</span>
+              <span>Critique this trade</span>
+            </button>
+          )}
+          {critiqueLoading && (
+            <div style={{
+              padding: '14px 16px', borderRadius: 12, border: '1px solid var(--c-border)',
+              background: 'rgba(255,255,255,0.02)',
+              display: 'flex', alignItems: 'center', gap: 12,
+            }}>
+              <div className="jm-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
+              <span style={{ fontSize: 13, color: 'var(--c-text-2)', fontStyle: 'italic', fontFamily: "'Fraunces', Georgia, serif" }}>
+                Reading the trade…
+              </span>
+            </div>
+          )}
+          {critiqueError && (
+            <div style={{
+              padding: '12px 14px', borderRadius: 10,
+              background: 'rgba(198,90,69,0.06)',
+              border: '1px solid rgba(198,90,69,0.25)',
+              fontSize: 12.5, color: '#C65A45', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
+            }}>
+              <span>Critique failed: {critiqueError}</span>
+              <button
+                onClick={runCritique}
+                style={{ fontSize: 11, fontWeight: 600, color: '#C65A45', background: 'transparent', border: '1px solid rgba(198,90,69,0.3)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {critique && (
+            <div style={{
+              padding: '16px 18px', borderRadius: 12,
+              border: '1px solid rgba(224,122,59,0.25)',
+              background: 'rgba(224,122,59,0.04)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 10 }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.16em',
+                  color: 'var(--c-accent)', textTransform: 'uppercase',
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}>
+                  AI critique
+                </span>
+                <button
+                  onClick={runCritique}
+                  style={{ fontSize: 10.5, color: 'var(--c-text-2)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontFamily: 'inherit' }}
+                >
+                  Regenerate
+                </button>
+              </div>
+              <div style={{
+                fontSize: 13, color: 'var(--c-text)', lineHeight: 1.65,
+                whiteSpace: 'pre-wrap', fontFamily: "'Inter', sans-serif",
+              }}>
+                {critique}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Actions */}
         <div style={{ padding: '4px 24px 24px', display: 'flex', gap: 8 }}>
