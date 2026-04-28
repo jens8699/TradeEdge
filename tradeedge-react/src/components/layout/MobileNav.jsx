@@ -89,7 +89,7 @@ export default function MobileNav() {
       {/* Session strip — sits just above the nav bar on mobile */}
       <div className="mn-session" style={{
         position: 'fixed', bottom: 57, left: 0, right: 0, zIndex: 149,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        alignItems: 'center', justifyContent: 'center',
         gap: '6px',
         padding: '5px 16px',
         background: 'rgba(23,21,15,0.92)',

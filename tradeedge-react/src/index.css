@@ -267,7 +267,7 @@ html[data-theme="light"] body { background:#E8E2D6; color:#0D0C09; }
   .jm-app { grid-template-columns:1fr; display:flex; flex-direction:column; flex:1; min-height:auto; overflow:visible; }
   .jm-side { display:none !important; }
   .mobile-nav { display:flex !important; }
-  .mn-session { display:flex; }
+  .mn-session { display:flex !important; }
   .jm-main { overflow-y:visible; height:auto; }
   .tp-auth-wrap  { padding:0; }
   .tp-auth-card  { border-radius:16px; padding:22px; }
