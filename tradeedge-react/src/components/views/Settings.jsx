@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { sb } from '../../lib/supabase';
+import {
+  RULE_TYPES, getRuleTypeMeta, getRules, saveRule, deleteRule, setRuleEnabled,
+} from '../../lib/tradingRules';
 
 // ── Layout helpers ────────────────────────────────────────────────────────────
 
@@ -332,6 +335,15 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
 
       <HR />
 
+      {/* ── Trading Rules ── */}
+      <SectionLabel>Trading rules</SectionLabel>
+      <p style={{ fontSize: 12, color: 'var(--c-text-2)', lineHeight: 1.6, margin: '0 0 14px', maxWidth: 560 }}>
+        Personal commandments. TradeEdge will warn you in Log a trade when an in-progress trade would break one. Soft warnings only — never blocks the save.
+      </p>
+      <TradingRulesEditor />
+
+      <HR />
+
       {/* ── Legal ── */}
       <SectionLabel>Legal</SectionLabel>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 4 }}>
@@ -361,6 +373,186 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
       <ActionButton variant="danger" onClick={async () => { try { await sb.auth.signOut(); } catch (e) {} window.location.href = '/'; }}>
         Sign out
       </ActionButton>
+    </div>
+  );
+}
+
+// ── Trading Rules editor ─────────────────────────────────────────────────────
+
+function TradingRulesEditor() {
+  const [rules, setRules] = useState(getRules);
+  const [adding, setAdding] = useState(false);
+  const [newType, setNewType] = useState(RULE_TYPES[0].type);
+  const [newValue, setNewValue] = useState('');
+
+  function refresh() { setRules(getRules()); }
+
+  function handleAdd() {
+    const value = parseFloat(newValue);
+    if (!isFinite(value) || value <= 0) return;
+    saveRule({ type: newType, value, enabled: true });
+    setAdding(false);
+    setNewValue('');
+    setNewType(RULE_TYPES[0].type);
+    refresh();
+  }
+
+  function handleToggle(id, enabled) {
+    setRuleEnabled(id, enabled);
+    refresh();
+  }
+
+  function handleDelete(id) {
+    deleteRule(id);
+    refresh();
+  }
+
+  return (
+    <div>
+      {rules.length === 0 ? (
+        <div style={{
+          padding: '14px 16px', border: '1px dashed var(--c-border)', borderRadius: 12,
+          fontSize: 12, color: 'var(--c-text-2)', lineHeight: 1.6, marginBottom: 12,
+        }}>
+          No rules yet. Add your first one below.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+          {rules.map(r => {
+            const meta = getRuleTypeMeta(r.type);
+            if (!meta) return null;
+            return (
+              <div key={r.id} style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '12px 14px', border: '1px solid var(--c-border)', borderRadius: 12,
+                background: r.enabled === false ? 'transparent' : 'var(--c-surface)',
+                opacity: r.enabled === false ? 0.55 : 1,
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text)', marginBottom: 2 }}>
+                    {meta.label}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--c-text-2)' }}>
+                    {meta.valueLabel}: <strong style={{ color: 'var(--c-text)' }}>{meta.valuePrefix}{r.value}</strong>
+                  </div>
+                </div>
+                {/* Enable toggle */}
+                <div
+                  onClick={() => handleToggle(r.id, r.enabled === false)}
+                  style={{
+                    width: 38, height: 22, borderRadius: 12, cursor: 'pointer', flexShrink: 0,
+                    background: r.enabled === false ? 'rgba(255,255,255,0.1)' : 'var(--c-accent)',
+                    border: '1px solid var(--c-border)',
+                    position: 'relative', transition: 'background 0.2s',
+                  }}
+                  title={r.enabled === false ? 'Disabled' : 'Enabled'}
+                >
+                  <div style={{
+                    width: 16, height: 16, borderRadius: '50%', background: '#fff',
+                    position: 'absolute', top: 2,
+                    left: r.enabled === false ? 2 : 18,
+                    transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                  }} />
+                </div>
+                <button
+                  onClick={() => handleDelete(r.id)}
+                  style={{
+                    width: 26, height: 26, borderRadius: 6,
+                    border: '1px solid var(--c-border)', background: 'transparent',
+                    color: '#C65A45', fontSize: 14, cursor: 'pointer', lineHeight: 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'inherit', flexShrink: 0,
+                  }}
+                  title="Delete rule"
+                >×</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {!adding ? (
+        <button
+          onClick={() => { setAdding(true); setNewValue(String(getRuleTypeMeta(newType).valueDefault)); }}
+          style={{
+            background: 'rgba(224,122,59,0.08)', border: '1px solid rgba(224,122,59,0.3)',
+            color: 'var(--c-accent)', borderRadius: 10, padding: '9px 16px',
+            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          + Add a rule
+        </button>
+      ) : (
+        <div style={{
+          padding: '14px 16px', border: '1px solid rgba(224,122,59,0.3)',
+          background: 'rgba(224,122,59,0.04)', borderRadius: 12,
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
+            <label style={{ display: 'block' }}>
+              <span style={{ fontSize: 11, color: 'var(--c-text-2)', display: 'block', marginBottom: 5, fontWeight: 500 }}>
+                Rule type
+              </span>
+              <select
+                value={newType}
+                onChange={e => { setNewType(e.target.value); setNewValue(String(getRuleTypeMeta(e.target.value).valueDefault)); }}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--c-border)', background: 'var(--c-bg)', color: 'var(--c-text)', fontSize: 13, fontFamily: "'Inter', sans-serif" }}
+              >
+                {RULE_TYPES.map(t => <option key={t.type} value={t.type}>{t.label}</option>)}
+              </select>
+              <span style={{ fontSize: 11, color: 'var(--c-text-2)', display: 'block', marginTop: 5 }}>
+                {getRuleTypeMeta(newType)?.desc}
+              </span>
+            </label>
+
+            <label style={{ display: 'block' }}>
+              <span style={{ fontSize: 11, color: 'var(--c-text-2)', display: 'block', marginBottom: 5, fontWeight: 500 }}>
+                {getRuleTypeMeta(newType)?.valueLabel}
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {getRuleTypeMeta(newType)?.valuePrefix && (
+                  <span style={{ fontSize: 14, color: 'var(--c-text-2)', minWidth: 18 }}>
+                    {getRuleTypeMeta(newType).valuePrefix}
+                  </span>
+                )}
+                <input
+                  type="number"
+                  step="any"
+                  value={newValue}
+                  onChange={e => setNewValue(e.target.value)}
+                  placeholder={getRuleTypeMeta(newType)?.placeholder}
+                  style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--c-border)', background: 'var(--c-bg)', color: 'var(--c-text)', fontSize: 13, fontFamily: "'Inter', sans-serif" }}
+                  autoFocus
+                />
+              </div>
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => { setAdding(false); setNewValue(''); }}
+              style={{
+                padding: '8px 14px', borderRadius: 8, border: '1px solid var(--c-border)',
+                background: 'transparent', color: 'var(--c-text)', fontSize: 12, fontWeight: 500,
+                cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAdd}
+              disabled={!parseFloat(newValue) || parseFloat(newValue) <= 0}
+              style={{
+                flex: 1, padding: '8px 14px', borderRadius: 8, border: 'none',
+                background: 'var(--c-accent)', color: '#fff', fontSize: 12, fontWeight: 600,
+                cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+                opacity: !parseFloat(newValue) || parseFloat(newValue) <= 0 ? 0.5 : 1,
+              }}
+            >
+              Save rule
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

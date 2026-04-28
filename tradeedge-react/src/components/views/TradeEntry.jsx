@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { sb } from '../../lib/supabase';
 import { setChecklistTag } from '../../lib/checklistTags';
+import { checkAgainst as checkRules } from '../../lib/tradingRules';
 
 const DRAFT_KEY = 'te_trade_draft';
 const CHECKLIST_SESSION_KEY = 'te_checklist_session';
@@ -136,6 +137,19 @@ export default function TradeEntry({ showToast }) {
       expectedPnl = parseFloat(manualPnl) || 0;
     }
     return { totalRisk, totalReward, rr, accounts, expectedPnl };
+  })();
+
+  // Live rule violations — recomputes as the form changes.
+  const ruleViolations = (() => {
+    const iso = today();
+    const todayList = trades.filter(t => t.date === iso);
+    const todayPnl = todayList.reduce((s, t) => s + (t.pnl || 0), 0);
+    return checkRules({
+      todayPnl,
+      todayTradeCount: todayList.length,
+      tradeRisk:  preview ? preview.totalRisk   : 0,
+      tradeReward: preview ? preview.totalReward : 0,
+    });
   })();
 
   const handleFile = useCallback((file) => {
@@ -331,6 +345,32 @@ export default function TradeEntry({ showToast }) {
             </button>
           </div>
         )
+      )}
+
+      {/* Rule violations — soft warning, doesn't block save */}
+      {ruleViolations.length > 0 && (
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: 8,
+          marginTop: 16,
+          padding: '12px 16px',
+          background: 'rgba(198,90,69,0.06)',
+          border: '1px solid rgba(198,90,69,0.3)',
+          borderRadius: 10,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#C65A45', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', fontFamily: "'JetBrains Mono', monospace" }}>
+            <span>⚠</span>
+            <span>{ruleViolations.length} rule {ruleViolations.length === 1 ? 'violation' : 'violations'}</span>
+          </div>
+          {ruleViolations.map((v, i) => (
+            <div key={v.ruleId || i} style={{
+              fontSize: 12.5, color: 'var(--c-text-2)', lineHeight: 1.55,
+              paddingLeft: 18, position: 'relative',
+            }}>
+              <span style={{ position: 'absolute', left: 4, color: '#C65A45' }}>·</span>
+              {v.message}
+            </div>
+          ))}
+        </div>
       )}
 
       <div style={hr} />
