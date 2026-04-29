@@ -17,6 +17,19 @@ function isActive(s) {
 function getClaudeKey() { return localStorage.getItem('te_claude_key') || localStorage.getItem('jens_claude_key') || ''; }
 function getElKey()     { return localStorage.getItem('te_el_key')     || localStorage.getItem('jens_el_key')     || ''; }
 
+function timeAgo(iso) {
+  if (!iso) return '';
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return '';
+  const min = Math.round((Date.now() - t) / 60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const days = Math.round(hr / 24);
+  return `${days}d ago`;
+}
+
 // ── Layout helpers ────────────────────────────────────────────────────────────
 
 function HR() {
@@ -43,8 +56,10 @@ export default function MarketBrief({ showToast }) {
   const [pasted, setPasted]         = useState('');
   const [briefHtml, setBriefHtml]   = useState('');
   const [generating, setGenerating] = useState(false);
-  const [topics, setTopics]         = useState([]);
-  const [topicLoading, setTopicLoading] = useState(false);
+  const [news, setNews]             = useState([]);
+  const [newsLoading, setNewsLoading] = useState(false);
+  const [newsError, setNewsError]   = useState('');
+  const [newsFetchedAt, setNewsFetchedAt] = useState(null);
   const [customQuestion, setCustomQuestion] = useState('');
   const [ttsMode, setTtsMode]       = useState('el');
   const [ttsPlaying, setTtsPlaying] = useState(false);
@@ -87,29 +102,46 @@ export default function MarketBrief({ showToast }) {
 
   useEffect(() => { loadElVoices(); }, []);
 
-  // Load topics
-  const loadTopics = useCallback(async () => {
-    const key = getClaudeKey();
-    if (!key) return;
-    setTopicLoading(true);
-    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-    const prompt = `Today is ${today}. You are a financial markets assistant for a day trader. Generate 4 brief, current market topics that a day trader might want to know about today. Cover: macro/Fed, one equity sector, one technical pattern or market structure observation, and one volatility/risk factor. For each topic return JSON with: "category" (10 chars max), "title" (6-10 words), "teaser" (20-30 words), "color" (one of: #E07A3B, #A89687, #EFC97A). Return only a JSON array, no markdown.`;
+  // Load real market headlines from /api/news (Marketaux-backed, edge-cached 10min)
+  const loadNews = useCallback(async () => {
+    setNewsLoading(true);
+    setNewsError('');
     try {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 800, messages: [{ role: 'user', content: prompt }] })
-      });
-      if (!resp.ok) throw new Error(resp.status);
-      const data = await resp.json();
-      const text = data.content?.[0]?.text || '';
-      const match = text.match(/\[[\s\S]*\]/);
-      if (match) setTopics(JSON.parse(match[0]));
-    } catch(e) { console.warn('Topic load error:', e); }
-    setTopicLoading(false);
+      const resp = await fetch('/api/news');
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+      setNews(Array.isArray(data.articles) ? data.articles : []);
+      setNewsFetchedAt(data.fetchedAt || new Date().toISOString());
+    } catch (e) {
+      setNewsError(e.message || 'Could not load news');
+    }
+    setNewsLoading(false);
   }, []);
 
-  useEffect(() => { loadTopics(); }, []);
+  useEffect(() => { loadNews(); }, [loadNews]);
+
+  // Generate a brief seeded from a single headline
+  const briefFromHeadline = (article) => {
+    const parts = [
+      `Headline: ${article.title}`,
+      article.source ? `Source: ${article.source}` : null,
+      article.publishedAt ? `Published: ${article.publishedAt}` : null,
+      article.tickers?.length ? `Tickers: ${article.tickers.join(', ')}` : null,
+      article.summary ? `Summary: ${article.summary}` : null,
+    ].filter(Boolean).join('\n');
+    setPasted(parts);
+    generateBrief(parts);
+  };
+
+  // Generate one brief from the top 5 headlines in one click
+  const briefFromAllNews = () => {
+    if (!news.length) return;
+    const ctx = news.slice(0, 5).map((a, i) =>
+      `${i + 1}. ${a.title}${a.tickers?.length ? ` [${a.tickers.join(', ')}]` : ''}\n   Source: ${a.source || '—'}\n   ${a.summary || ''}`
+    ).join('\n\n');
+    setPasted(ctx);
+    generateBrief(ctx);
+  };
 
   const generateBrief = async (contextText) => {
     const key = getClaudeKey();
@@ -304,50 +336,103 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
 
       <HR />
 
-      {/* Today's topics */}
+      {/* Today's headlines — real, from Marketaux via /api/news */}
       <SectionLabel
         action={
-          <button
-            onClick={loadTopics}
-            style={{ fontSize: 11, color: 'var(--c-text-2)', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: "'Inter', sans-serif", letterSpacing: '0.04em' }}
-          >
-            ↻ Refresh
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {newsFetchedAt && (
+              <span style={{ fontSize: 10, color: 'var(--c-text-2)', opacity: 0.7, fontFamily: "'JetBrains Mono', monospace" }}>
+                {timeAgo(newsFetchedAt)}
+              </span>
+            )}
+            <button
+              onClick={loadNews}
+              disabled={newsLoading}
+              style={{ fontSize: 11, color: 'var(--c-text-2)', background: 'transparent', border: 'none', cursor: newsLoading ? 'default' : 'pointer', fontFamily: "'Inter', sans-serif", letterSpacing: '0.04em', opacity: newsLoading ? 0.5 : 1 }}
+            >
+              ↻ Refresh
+            </button>
+            {hasKey && news.length > 0 && (
+              <button
+                onClick={briefFromAllNews}
+                disabled={generating}
+                style={{
+                  fontSize: 11, fontWeight: 600, padding: '5px 11px', borderRadius: 6,
+                  background: 'rgba(224,122,59,0.1)', border: '1px solid rgba(224,122,59,0.35)',
+                  color: 'var(--c-accent)', cursor: generating ? 'default' : 'pointer',
+                  fontFamily: "'Inter', sans-serif", letterSpacing: '0.02em',
+                  opacity: generating ? 0.5 : 1,
+                }}
+              >
+                ✦ Brief me on top 5
+              </button>
+            )}
+          </div>
         }
       >
-        Today's topics
+        Today's headlines
       </SectionLabel>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10, marginBottom: 24 }}>
-        {topicLoading && (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10, marginBottom: 24 }}>
+        {newsLoading && (
           <div style={{ gridColumn: '1/-1', fontSize: 13, color: 'var(--c-text-2)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid var(--c-accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-            Loading topics…
+            Loading headlines…
           </div>
         )}
-        {!topicLoading && !hasKey && (
-          <div style={{ gridColumn: '1/-1', fontSize: 13, color: 'var(--c-text-2)' }}>Go to Settings to add your Claude API key.</div>
+        {!newsLoading && newsError && (
+          <div style={{ gridColumn: '1/-1', fontSize: 12.5, color: '#C65A45', padding: '10px 14px', borderRadius: 10, background: 'rgba(198,90,69,0.06)', border: '1px solid rgba(198,90,69,0.25)' }}>
+            {newsError}
+          </div>
         )}
-        {!topicLoading && hasKey && topics.length === 0 && (
-          <div style={{ gridColumn: '1/-1', fontSize: 13, color: 'var(--c-text-2)' }}>No topics loaded. Click Refresh.</div>
+        {!newsLoading && !newsError && news.length === 0 && (
+          <div style={{ gridColumn: '1/-1', fontSize: 13, color: 'var(--c-text-2)' }}>No headlines loaded. Click Refresh.</div>
         )}
-        {topics.map((t, i) => (
-          <button
-            key={i}
-            onClick={() => generateBrief(t.title + ': ' + t.teaser)}
-            style={{
-              textAlign: 'left', padding: '14px 16px', borderRadius: 12,
-              border: '1px solid var(--c-border)', background: 'transparent',
-              cursor: 'pointer', transition: 'border-color 0.15s', fontFamily: "'Inter', sans-serif",
-            }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(224,122,59,0.4)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--c-border)'}
-          >
-            <div style={{ fontSize: 10, color: t.color || 'var(--c-accent)', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 5 }}>{t.category}</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text)', marginBottom: 5, lineHeight: 1.3 }}>{t.title}</div>
-            <div style={{ fontSize: 12, color: 'var(--c-text-2)', lineHeight: 1.5 }}>{t.teaser}</div>
-          </button>
-        ))}
+        {news.map((a, i) => {
+          const sentColor =
+            a.sentiment > 0.15 ? 'var(--c-accent)' :
+            a.sentiment < -0.15 ? '#C65A45' :
+            'var(--c-text-2)';
+          return (
+            <button
+              key={a.url || i}
+              onClick={() => briefFromHeadline(a)}
+              disabled={generating || !hasKey}
+              style={{
+                textAlign: 'left', padding: '14px 16px', borderRadius: 12,
+                border: '1px solid var(--c-border)', background: 'transparent',
+                cursor: (generating || !hasKey) ? 'default' : 'pointer',
+                opacity: (generating || !hasKey) ? 0.55 : 1,
+                transition: 'border-color 0.15s, background 0.15s', fontFamily: "'Inter', sans-serif",
+                display: 'flex', flexDirection: 'column', gap: 6,
+              }}
+              onMouseEnter={e => { if (!generating && hasKey) e.currentTarget.style.borderColor = 'rgba(224,122,59,0.4)'; }}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--c-border)'}
+              title={hasKey ? 'Click → AI brief on this headline' : 'Add Claude API key in Settings'}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>
+                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: sentColor }} />
+                <span style={{ color: sentColor }}>{a.source || 'News'}</span>
+                {a.publishedAt && <span style={{ color: 'var(--c-text-2)', opacity: 0.5, fontWeight: 500, letterSpacing: 0 }}>· {timeAgo(a.publishedAt)}</span>}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text)', lineHeight: 1.35 }}>{a.title}</div>
+              {a.summary && (
+                <div style={{ fontSize: 12, color: 'var(--c-text-2)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  {a.summary}
+                </div>
+              )}
+              {a.tickers?.length > 0 && (
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 2 }}>
+                  {a.tickers.slice(0, 4).map(t => (
+                    <span key={t} style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 100, background: 'var(--c-overlay-medium)', border: '1px solid var(--c-border)', color: 'var(--c-text)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.04em' }}>
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <HR />
