@@ -238,7 +238,7 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
       <SectionLabel>API Keys</SectionLabel>
       <Field
         label="Claude API key"
-        hint={<>Required for Market Brief and AI Insights. Get yours at <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{ color: 'var(--c-text-2)', textDecoration: 'underline' }}>console.anthropic.com</a>.</>}
+        hint={<>Optional — Market Brief and AI Insights work out of the box on TradeEdge's Claude. Add your own key here if you'd rather use your own Anthropic quota. Get one at <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{ color: 'var(--c-text-2)', textDecoration: 'underline' }}>console.anthropic.com</a>.</>}
       >
         <input type="password" style={inputStyle} placeholder="sk-ant-api03-…" value={claudeKey} onChange={e => setClaudeKey(e.target.value)} />
         <SaveMsg msg={claudeMsg} />

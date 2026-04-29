@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { computeStats } from '../../lib/utils';
+import { callClaudeText } from '../../lib/claude';
 
 const SESSIONS = [
   { id: 'sydney',  label: 'Sydney',   open: 21, close: 6  },
@@ -14,7 +15,6 @@ function isActive(s) {
   return s.open < s.close ? (h >= s.open && h < s.close) : (h >= s.open || h < s.close);
 }
 
-function getClaudeKey() { return localStorage.getItem('te_claude_key') || localStorage.getItem('jens_claude_key') || ''; }
 function getElKey()     { return localStorage.getItem('te_el_key')     || localStorage.getItem('jens_el_key')     || ''; }
 
 function timeAgo(iso) {
@@ -144,11 +144,6 @@ export default function MarketBrief({ showToast }) {
   };
 
   const generateBrief = async (contextText) => {
-    const key = getClaudeKey();
-    if (!key) {
-      setBriefHtml('<p style="color:var(--c-text-2);font-size:13px;">Go to <strong>Settings</strong> to add your Claude API key.</p>');
-      return;
-    }
     setGenerating(true);
     const recentTrades = trades.slice(0, 10);
     const stats = computeStats(recentTrades);
@@ -175,14 +170,11 @@ Create a comprehensive pre-market brief with these sections:
 Be specific, concise, and actionable. Format with HTML — use <h3> for section titles, <p> for paragraphs, <ul><li> for lists, <strong> for key numbers/levels. Keep each section under 4 sentences.`;
 
     try {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
+      const text = await callClaudeText({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }],
       });
-      if (!resp.ok) { const err = await resp.json(); throw new Error(err.error?.message || resp.status); }
-      const data = await resp.json();
-      const text = data.content?.[0]?.text || '';
       rawBriefText.current = text.replace(/<[^>]+>/g, '');
       // Parse risk rating
       const riskMatch = text.match(/risk\s*rating[:\s]*(low|medium|high)/i);
@@ -205,18 +197,14 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
 
   const askQuestion = async () => {
     if (!customQuestion.trim()) return;
-    const key = getClaudeKey();
-    if (!key) { showToast('Add Claude API key in Settings', 'warn'); return; }
     setGenerating(true);
     const prompt = `You are a concise trading assistant. Answer this trader's question in 2-4 sentences: "${customQuestion}" Provide a clear, actionable answer formatted with HTML (<p>, <strong>, <ul><li>).`;
     try {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 600, messages: [{ role: 'user', content: prompt }] })
+      const text = await callClaudeText({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        messages: [{ role: 'user', content: prompt }],
       });
-      const data = await resp.json();
-      const text = data.content?.[0]?.text || '';
       rawBriefText.current = text.replace(/<[^>]+>/g, '');
       setBriefHtml(prev => prev + `<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--c-border)"><h3 style="font-size:13px;color:var(--c-text-2);margin:0 0 8px;">❓ ${customQuestion}</h3>${text}</div>`);
       setCustomQuestion('');
@@ -260,7 +248,6 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
     } catch(e) { showToast('TTS error: ' + e.message, 'error'); setTtsPlaying(false); }
   };
 
-  const hasKey = !!getClaudeKey();
   const todayTrades = trades.filter(t => t.date === new Date().toISOString().slice(0, 10));
   const todayStats  = computeStats(todayTrades);
   const localTime   = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -352,7 +339,7 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
             >
               ↻ Refresh
             </button>
-            {hasKey && news.length > 0 && (
+            {news.length > 0 && (
               <button
                 onClick={briefFromAllNews}
                 disabled={generating}
@@ -393,23 +380,50 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
             a.sentiment > 0.15 ? 'var(--c-accent)' :
             a.sentiment < -0.15 ? '#C65A45' :
             'var(--c-text-2)';
+          const openSource = () => {
+            if (a.url) window.open(a.url, '_blank', 'noopener,noreferrer');
+          };
           return (
-            <button
+            <div
               key={a.url || i}
-              onClick={() => briefFromHeadline(a)}
-              disabled={generating || !hasKey}
+              onClick={openSource}
+              role={a.url ? 'link' : undefined}
+              tabIndex={a.url ? 0 : -1}
+              onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && a.url) { e.preventDefault(); openSource(); } }}
               style={{
-                textAlign: 'left', padding: '14px 16px', borderRadius: 12,
+                position: 'relative', textAlign: 'left', padding: '14px 16px', paddingRight: 56, borderRadius: 12,
                 border: '1px solid var(--c-border)', background: 'transparent',
-                cursor: (generating || !hasKey) ? 'default' : 'pointer',
-                opacity: (generating || !hasKey) ? 0.55 : 1,
+                cursor: a.url ? 'pointer' : 'default',
                 transition: 'border-color 0.15s, background 0.15s', fontFamily: "'Inter', sans-serif",
                 display: 'flex', flexDirection: 'column', gap: 6,
               }}
-              onMouseEnter={e => { if (!generating && hasKey) e.currentTarget.style.borderColor = 'rgba(224,122,59,0.4)'; }}
+              onMouseEnter={e => { if (a.url) e.currentTarget.style.borderColor = 'rgba(224,122,59,0.4)'; }}
               onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--c-border)'}
-              title={hasKey ? 'Click → AI brief on this headline' : 'Add Claude API key in Settings'}
+              title={a.url ? 'Click → open source article in new tab' : ''}
             >
+              {/* ✦ Brief button — top-right corner, stops propagation */}
+              <button
+                onClick={(e) => { e.stopPropagation(); briefFromHeadline(a); }}
+                disabled={generating}
+                title="✦ AI brief on this headline"
+                aria-label="AI brief on this headline"
+                style={{
+                  position: 'absolute', top: 10, right: 10, zIndex: 1,
+                  width: 28, height: 28, borderRadius: 7,
+                  background: 'rgba(224,122,59,0.1)', border: '1px solid rgba(224,122,59,0.35)',
+                  color: 'var(--c-accent)', cursor: generating ? 'default' : 'pointer',
+                  fontSize: 13, fontWeight: 700, lineHeight: 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: "'Inter', sans-serif",
+                  opacity: generating ? 0.4 : 1,
+                  transition: 'background 0.15s, border-color 0.15s',
+                }}
+                onMouseEnter={e => { if (!generating) e.currentTarget.style.background = 'rgba(224,122,59,0.18)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(224,122,59,0.1)'; }}
+              >
+                ✦
+              </button>
+
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>
                 <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: sentColor }} />
                 <span style={{ color: sentColor }}>{a.source || 'News'}</span>
@@ -430,7 +444,7 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
                   ))}
                 </div>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
