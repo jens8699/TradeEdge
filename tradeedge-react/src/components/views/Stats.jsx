@@ -439,35 +439,35 @@ export default function Stats() {
       ) : (
         <>
           {/* 4-up hero */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 0, marginBottom: 36 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24, rowGap: 24, marginBottom: 36 }}>
             <HeroStat
               label="Net P&L"
               valueRef={heroRef}
               rawValue={s.totalPnl}
               display="$0.00"
               color={isProfit ? 'var(--c-accent)' : '#C65A45'}
-              size={48}
+              size="clamp(28px, 7.5vw, 48px)"
               sub={`${s.count} trade${s.count !== 1 ? 's' : ''} · ${s.wins}W / ${s.losses}L`}
             />
             <HeroStat
               label="Win Rate"
               display={`${s.winRate.toFixed(1)}%`}
               color="var(--c-text)"
-              size={38}
+              size="clamp(24px, 6vw, 38px)"
               sub={s.winRate >= 60 ? 'Above threshold' : s.winRate >= 40 ? 'In the zone' : 'Below threshold'}
             />
             <HeroStat
               label="Profit Factor"
               display={isFinite(s.pf) ? s.pf.toFixed(2) : '∞'}
               color="var(--c-text)"
-              size={38}
+              size="clamp(24px, 6vw, 38px)"
               sub={s.pf >= 1.5 ? 'Solid edge' : s.pf >= 1 ? 'Breakeven zone' : 'Negative edge'}
             />
             <HeroStat
               label="Avg R:R"
               display={s.losses === 0 ? '—' : s.rr.toFixed(2)}
               color="var(--c-text)"
-              size={38}
+              size="clamp(24px, 6vw, 38px)"
               sub={s.losses === 0 ? 'No losses yet' : s.rr >= 1.5 ? 'Healthy ratio' : s.rr >= 1 ? 'Needs work' : 'Risk > reward'}
             />
           </div>
@@ -682,7 +682,7 @@ export default function Stats() {
 
 function HeroStat({ label, valueRef, rawValue, display, color, size, sub }) {
   return (
-    <div style={{ paddingRight: 24 }}>
+    <div style={{ paddingRight: 12, minWidth: 0 }}>
       <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
         {label}
       </div>
@@ -693,6 +693,8 @@ function HeroStat({ label, valueRef, rawValue, display, color, size, sub }) {
           fontSize: size, fontWeight: 700, color,
           letterSpacing: '-0.03em', lineHeight: 1,
           fontVariantNumeric: 'tabular-nums',
+          // Don't let oversized numbers spill into neighbours on narrow screens
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}
       >
         {display}

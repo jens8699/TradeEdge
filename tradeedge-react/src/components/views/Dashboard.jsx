@@ -263,11 +263,11 @@ export default function Dashboard({ user, profile }) {
     <div style={{ padding: 'clamp(20px, 5vw, 36px) clamp(16px, 4.5vw, 44px) 48px' }}>
 
       {/* ── Editorial header ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-        <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', minWidth: 0 }}>
           {dateStr}
         </div>
-        <div style={{ fontSize: 11, color: 'var(--c-text-2)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.04em' }}>
+        <div style={{ fontSize: 11, color: 'var(--c-text-2)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.04em', flexShrink: 0 }}>
           {timeStr}
         </div>
       </div>
@@ -290,7 +290,7 @@ export default function Dashboard({ user, profile }) {
       <HR my={30} />
 
       {/* ── Three-up hero stats ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: 36 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 28, rowGap: 24 }}>
 
         {/* Today P&L */}
         <div>
@@ -358,7 +358,7 @@ export default function Dashboard({ user, profile }) {
       <HR my={32} />
 
       {/* ── Equity curve + insight pull-quote ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 44 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 28, rowGap: 24 }}>
 
         {/* Sparkline */}
         <div>

@@ -119,19 +119,25 @@ export default function Calendar() {
 
       {/* ── Summary row ── */}
       {summary.totalTrades > 0 && (
-        <div style={{ display: 'flex', gap: 28, fontSize: 13, color: 'var(--c-text-2)', marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span>
+        <div style={{ display: 'flex', gap: '6px 18px', fontSize: 13, color: 'var(--c-text-2)', marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ whiteSpace: 'nowrap' }}>
             {summary.totalPnl >= 0 ? 'Up' : 'Down'}{' '}
             <span style={{ color: summary.totalPnl >= 0 ? 'var(--c-accent)' : '#C65A45', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
               {fmt(summary.totalPnl)}
-            </span>{' '}month-to-date
+            </span>{' '}MTD
           </span>
-          <span style={{ color: 'var(--c-border)' }}>·</span>
-          <span>{summary.totalTrades} trade{summary.totalTrades === 1 ? '' : 's'}</span>
-          <span style={{ color: 'var(--c-border)' }}>·</span>
-          <span>{summary.winRate.toFixed(0)}% win rate</span>
-          <span style={{ color: 'var(--c-border)' }}>·</span>
-          <span>{summary.tradingDays} trading day{summary.tradingDays === 1 ? '' : 's'}</span>
+          <span style={{ whiteSpace: 'nowrap' }}>
+            <span style={{ color: 'var(--c-border)', marginRight: 8 }}>·</span>
+            {summary.totalTrades} trade{summary.totalTrades === 1 ? '' : 's'}
+          </span>
+          <span style={{ whiteSpace: 'nowrap' }}>
+            <span style={{ color: 'var(--c-border)', marginRight: 8 }}>·</span>
+            {summary.winRate.toFixed(0)}% win rate
+          </span>
+          <span style={{ whiteSpace: 'nowrap' }}>
+            <span style={{ color: 'var(--c-border)', marginRight: 8 }}>·</span>
+            {summary.tradingDays} trading day{summary.tradingDays === 1 ? '' : 's'}
+          </span>
         </div>
       )}
 
@@ -203,20 +209,21 @@ export default function Calendar() {
 
               {/* P&L + trade count */}
               {hasTrades && (
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div style={{
                     fontFamily: "'Inter', sans-serif",
                     fontSize: 13, fontWeight: 600,
                     color: isProfit ? 'var(--c-accent)' : '#C65A45',
                     letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums',
                     lineHeight: 1.2,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>
                     {isProfit ? '+' : ''}{cell.pnl >= 1000 || cell.pnl <= -1000
                       ? (cell.pnl / 1000).toFixed(1) + 'k'
                       : fmt(cell.pnl)}
                   </div>
-                  <div style={{ fontSize: 9, color: 'var(--c-text-2)', marginTop: 2, letterSpacing: '0.04em' }}>
-                    {cell.count} trade{cell.count === 1 ? '' : 's'}
+                  <div style={{ fontSize: 9, color: 'var(--c-text-2)', marginTop: 2, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                    {cell.count}&nbsp;trade{cell.count === 1 ? '' : 's'}
                   </div>
                 </div>
               )}

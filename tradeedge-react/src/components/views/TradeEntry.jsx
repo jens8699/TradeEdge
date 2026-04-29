@@ -502,9 +502,9 @@ export default function TradeEntry({ showToast }) {
             <input style={inp} type="number" placeholder="0.00" step="0.01" value={form.exit} onChange={e => set('exit', e.target.value)} />
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12, marginBottom: 16 }}>
           <div style={field}>
-            <span style={label}>Qty / contracts</span>
+            <span style={label}>Quantity</span>
             <input style={inp} type="number" placeholder="1" min="1" value={form.qty} onChange={e => set('qty', e.target.value)} />
           </div>
           <div style={field}>
@@ -512,18 +512,18 @@ export default function TradeEntry({ showToast }) {
             <input style={inp} type="number" min="1" max="20" value={form.accounts} onChange={e => set('accounts', e.target.value)} />
           </div>
           <div style={field}>
-            <span style={label}>Risk / acct ($)</span>
+            <span style={label}>Risk ($)</span>
             <input style={inp} type="number" placeholder="50" step="0.01" value={form.riskPer} onChange={e => set('riskPer', e.target.value)} />
           </div>
           <div style={field}>
-            <span style={label}>Target / acct ($)</span>
+            <span style={label}>Target ($)</span>
             <input style={inp} type="number" placeholder="100" step="0.01" value={form.rewardPer} onChange={e => set('rewardPer', e.target.value)} />
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: 16 }}>
           <div style={field}>
-            <span style={label}>Actual P/L ($) <span style={{ fontWeight: 400, opacity: 0.55 }}>— override</span></span>
-            <input style={inp} type="number" placeholder="auto from target" step="0.01" value={form.pnl} onChange={e => set('pnl', e.target.value)} />
+            <span style={label}>P/L ($) <span style={{ fontWeight: 400, opacity: 0.55 }}>— override</span></span>
+            <input style={inp} type="number" placeholder="auto" step="0.01" value={form.pnl} onChange={e => set('pnl', e.target.value)} />
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
             <div style={{ fontSize: 11, color: 'var(--c-text-2)', lineHeight: 1.6, opacity: 0.7 }}>
@@ -552,9 +552,7 @@ export default function TradeEntry({ showToast }) {
           </select>
         </div>
         <div style={field}>
-          <span style={label}>
-            Setup tag <span style={{ fontWeight: 400, opacity: 0.55 }}>— pick or type your own</span>
-          </span>
+          <span style={label}>Setup tag</span>
           <input
             style={inp}
             type="text"
