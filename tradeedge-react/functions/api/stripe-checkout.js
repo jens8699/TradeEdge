@@ -1,0 +1,102 @@
+/**
+ * Cloudflare Pages Function — Stripe Checkout Session creator.
+ * POST /api/stripe-checkout
+ *
+ * Body: { addBacktesting?: boolean }
+ * Headers: Authorization: Bearer <supabase_access_token>
+ *
+ * Returns: { url: 'https://checkout.stripe.com/...' }
+ *
+ * Required env vars (Cloudflare Pages → Settings → Env vars):
+ *   STRIPE_SECRET_KEY      sk_test_... (or sk_live_...)
+ *   STRIPE_PRICE_PRO       price_... for the $19/mo Pro plan
+ *   STRIPE_PRICE_BACKTEST  price_... for the +$10/mo Backtesting add-on
+ *   SUPABASE_URL           the project URL (used to verify the auth token)
+ *   SUPABASE_ANON_KEY      anon public key (for the JWT verify call)
+ */
+export async function onRequestPost(context) {
+  const { env, request } = context;
+  const cors = {
+    'Access-Control-Allow-Origin': '*',
+    'Content-Type': 'application/json',
+  };
+
+  try {
+    // 1. Validate env wiring
+    if (!env.STRIPE_SECRET_KEY) {
+      return json({ error: 'Server not configured: missing STRIPE_SECRET_KEY' }, 503, cors);
+    }
+    if (!env.STRIPE_PRICE_PRO) {
+      return json({ error: 'Server not configured: missing STRIPE_PRICE_PRO' }, 503, cors);
+    }
+
+    // 2. Verify the user via their Supabase access token
+    const auth = request.headers.get('authorization') || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+    if (!token) return json({ error: 'Unauthorized' }, 401, cors);
+
+    const userResp = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: env.SUPABASE_ANON_KEY,
+      },
+    });
+    if (!userResp.ok) return json({ error: 'Unauthorized' }, 401, cors);
+    const user = await userResp.json();
+    if (!user?.id) return json({ error: 'Unauthorized' }, 401, cors);
+
+    // 3. Parse body
+    let body = {};
+    try { body = await request.json(); } catch {}
+    const addBacktesting = !!body.addBacktesting;
+
+    // 4. Build line items
+    const lineItems = [{ price: env.STRIPE_PRICE_PRO, quantity: 1 }];
+    if (addBacktesting && env.STRIPE_PRICE_BACKTEST) {
+      lineItems.push({ price: env.STRIPE_PRICE_BACKTEST, quantity: 1 });
+    }
+
+    // 5. Resolve return URLs from the Origin header (works in any environment)
+    const origin = request.headers.get('origin') || 'https://tradeedge.today';
+    const successUrl = `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl  = `${origin}/?checkout=cancel`;
+
+    // 6. Create the Stripe Checkout Session via x-www-form-urlencoded REST call
+    const params = new URLSearchParams();
+    params.append('mode', 'subscription');
+    params.append('success_url', successUrl);
+    params.append('cancel_url',  cancelUrl);
+    params.append('client_reference_id', user.id);
+    params.append('customer_email', user.email || '');
+    params.append('allow_promotion_codes', 'true');
+    params.append('billing_address_collection', 'auto');
+    params.append('subscription_data[metadata][user_id]', user.id);
+    if (addBacktesting) {
+      params.append('subscription_data[metadata][has_backtesting]', 'true');
+    }
+    lineItems.forEach((li, i) => {
+      params.append(`line_items[${i}][price]`, li.price);
+      params.append(`line_items[${i}][quantity]`, String(li.quantity));
+    });
+
+    const stripeResp = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    });
+    const data = await stripeResp.json();
+    if (!stripeResp.ok) {
+      return json({ error: data?.error?.message || `Stripe HTTP ${stripeResp.status}` }, 502, cors);
+    }
+    return json({ url: data.url, id: data.id }, 200, cors);
+  } catch (e) {
+    return json({ error: e.message || String(e) }, 500, cors);
+  }
+}
+
+function json(obj, status, headers) {
+  return new Response(JSON.stringify(obj), { status, headers });
+}

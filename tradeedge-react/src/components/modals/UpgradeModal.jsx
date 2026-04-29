@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { startCheckout } from '../../lib/stripe';
 
 const FEATURES = [
   { label: 'Trade journal (unlimited)',    free: true,  pro: true  },
@@ -16,7 +17,22 @@ const FEATURES = [
 ];
 
 export default function UpgradeModal({ onClose }) {
-  const [submitted, setSubmitted] = useState(false);
+  const [addBacktesting, setAddBacktesting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSubscribe() {
+    if (loading) return;
+    setError('');
+    setLoading(true);
+    try {
+      await startCheckout({ addBacktesting });
+      // We'll be redirected away — if not, surface that
+    } catch (e) {
+      setError(e.message || 'Could not start checkout.');
+      setLoading(false);
+    }
+  }
 
   return (
     <div style={{
@@ -93,46 +109,71 @@ export default function UpgradeModal({ onClose }) {
 
         {/* CTA */}
         <div style={{ padding: '0 24px 24px' }}>
-          {!submitted ? (
-            <>
-              <div style={{
-                background: 'rgba(224,122,59,0.06)', border: '1px solid rgba(224,122,59,0.15)',
-                borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
-                fontSize: '12px', color: 'var(--c-text-2)', lineHeight: 1.5,
-              }}>
-                <strong style={{ color: '#E07A3B' }}>Early access:</strong> Pro is launching soon. Join the waitlist and lock in the founding rate before public launch.
+          {/* Backtesting add-on toggle */}
+          <div
+            onClick={() => !loading && setAddBacktesting(v => !v)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 14px', marginBottom: 12,
+              border: `1.5px ${addBacktesting ? 'solid' : 'dashed'} ${addBacktesting ? 'rgba(224,122,59,0.4)' : 'var(--c-border)'}`,
+              background: addBacktesting ? 'rgba(224,122,59,0.06)' : 'transparent',
+              borderRadius: 12, cursor: loading ? 'default' : 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            <div style={{
+              width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+              border: `1.5px solid ${addBacktesting ? '#E07A3B' : 'var(--c-border)'}`,
+              background: addBacktesting ? '#E07A3B' : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontSize: 12, fontWeight: 800,
+            }}>
+              {addBacktesting ? '✓' : ''}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text)', marginBottom: 2 }}>
+                Add Backtesting
               </div>
-              <button
-                onClick={() => setSubmitted(true)}
-                style={{
-                  width: '100%', padding: '13px', background: '#E07A3B',
-                  color: '#fff', border: 'none', borderRadius: '12px',
-                  fontSize: '14px', fontWeight: 700, cursor: 'pointer',
-                  letterSpacing: '-0.2px',
-                }}
-              >
-                ⚡ Join Pro Waitlist
-              </button>
-              <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--c-text-2)', margin: '8px 0 0' }}>
-                No card required · We'll email you when Pro launches
-              </p>
-            </>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '16px 0' }}>
-              <div style={{ fontSize: '36px', marginBottom: '10px' }}>🎉</div>
-              <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: '15px', color: 'var(--c-text)' }}>You're on the list!</p>
-              <p style={{ margin: '0 0 16px', fontSize: '12px', color: 'var(--c-text-2)' }}>
-                We'll email you when Pro launches. You'll get the founding rate locked in.
-              </p>
-              <button onClick={onClose} style={{
-                padding: '10px 24px', background: 'var(--c-bg)', color: 'var(--c-text)',
-                border: '1px solid var(--c-border)', borderRadius: '10px',
-                fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-              }}>
-                Close
-              </button>
+              <div style={{ fontSize: 11, color: 'var(--c-text-2)' }}>
+                5 years of tick data · same dashboard
+              </div>
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#E07A3B', whiteSpace: 'nowrap' }}>
+              +$10 /mo
+            </div>
+          </div>
+
+          {error && (
+            <div style={{
+              padding: '10px 14px', marginBottom: 12, borderRadius: 10,
+              background: 'rgba(198,90,69,0.06)', border: '1px solid rgba(198,90,69,0.25)',
+              fontSize: 12.5, color: '#C65A45',
+            }}>
+              {error}
             </div>
           )}
+
+          <button
+            onClick={handleSubscribe}
+            disabled={loading}
+            style={{
+              width: '100%', padding: '13px', background: '#E07A3B',
+              color: '#fff', border: 'none', borderRadius: '12px',
+              fontSize: '14px', fontWeight: 700,
+              cursor: loading ? 'default' : 'pointer',
+              opacity: loading ? 0.7 : 1,
+              letterSpacing: '-0.2px',
+            }}
+          >
+            {loading
+              ? 'Opening checkout…'
+              : addBacktesting
+                ? '⚡ Subscribe — $29 / month →'
+                : '⚡ Subscribe — $19 / month →'}
+          </button>
+          <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--c-text-2)', margin: '8px 0 0' }}>
+            Powered by Stripe · Cancel any time from Settings
+          </p>
         </div>
       </div>
     </div>

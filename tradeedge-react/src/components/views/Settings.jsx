@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { sb } from '../../lib/supabase';
+import { openPortal } from '../../lib/stripe';
 import {
   RULE_TYPES, getRuleTypeMeta, getRules, saveRule, deleteRule, setRuleEnabled,
 } from '../../lib/tradingRules';
@@ -80,6 +81,8 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
   const [elMsg,       setElMsg]       = useState('');
   const [dailyLimit,  setDailyLimit]  = useState(localStorage.getItem('te_daily_loss_limit') || '');
   const [limitMsg,    setLimitMsg]    = useState('');
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalErr,     setPortalErr]     = useState('');
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -131,6 +134,19 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
     setLimitMsg('✓ Saved');
     setTimeout(() => setLimitMsg(''), 2500);
     showToast('Daily loss limit saved');
+  };
+
+  const handleManageSubscription = async () => {
+    if (portalLoading) return;
+    setPortalErr('');
+    setPortalLoading(true);
+    try {
+      await openPortal();
+      // Browser will redirect away. If we're still here, something stalled.
+    } catch (e) {
+      setPortalErr(e.message || 'Could not open billing portal.');
+      setPortalLoading(false);
+    }
   };
 
   const handleImport = async (e) => {
@@ -291,13 +307,35 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
       {/* ── Subscription ── */}
       <SectionLabel>Subscription</SectionLabel>
       {isPro ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', borderRadius: 12, background: 'rgba(224,122,59,0.06)', border: '1px solid rgba(224,122,59,0.2)' }}>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-accent)', marginBottom: 4 }}>TradeEdge Pro</div>
-            <div style={{ fontSize: 12, color: 'var(--c-text-2)' }}>All features unlocked · Founding rate locked in</div>
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', borderRadius: 12, background: 'rgba(224,122,59,0.06)', border: '1px solid rgba(224,122,59,0.2)', marginBottom: 12, flexWrap: 'wrap', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-accent)', marginBottom: 4 }}>TradeEdge Pro</div>
+              <div style={{ fontSize: 12, color: 'var(--c-text-2)' }}>
+                All features unlocked · Founding rate locked in
+                {profile?.has_backtesting && <> · Backtesting add-on</>}
+              </div>
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-accent)', background: 'rgba(224,122,59,0.1)', padding: '4px 10px', borderRadius: 100 }}>Active</span>
           </div>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-accent)', background: 'rgba(224,122,59,0.1)', padding: '4px 10px', borderRadius: 100 }}>Active</span>
-        </div>
+          {portalErr && (
+            <div style={{
+              padding: '10px 14px', marginBottom: 12, borderRadius: 10,
+              background: 'rgba(198,90,69,0.06)', border: '1px solid rgba(198,90,69,0.25)',
+              fontSize: 12.5, color: '#C65A45',
+            }}>
+              {portalErr}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <ActionButton onClick={handleManageSubscription} disabled={portalLoading}>
+              {portalLoading ? 'Opening portal…' : 'Manage subscription'}
+            </ActionButton>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--c-text-2)', marginTop: 8, opacity: 0.7 }}>
+            Update payment method, change plan, or cancel — opens Stripe's secure portal.
+          </div>
+        </>
       ) : (
         <>
           <div style={{ padding: '14px 18px', borderRadius: 12, border: '1px solid var(--c-border)', marginBottom: 12 }}>

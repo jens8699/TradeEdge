@@ -56,6 +56,43 @@ export default function App() {
     return () => { subscription.unsubscribe(); clearTimeout(timeout); };
   }, []);
 
+  // Handle return from Stripe Checkout / Portal
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkout = params.get('checkout');
+    const fromPortal = params.get('from') === 'portal';
+    if (!checkout && !fromPortal) return;
+
+    if (checkout === 'success') {
+      showToast('Welcome to Pro 🎉 Refreshing your account…');
+    } else if (checkout === 'cancel') {
+      showToast('Checkout canceled — no charge.');
+    } else if (fromPortal) {
+      showToast('Subscription updated.');
+    }
+
+    // Strip the params so a refresh doesn't re-fire the toast
+    const url = new URL(window.location.href);
+    url.searchParams.delete('checkout');
+    url.searchParams.delete('from');
+    url.searchParams.delete('session_id');
+    window.history.replaceState({}, '', url.pathname + (url.search || ''));
+
+    // Reload profile a few times — Stripe webhook may take a moment
+    let cancelled = false;
+    const refreshProfile = async () => {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session?.user || cancelled) return;
+      const prof = await getProfile(session.user.id);
+      if (cancelled) return;
+      setAuthState(prev => prev.status === 'authed' ? { ...prev, profile: prof } : prev);
+    };
+    refreshProfile();
+    const t1 = setTimeout(refreshProfile, 2000);
+    const t2 = setTimeout(refreshProfile, 5000);
+    return () => { cancelled = true; clearTimeout(t1); clearTimeout(t2); };
+  }, [showToast]);
+
   const { status, user, profile } = authState;
 
   if (status === 'loading') {
