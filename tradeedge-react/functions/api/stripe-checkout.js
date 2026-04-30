@@ -8,11 +8,15 @@
  * Returns: { url: 'https://checkout.stripe.com/...' }
  *
  * Required env vars (Cloudflare Pages → Settings → Env vars):
- *   STRIPE_SECRET_KEY      sk_test_... (or sk_live_...)
- *   STRIPE_PRICE_PRO       price_... for the $19/mo Pro plan
- *   STRIPE_PRICE_BACKTEST  price_... for the +$10/mo Backtesting add-on
- *   SUPABASE_URL           the project URL (used to verify the auth token)
- *   SUPABASE_ANON_KEY      anon public key (for the JWT verify call)
+ *   STRIPE_SECRET_KEY            sk_test_... (or sk_live_...)
+ *   STRIPE_PRICE_PRO             price_... for the $19/mo Pro plan
+ *   STRIPE_PRICE_BACKTEST        price_... for the +$10/mo Backtesting add-on
+ *   SUPABASE_URL                 the project URL (used to verify the auth token)
+ *   SUPABASE_ANON_KEY            anon public key (for the JWT verify call)
+ *   SUPABASE_SERVICE_ROLE_KEY    service-role key — used to look up the
+ *                                 user's existing stripe_customer_id so
+ *                                 resubscribers reuse the same Stripe
+ *                                 customer record instead of duplicating.
  */
 export async function onRequestPost(context) {
   const { env, request } = context;
@@ -45,6 +49,32 @@ export async function onRequestPost(context) {
     const user = await userResp.json();
     if (!user?.id) return json({ error: 'Unauthorized' }, 401, cors);
 
+    // 2.5 Look up the user's existing stripe_customer_id so resubscribers
+    //     reuse the same Stripe customer record (one customer = one history,
+    //     one consolidated billing view, no duplicates over time).
+    let existingCustomerId = null;
+    if (env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const profResp = await fetch(
+          `${env.SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}&select=stripe_customer_id`,
+          {
+            headers: {
+              apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+              Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            },
+          },
+        );
+        if (profResp.ok) {
+          const rows = await profResp.json();
+          existingCustomerId = rows?.[0]?.stripe_customer_id || null;
+        }
+      } catch (e) {
+        // Soft-fail: if profile lookup fails, fall back to customer_email
+        // and Stripe will create a new customer. Better than blocking checkout.
+        console.warn('Profile lookup failed, falling back to customer_email:', e.message);
+      }
+    }
+
     // 3. Parse body
     let body = {};
     try { body = await request.json(); } catch {}
@@ -67,7 +97,13 @@ export async function onRequestPost(context) {
     params.append('success_url', successUrl);
     params.append('cancel_url',  cancelUrl);
     params.append('client_reference_id', user.id);
-    params.append('customer_email', user.email || '');
+    if (existingCustomerId) {
+      // Reuse the user's existing Stripe customer record
+      params.append('customer', existingCustomerId);
+    } else if (user.email) {
+      // First-time subscriber: prefill the email so Checkout doesn't ask
+      params.append('customer_email', user.email);
+    }
     params.append('allow_promotion_codes', 'true');
     params.append('billing_address_collection', 'auto');
     params.append('subscription_data[metadata][user_id]', user.id);

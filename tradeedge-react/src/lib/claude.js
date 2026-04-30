@@ -35,28 +35,42 @@ export async function callClaude({
   const payload = { model, max_tokens, messages };
   if (system) payload.system = system;
 
-  let resp;
+  // Try BYO key first if set; on auth failure, transparently fall back to
+  // the platform proxy so a stale/bad key in localStorage doesn't blackhole
+  // the user.
   if (userKey) {
-    // BYO key — direct call to Anthropic
-    resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': userKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify(payload),
-    });
-  } else {
-    // Platform proxy
-    resp = await fetch('/api/claude', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': userKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (resp.ok) return data;
+      // Auth-style failures → fall through to platform proxy
+      if (resp.status !== 401 && resp.status !== 403) {
+        const msg = data.error?.message || data.error || `Claude error (HTTP ${resp.status})`;
+        throw new Error(msg);
+      }
+      // else: silent fallback below
+      console.warn('User Claude key rejected, falling back to platform proxy');
+    } catch (e) {
+      // Network errors with BYO — also fall back
+      console.warn('User Claude key call failed, falling back to platform proxy:', e.message);
+    }
   }
 
+  // Platform proxy (default path)
+  const resp = await fetch('/api/claude', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok) {
     const msg = data.error?.message || data.error || `Claude error (HTTP ${resp.status})`;

@@ -27,8 +27,11 @@ export async function onRequestPost(context) {
       });
     }
 
-    const apiKey = env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
+    // Try ANTHROPIC_API_KEY first; if it 401s (dead/rotated), retry with the
+    // backup ANTHROPIC_API_KEY2 so the platform doesn't blackhole on a single
+    // expired key.
+    const keys = [env.ANTHROPIC_API_KEY, env.ANTHROPIC_API_KEY2].filter(Boolean);
+    if (!keys.length) {
       return new Response(JSON.stringify({ error: 'Server not configured (missing ANTHROPIC_API_KEY)' }), {
         status: 503, headers: corsHeaders,
       });
@@ -37,19 +40,25 @@ export async function onRequestPost(context) {
     const payload = { model, max_tokens, messages };
     if (system) payload.system = system;
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+    let lastResp, lastData;
+    for (const apiKey of keys) {
+      lastResp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      lastData = await lastResp.json().catch(() => ({}));
+      if (lastResp.ok) break;
+      // Only fall through on auth failures — other errors are real and shouldn't retry
+      if (lastResp.status !== 401 && lastResp.status !== 403) break;
+    }
 
-    const data = await resp.json();
-    return new Response(JSON.stringify(data), {
-      status: resp.status, headers: corsHeaders,
+    return new Response(JSON.stringify(lastData), {
+      status: lastResp.status, headers: corsHeaders,
     });
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), {
