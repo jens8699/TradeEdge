@@ -40,8 +40,27 @@ export default function TermsOfService() {
         </ul>
       </Section>
 
-      <Section title="Premium subscriptions">
-        TradeEdge offers a free tier and a premium subscription. Premium features are clearly marked in the app. Subscriptions are billed as described at the time of purchase. You may cancel at any time; your access will continue until the end of the current billing period. Refunds are handled on a case-by-case basis — contact <a href="mailto:support@tradeedge.io" style={{ color: 'var(--c-accent)' }}>support@tradeedge.io</a>.
+      <Section title="Subscriptions and billing">
+        TradeEdge offers a free tier and a paid <b>TradeEdge Pro</b> subscription. The current price is <b>$19 USD per month</b>, billed monthly. An optional <b>Backtesting</b> add-on is available for an additional <b>$10 USD per month</b>, bringing the total to $29 per month when enabled.
+        <br /><br />
+        <b>How billing works:</b>
+        <ul style={{ margin: '8px 0', paddingLeft: '20px', lineHeight: 1.8 }}>
+          <li>Subscriptions are recurring and renew automatically each month until you cancel.</li>
+          <li>Your card is charged at the start of each billing period.</li>
+          <li>Payments are processed by Stripe. TradeEdge does not store your card details.</li>
+          <li>All prices are shown in USD on the checkout page. Your bank may convert this to your local currency at their exchange rate.</li>
+        </ul>
+        <b>Cancellation:</b>
+        <ul style={{ margin: '8px 0', paddingLeft: '20px', lineHeight: 1.8 }}>
+          <li>You can cancel any time via <em>Settings → Subscription → Manage subscription</em>, which opens Stripe's secure billing portal.</li>
+          <li>When you cancel, your Pro access continues until the end of the current paid billing period — you keep what you paid for.</li>
+          <li>After the period ends, your account automatically reverts to the free tier. Your data is preserved.</li>
+        </ul>
+        <b>Refunds:</b> we don't issue refunds for partial billing periods or unused time. If you believe you've been charged in error, email <a href="mailto:support@tradeedge.io" style={{ color: 'var(--c-accent)' }}>support@tradeedge.io</a> and we'll review on a case-by-case basis.
+        <br /><br />
+        <b>Failed payments:</b> if a renewal payment fails, we'll retry it a few times over the following days. If it still fails, your subscription will be canceled and your account reverts to the free tier. You can resubscribe at any time.
+        <br /><br />
+        <b>Price changes:</b> we may change subscription prices in the future. Existing subscribers will be notified by email at least 30 days before any price change takes effect, and you can cancel before the new price applies.
       </Section>
 
       <Section title="Availability and changes">
