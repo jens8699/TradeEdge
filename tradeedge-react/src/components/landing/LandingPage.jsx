@@ -110,7 +110,7 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
           </div>
           <div className="lp-nav-cta">
             <button className="lp-btn lp-btn-ghost" onClick={onSignIn}>Sign in</button>
-            <button className="lp-btn lp-btn-primary" onClick={onStartTrial}>Start free trial</button>
+            <button className="lp-btn lp-btn-primary" onClick={onStartTrial}>Get started — free</button>
           </div>
         </div>
       </nav>
@@ -125,7 +125,7 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
           <h1 className="lp-h1">One dashboard for all your <em>prop firm accounts</em>.</h1>
           <p className="lp-hero-sub">Stop logging into FTMO, TopStep, and Apex separately. Track performance, costs, and payouts across every prop firm — in one place, in real time.</p>
           <div className="lp-cta-row">
-            <button className="lp-btn lp-btn-primary lp-btn-lg" onClick={onStartTrial}>Start free trial →</button>
+            <button className="lp-btn lp-btn-primary lp-btn-lg" onClick={onStartTrial}>Get started — free →</button>
             <button className="lp-btn lp-btn-outline lp-btn-lg" onClick={onSignIn}>See it live</button>
           </div>
           <div className="lp-reassurance">
@@ -460,7 +460,7 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
               <div className="lp-price-amount">$0<span className="lp-per"> / month</span></div>
               <div className="lp-price-desc">Get the basics. Built for traders just starting their first prop firm journey.</div>
               <ul className="lp-price-list">
-                {['Up to 2 accounts','Manual trade entry','Basic stats & calendar','14 days of history'].map(f => <li key={f}>{f}</li>)}
+                {['1 connected account','Manual + CSV trade import','Stats, calendar & journal','Full history'].map(f => <li key={f}>{f}</li>)}
               </ul>
               <button className="lp-btn lp-btn-outline lp-btn-lg lp-btn-full" onClick={onStartTrial}>Start free</button>
               <div className="lp-price-reassurance">No credit card required</div>
@@ -495,7 +495,7 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
           <h2 className="lp-section-title">Things you're <em>probably wondering</em>.</h2>
           <div className="lp-faq-list">
             {[
-              { q: 'Which prop firms are supported?', a: 'FTMO, TopStep, Apex, Tradeify, MyFundedFutures, The5%ers, FundedNext, and most other major firms running on Rithmic, Tradovate, NinjaTrader, MetaTrader 4/5, or cTrader. If your firm uses one of those platforms, you\'re covered.' },
+              { q: 'Which prop firms are supported?', a: 'Today: any firm using Tradovate (live API connection) plus CSV imports from DAS Trader, Thinkorswim, and Tradovate. That covers most accounts at TopStep, Apex, MyFundedFutures, Tradeify, and similar. Rithmic, NinjaTrader, MetaTrader 4/5, and cTrader integrations are on the roadmap. If your firm exports CSVs in a different format, email us — we add new parsers fast.' },
               { q: 'Do I have to give you my broker passwords?', a: 'No. We connect via read-only API keys or trade exports — never your login credentials. We can\'t place trades, can\'t move money, can\'t see anything except your trade history.' },
               { q: 'How accurate is drawdown tracking?', a: 'Tick-level accurate during market hours. We calculate trailing and static drawdown the same way every prop firm does — so what you see in TradeEdge matches what your firm sees, to the dollar.' },
               { q: 'What happens after the free trial?', a: 'Your card is charged $19/month on day 8 unless you cancel during the trial. We require a card up front so the transition is seamless if you decide to keep going. You can cancel any time from Settings — no questions asked, and your data stays put on the free tier.' },
