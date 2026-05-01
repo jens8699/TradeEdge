@@ -120,10 +120,10 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
         <div className="lp-container">
           <div className="lp-eyebrow">
             <span className="lp-eyebrow-dot" />
-            <span>Built for prop firm traders managing 3+ accounts</span>
+            <span>Built by a prop trader, for prop traders</span>
           </div>
-          <h1 className="lp-h1">One dashboard for all your <em>prop firm accounts</em>.</h1>
-          <p className="lp-hero-sub">Stop logging into FTMO, TopStep, and Apex separately. Track performance, costs, and payouts across every prop firm — in one place, in real time.</p>
+          <h1 className="lp-h1">One dashboard for every <em>prop firm account</em>.</h1>
+          <p className="lp-hero-sub">I got tired of opening 4 different dashboards every morning just to know if I was up or down. So I built TradeEdge — every account, every firm, every payout in one place.</p>
           <div className="lp-cta-row">
             <button className="lp-btn lp-btn-primary lp-btn-lg" onClick={onStartTrial}>Get started — free →</button>
             <button className="lp-btn lp-btn-outline lp-btn-lg" onClick={onSignIn}>See it live</button>
