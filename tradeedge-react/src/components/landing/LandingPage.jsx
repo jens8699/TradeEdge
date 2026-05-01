@@ -470,7 +470,7 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
               <div className="lp-price-badge">Most popular</div>
               <div className="lp-price-tier">Pro</div>
               <div className="lp-price-amount">$19<span className="lp-per"> / month</span></div>
-              <div className="lp-price-desc">Everything. Built for traders managing 3+ prop firm accounts.</div>
+              <div className="lp-price-desc">Everything. Every feature, every firm, no limits.</div>
               <ul className="lp-price-list">
                 {['Unlimited accounts & firms','Automated trade imports','Drawdown compliance alerts','Cost vs payout analytics','AI live news feed','Unlimited history'].map(f => <li key={f}>{f}</li>)}
               </ul>
