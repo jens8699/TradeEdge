@@ -171,13 +171,13 @@ export default function WeeklyDigest() {
       </div>
 
       {/* ── Editorial header ── */}
-      <header style={{ marginBottom: 28 }}>
-        <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10, fontFamily: "'JetBrains Mono', monospace" }}>
+      <header style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 10.5, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 8, fontFamily: "'JetBrains Mono', monospace" }}>
           {rangeLabel}
         </div>
         <h1 style={{
           fontFamily: "'Fraunces', Georgia, serif",
-          fontSize: 'clamp(28px, 5vw, 38px)',
+          fontSize: 'clamp(24px, 4vw, 32px)',
           letterSpacing: '-0.03em', color: 'var(--c-text)',
           lineHeight: 1.1, margin: 0,
         }}>
@@ -196,26 +196,27 @@ export default function WeeklyDigest() {
       ) : (
         <>
           {/* ── Top stats ── */}
-          <section className="digest-section" style={{ marginBottom: 32 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 18 }}>
+          <section className="digest-section" style={{ marginBottom: 28 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
               <BigStat
                 label="Net P&L"
                 value={`${stats.totalPnl >= 0 ? '+' : ''}${fmt(stats.totalPnl)}`}
                 color={stats.totalPnl >= 0 ? 'var(--c-accent)' : '#C65A45'}
-                size={42}
+                size="clamp(22px, 3vw, 30px)"
               />
-              <BigStat label="Trades"        value={String(stats.count)} />
-              <BigStat label="Win rate"      value={`${stats.winRate.toFixed(0)}%`} />
+              <BigStat label="Trades"        value={String(stats.count)} size={24} />
+              <BigStat label="Win rate"      value={`${stats.winRate.toFixed(0)}%`} size={24} />
               <BigStat
                 label="Profit factor"
                 value={isFinite(stats.pf) ? stats.pf.toFixed(2) : '∞'}
+                size={24}
               />
             </div>
           </section>
 
           {/* ── Day breakdown ── */}
           {dayBuckets && (
-            <section className="digest-section" style={{ marginBottom: 32 }}>
+            <section className="digest-section" style={{ marginBottom: 28 }}>
               <Eyebrow>Day by day</Eyebrow>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
                 {dayBuckets.map(d => {
@@ -223,8 +224,8 @@ export default function WeeklyDigest() {
                   return (
                     <div key={+d.date} style={{
                       border: '1px solid var(--c-border)', borderRadius: 10,
-                      padding: '12px 8px', display: 'flex', flexDirection: 'column',
-                      alignItems: 'center', gap: 6, minHeight: 130,
+                      padding: '10px 6px', display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', gap: 5, minHeight: 110,
                     }}>
                       <div style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: 'var(--c-text-2)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{d.label}</div>
                       <div style={{ fontSize: 11, color: 'var(--c-text-2)' }}>
@@ -265,7 +266,7 @@ export default function WeeklyDigest() {
 
           {/* ── Best & worst ── */}
           {(best || worst) && (
-            <section className="digest-section" style={{ marginBottom: 32 }}>
+            <section className="digest-section" style={{ marginBottom: 28 }}>
               <Eyebrow>Highs &amp; lows</Eyebrow>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
                 {best && (
@@ -288,7 +289,7 @@ export default function WeeklyDigest() {
 
           {/* ── Top setups ── */}
           {topSetups.length > 0 && (
-            <section className="digest-section" style={{ marginBottom: 32 }}>
+            <section className="digest-section" style={{ marginBottom: 28 }}>
               <Eyebrow>Top setups</Eyebrow>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {topSetups.map((s, i) => {
@@ -331,28 +332,28 @@ export default function WeeklyDigest() {
 
           {/* ── Discipline ── */}
           {discipline && (
-            <section className="digest-section" style={{ marginBottom: 32 }}>
+            <section className="digest-section" style={{ marginBottom: 28 }}>
               <Eyebrow>Discipline</Eyebrow>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
                 <BigStat
                   label="Checklist pass rate"
                   value={`${discipline.passRate.toFixed(0)}%`}
                   color="var(--c-text)"
-                  size={32}
+                  size={26}
                   sub={`${discipline.onPlanCount} on plan · ${discipline.offPlanCount} off plan`}
                 />
                 <BigStat
                   label="On-plan P&L"
                   value={`${discipline.onPlanPnl >= 0 ? '+' : ''}${fmt(discipline.onPlanPnl)}`}
                   color={discipline.onPlanPnl >= 0 ? 'var(--c-accent)' : '#C65A45'}
-                  size={26}
+                  size={22}
                 />
                 {discipline.offPlanCount > 0 && (
                   <BigStat
                     label="Off-plan P&L"
                     value={`${discipline.offPlanPnl >= 0 ? '+' : ''}${fmt(discipline.offPlanPnl)}`}
                     color={discipline.offPlanPnl >= 0 ? '#EFC97A' : '#C65A45'}
-                    size={26}
+                    size={22}
                   />
                 )}
               </div>
@@ -384,15 +385,18 @@ function Eyebrow({ children }) {
   );
 }
 
-function BigStat({ label, value, color, size = 28, sub }) {
+function BigStat({ label, value, color, size = 24, sub }) {
+  // size can be a number (px) or any valid CSS font-size string (e.g. clamp())
+  const fontSize = typeof size === 'number' ? `${size}px` : size;
   return (
-    <div>
+    <div style={{ minWidth: 0 }}>
       <div style={{ fontSize: 10, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6, fontFamily: "'JetBrains Mono', monospace" }}>
         {label}
       </div>
       <div style={{
-        fontSize: size, fontWeight: 600, color: color || 'var(--c-text)',
+        fontSize, fontWeight: 600, color: color || 'var(--c-text)',
         fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', lineHeight: 1.05,
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
         {value}
       </div>
@@ -421,8 +425,9 @@ function TradeCallout({ label, trade, color }) {
         </span>
       </div>
       <div style={{
-        fontSize: 22, fontWeight: 700, color, marginTop: 4,
+        fontSize: 18, fontWeight: 700, color, marginTop: 4,
         fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
         {(trade.pnl || 0) >= 0 ? '+' : ''}{fmt(trade.pnl || 0)}
       </div>
