@@ -62,7 +62,7 @@ export default function TermsOfService() {
           <li>When you cancel, your Pro access continues until the end of the current paid billing period — you keep what you paid for.</li>
           <li>After the period ends, your account automatically reverts to the free tier. Your data is preserved.</li>
         </ul>
-        <b>Refunds:</b> we don't issue refunds for partial billing periods or unused time. If you believe you've been charged in error, email <a href="mailto:support@tradeedge.io" style={{ color: 'var(--c-accent)' }}>support@tradeedge.io</a> and we'll review on a case-by-case basis.
+        <b>Refunds:</b> we don't issue refunds for partial billing periods or unused time. If you believe you've been charged in error, email <a href="mailto:support@tradeedge.today" style={{ color: 'var(--c-accent)' }}>support@tradeedge.today</a> and we'll review on a case-by-case basis.
         <br /><br />
         <b>Failed payments:</b> if a renewal payment fails, we'll retry it a few times over the following days. If it still fails, your subscription will be canceled and your account reverts to the free tier. You can resubscribe at any time.
         <br /><br />
@@ -86,7 +86,7 @@ export default function TermsOfService() {
       </Section>
 
       <Section title="Contact">
-        Questions about these terms? Email <a href="mailto:support@tradeedge.io" style={{ color: 'var(--c-accent)' }}>support@tradeedge.io</a>.
+        Questions about these terms? Email <a href="mailto:support@tradeedge.today" style={{ color: 'var(--c-accent)' }}>support@tradeedge.today</a>.
       </Section>
     </div>
   );

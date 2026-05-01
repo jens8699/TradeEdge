@@ -42,7 +42,7 @@ export default function PrivacyPolicy() {
       </Section>
 
       <Section title="Data retention and deletion">
-        Your data is retained as long as your account is active. You can export all your data at any time from Settings → Export. To request full account deletion, contact us at <a href="mailto:support@tradeedge.io" style={{ color: 'var(--c-accent)' }}>support@tradeedge.io</a> and we will delete your account and all associated data within 30 days.
+        Your data is retained as long as your account is active. You can export all your data at any time from Settings → Export. To request full account deletion, contact us at <a href="mailto:support@tradeedge.today" style={{ color: 'var(--c-accent)' }}>support@tradeedge.today</a> and we will delete your account and all associated data within 30 days.
       </Section>
 
       <Section title="Third-party services">
@@ -56,7 +56,7 @@ export default function PrivacyPolicy() {
       </Section>
 
       <Section title="Your rights">
-        You have the right to access, export, correct, or delete your personal data at any time. You can do most of this directly in the app (Settings → Export / Delete). For any requests, contact <a href="mailto:support@tradeedge.io" style={{ color: 'var(--c-accent)' }}>support@tradeedge.io</a>.
+        You have the right to access, export, correct, or delete your personal data at any time. You can do most of this directly in the app (Settings → Export / Delete). For any requests, contact <a href="mailto:support@tradeedge.today" style={{ color: 'var(--c-accent)' }}>support@tradeedge.today</a>.
       </Section>
 
       <Section title="Changes to this policy">
@@ -64,7 +64,7 @@ export default function PrivacyPolicy() {
       </Section>
 
       <Section title="Contact">
-        Questions? Email us at <a href="mailto:support@tradeedge.io" style={{ color: 'var(--c-accent)' }}>support@tradeedge.io</a>.
+        Questions? Email us at <a href="mailto:support@tradeedge.today" style={{ color: 'var(--c-accent)' }}>support@tradeedge.today</a>.
       </Section>
     </div>
   );
