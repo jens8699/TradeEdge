@@ -114,11 +114,19 @@ export async function onRequestPost(context) {
     if (addBacktesting) {
       params.append('subscription_data[metadata][has_backtesting]', 'true');
     }
-    // 7-day free trial — card required at checkout, charged on day 8.
-    // Stripe handles all the trial logic (no charge during trial, can cancel
-    // anytime without being billed). New subscription = new trial; if a user
-    // cancels and resubscribes, they get another trial.
-    params.append('subscription_data[trial_period_days]', '7');
+    // 7-day free trial for FIRST-TIME subscribers only.
+    //
+    // Returning customers (anyone who has had any past subscription on this
+    // Supabase account) get charged immediately on resub — prevents trial
+    // abuse via same-account cancel→resub cycles. We detect "returning"
+    // by the presence of an existing stripe_customer_id in their profile
+    // (set by the webhook on first successful subscription).
+    //
+    // Multi-account abuse (different Supabase user, same card) is a
+    // separate Layer 2 problem — would need card fingerprint tracking.
+    if (!existingCustomerId) {
+      params.append('subscription_data[trial_period_days]', '7');
+    }
     lineItems.forEach((li, i) => {
       params.append(`line_items[${i}][price]`, li.price);
       params.append(`line_items[${i}][quantity]`, String(li.quantity));
