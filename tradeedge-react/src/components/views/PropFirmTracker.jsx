@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useApp } from '../../context/AppContext';
 import { fmt } from '../../lib/utils';
 
 // Persisted in localStorage under this key. Move to Supabase when needed.
@@ -38,6 +39,51 @@ function saveAccounts(accs) {
   } catch {}
 }
 
+// ── Per-firm ROI aggregation ────────────────────────────────────────────────
+// Sums account costs and payout amounts per firm. Returns array sorted by net
+// (most profitable first). Firm name match is case-insensitive + trim.
+function computeFirmROI(accounts, payouts) {
+  const byFirm = new Map();
+
+  function getOrInit(firmName) {
+    const key = (firmName || '').toLowerCase().trim();
+    if (!key) return null;
+    if (!byFirm.has(key)) {
+      byFirm.set(key, {
+        firm: firmName.trim(),
+        spent: 0,
+        earned: 0,
+        accountCount: 0,
+        payoutCount: 0,
+      });
+    }
+    return byFirm.get(key);
+  }
+
+  for (const a of accounts) {
+    const entry = getOrInit(a.firm);
+    if (!entry) continue;
+    entry.spent += Number(a.cost) || 0;
+    entry.accountCount++;
+  }
+
+  for (const p of (payouts || [])) {
+    const entry = getOrInit(p.firm);
+    if (!entry) continue;
+    entry.earned += Number(p.amount) || 0;
+    entry.payoutCount++;
+  }
+
+  return Array.from(byFirm.values())
+    .map(e => ({
+      ...e,
+      net: e.earned - e.spent,
+      // null when no money spent — prevents "Infinity%" on payout-only firms
+      roi: e.spent > 0 ? ((e.earned - e.spent) / e.spent) * 100 : null,
+    }))
+    .sort((a, b) => b.net - a.net);
+}
+
 // ── Edit / Add modal ─────────────────────────────────────────────────────────
 
 function AccountModal({ initial, onSave, onClose }) {
@@ -51,6 +97,7 @@ function AccountModal({ initial, onSave, onClose }) {
     ddRemaining: 2000,
     ddMax: 2000,
     payoutPct: 0,
+    cost: 0, // total spent on this account (challenge fee + resets + monthly subs)
     notes: '',
   });
 
@@ -65,6 +112,7 @@ function AccountModal({ initial, onSave, onClose }) {
       ddRemaining: Number(acc.ddRemaining) || 0,
       ddMax: Number(acc.ddMax) || 0,
       payoutPct: Math.max(0, Math.min(100, Number(acc.payoutPct) || 0)),
+      cost: Math.max(0, Number(acc.cost) || 0),
     });
   }
 
@@ -161,6 +209,21 @@ function AccountModal({ initial, onSave, onClose }) {
               />
             </Field>
           </div>
+
+          <Field label="Total spent on this account ($)">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={acc.cost}
+              onChange={e => set('cost', e.target.value)}
+              placeholder="e.g. 200 (challenge fee + any resets)"
+              style={modalStyles.input}
+            />
+            <div style={{ fontSize: 10.5, color: 'var(--c-text-2)', opacity: 0.7, marginTop: 5, lineHeight: 1.4 }}>
+              Add up everything you've paid for this account: original challenge fee, resets, monthly subs. Used to calculate ROI vs payouts received.
+            </div>
+          </Field>
 
           <Field label="Notes (optional)">
             <textarea
@@ -317,10 +380,29 @@ const iconBtn = {
 // ── Main view ────────────────────────────────────────────────────────────────
 
 export default function PropFirmTracker() {
+  const { payouts } = useApp();
   const [accounts, setAccounts] = useState(loadAccounts);
   const [editing, setEditing] = useState(null); // account being edited, or 'new', or null
 
   useEffect(() => { saveAccounts(accounts); }, [accounts]);
+
+  // Per-firm ROI: aggregate cost from accounts + payouts received per firm.
+  // Includes firms that only appear in payouts (no account in tracker yet) so
+  // nothing is lost; that's a soft nudge to add the account.
+  const firmROI = useMemo(() => computeFirmROI(accounts, payouts), [accounts, payouts]);
+  const roiTotals = useMemo(() => {
+    const t = firmROI.reduce(
+      (acc, f) => {
+        acc.spent += f.spent;
+        acc.earned += f.earned;
+        return acc;
+      },
+      { spent: 0, earned: 0 },
+    );
+    t.net = t.earned - t.spent;
+    t.roi = t.spent > 0 ? (t.net / t.spent) * 100 : null;
+    return t;
+  }, [firmROI]);
 
   function handleSave(acc) {
     setAccounts(prev => {
@@ -393,6 +475,84 @@ export default function PropFirmTracker() {
             accent="warn"
           />
         </div>
+      )}
+
+      {/* ── Per-firm ROI ── */}
+      {firmROI.length > 0 && (
+        <section style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 4, fontFamily: "'JetBrains Mono', monospace" }}>
+                Per-firm ROI
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--c-text-2)', lineHeight: 1.5, maxWidth: 540 }}>
+                What you've actually paid each firm vs. what you've actually been paid back. The number that matters most.
+              </div>
+            </div>
+          </div>
+
+          {/* Total summary — across all firms */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12,
+            marginBottom: 14,
+            padding: '14px 18px',
+            border: '1px solid var(--c-border)',
+            borderRadius: 14,
+            background: roiTotals.net >= 0 ? 'rgba(224,122,59,0.04)' : 'rgba(198,90,69,0.04)',
+          }}>
+            <ROIStatCell label="Total spent" value={fmt(roiTotals.spent)} />
+            <ROIStatCell label="Total earned" value={fmt(roiTotals.earned)} />
+            <ROIStatCell
+              label="Net"
+              value={`${roiTotals.net >= 0 ? '+' : ''}${fmt(roiTotals.net)}`}
+              accent={roiTotals.net >= 0 ? 'good' : 'bad'}
+            />
+            <ROIStatCell
+              label="ROI"
+              value={roiTotals.roi != null ? `${roiTotals.roi >= 0 ? '+' : ''}${roiTotals.roi.toFixed(0)}%` : '—'}
+              accent={roiTotals.roi == null ? 'muted' : roiTotals.roi >= 0 ? 'good' : 'bad'}
+            />
+          </div>
+
+          {/* Per-firm rows */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {firmROI.map(f => {
+              const isProfit = f.net >= 0;
+              return (
+                <div key={f.firm} style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto auto auto auto',
+                  gap: 16, alignItems: 'center',
+                  padding: '12px 18px',
+                  border: '1px solid var(--c-border)',
+                  borderRadius: 12,
+                  background: 'var(--c-surface)',
+                }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-text)', marginBottom: 3 }}>
+                      {f.firm}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--c-text-2)' }}>
+                      {f.accountCount} account{f.accountCount !== 1 ? 's' : ''} · {f.payoutCount} payout{f.payoutCount !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                  <ROICell label="Spent"  value={fmt(f.spent)} />
+                  <ROICell label="Earned" value={fmt(f.earned)} />
+                  <ROICell
+                    label="Net"
+                    value={`${isProfit ? '+' : ''}${fmt(f.net)}`}
+                    accent={isProfit ? 'good' : 'bad'}
+                  />
+                  <ROICell
+                    label="ROI"
+                    value={f.roi != null ? `${f.roi >= 0 ? '+' : ''}${f.roi.toFixed(0)}%` : '—'}
+                    accent={f.roi == null ? 'muted' : f.roi >= 0 ? 'good' : 'bad'}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {/* Add button */}
@@ -500,6 +660,44 @@ function Stat({ label, value, sub, accent }) {
       {sub && (
         <div style={{ fontSize: 11, color: 'var(--c-text-2)', marginTop: 4 }}>{sub}</div>
       )}
+    </div>
+  );
+}
+
+// Small inline cell for the per-firm ROI rows (fits in a tight grid column).
+function ROICell({ label, value, accent }) {
+  const color =
+    accent === 'good' ? 'var(--c-accent)' :
+    accent === 'bad'  ? '#C65A45' :
+    accent === 'muted' ? 'var(--c-text-2)' :
+    'var(--c-text)';
+  return (
+    <div style={{ minWidth: 70, textAlign: 'right' }}>
+      <div style={{ fontSize: 9.5, color: 'var(--c-text-2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 2, fontFamily: "'JetBrains Mono', monospace" }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 13.5, fontWeight: 600, color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+// Larger version for the across-all-firms summary card.
+function ROIStatCell({ label, value, accent }) {
+  const color =
+    accent === 'good' ? 'var(--c-accent)' :
+    accent === 'bad'  ? '#C65A45' :
+    accent === 'muted' ? 'var(--c-text-2)' :
+    'var(--c-text)';
+  return (
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontSize: 10, color: 'var(--c-text-2)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4, fontFamily: "'JetBrains Mono', monospace" }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 20, fontWeight: 600, color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {value}
+      </div>
     </div>
   );
 }
