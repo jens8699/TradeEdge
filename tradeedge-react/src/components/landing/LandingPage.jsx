@@ -129,9 +129,9 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
             <button className="lp-btn lp-btn-outline lp-btn-lg" onClick={onSignIn}>See it live</button>
           </div>
           <div className="lp-reassurance">
-            <span><span className="lp-check">✓</span> 2-week free trial</span>
-            <span><span className="lp-check">✓</span> No credit card required</span>
-            <span><span className="lp-check">✓</span> Free tier for 1–2 accounts</span>
+            <span><span className="lp-check">✓</span> 7-day free Pro trial</span>
+            <span><span className="lp-check">✓</span> Free tier · no card needed</span>
+            <span><span className="lp-check">✓</span> Cancel anytime</span>
           </div>
 
           {/* Hero product mock */}
@@ -390,8 +390,8 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
             {/* 6 — half */}
             <div className="lp-feature-card f-half">
               <span className="lp-feature-num">06</span>
-              <div className="lp-feature-title">Backtesting, <em>included</em>.</div>
-              <div className="lp-feature-desc">Test your setup against 5 years of tick data. No extra subscription — same login, same data, same dashboard.</div>
+              <div className="lp-feature-title">Backtesting, <em>coming soon</em>.</div>
+              <div className="lp-feature-desc">Test your setup against 5 years of tick data — same login, same dashboard. Launching soon for Pro subscribers.</div>
               <div className="lp-feature-visual">
                 <svg viewBox="0 0 300 80" style={{ width: '100%', height: '80px' }} preserveAspectRatio="none">
                   <defs>
@@ -428,7 +428,7 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
               { label: 'Automated trade imports', us: '✓', tz: '✓', pf: '—', pft: '—' },
               { label: 'AI live news feed', us: '✓', tz: '—', pf: '—', pft: '—' },
               { label: 'Drawdown compliance alerts', us: '✓', tz: '—', pf: '✓', pft: '—' },
-              { label: 'Backtesting included', us: '+$10 add-on', tz: '—', pf: '—', pft: '—', usSmall: true },
+              { label: 'Backtesting included', us: 'Coming soon', tz: '—', pf: '—', pft: '—', usSmall: true },
               { label: 'Monthly price', us: '$19', tz: '$50', pf: '$45–80', pft: '$5', price: true },
             ].map(r => (
               <div key={r.label} className="lp-compare-row">
@@ -437,7 +437,6 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
                   {r.price ? <span className="lp-price us">{r.us}</span> :
                    r.usSmall ? <span style={{ fontSize: '12px', color: '#A89687' }}>{r.us}</span> :
                    <span className={r.us === '✓' ? 'lp-check' : 'lp-x'}>{r.us}</span>}
-                  {r.price && <span style={{ fontSize: '11px', color: 'var(--lp-text3)', display: 'block', marginTop: '2px' }}>+$10 backtesting</span>}
                 </div>
                 <div>{r.price ? <span className="lp-price">{r.tz}</span> : <span className={r.tz === '✓' ? 'lp-check' : 'lp-x'}>{r.tz}</span>}</div>
                 <div>{r.price ? <span className="lp-price">{r.pf}</span> : <span className={r.pf === '✓' ? 'lp-check' : 'lp-x'}>{r.pf}</span>}</div>
@@ -477,13 +476,13 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
               </ul>
               <div className="lp-backtest-addon">
                 <div>
-                  <div style={{ fontFamily: 'Fraunces, serif', fontSize: '15px', letterSpacing: '-0.01em' }}>Add <em style={{ fontStyle: 'italic', color: 'var(--lp-accent)' }}>backtesting</em></div>
+                  <div style={{ fontFamily: 'Fraunces, serif', fontSize: '15px', letterSpacing: '-0.01em' }}><em style={{ fontStyle: 'italic', color: 'var(--lp-accent)' }}>Backtesting</em></div>
                   <div style={{ fontSize: '12px', color: 'var(--lp-text3)', marginTop: '2px' }}>5 years of tick data · same dashboard</div>
                 </div>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', fontWeight: 600, color: 'var(--lp-accent)', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>+$10<span style={{ fontSize: '12px', color: 'var(--lp-text3)', fontWeight: 400 }}> /mo</span></div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 700, color: 'var(--lp-accent)', letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: 'rgba(224,122,59,0.1)', border: '1px solid rgba(224,122,59,0.35)', padding: '4px 10px', borderRadius: '100px' }}>Coming soon</div>
               </div>
-              <button className="lp-btn lp-btn-primary lp-btn-lg lp-btn-full" onClick={onStartTrial}>Start 2-week free trial</button>
-              <div className="lp-price-reassurance">No credit card · cancel anytime</div>
+              <button className="lp-btn lp-btn-primary lp-btn-lg lp-btn-full" onClick={onStartTrial}>Start 7-day free trial</button>
+              <div className="lp-price-reassurance">Card required · cancel anytime during trial</div>
             </div>
           </div>
         </div>
@@ -499,7 +498,7 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
               { q: 'Which prop firms are supported?', a: 'FTMO, TopStep, Apex, Tradeify, MyFundedFutures, The5%ers, FundedNext, and most other major firms running on Rithmic, Tradovate, NinjaTrader, MetaTrader 4/5, or cTrader. If your firm uses one of those platforms, you\'re covered.' },
               { q: 'Do I have to give you my broker passwords?', a: 'No. We connect via read-only API keys or trade exports — never your login credentials. We can\'t place trades, can\'t move money, can\'t see anything except your trade history.' },
               { q: 'How accurate is drawdown tracking?', a: 'Tick-level accurate during market hours. We calculate trailing and static drawdown the same way every prop firm does — so what you see in TradeEdge matches what your firm sees, to the dollar.' },
-              { q: 'What happens after the free trial?', a: 'Nothing automatic. We don\'t take a card up front, so when 14 days are up your account drops to the free Starter tier and your data stays put. Upgrade when you\'re ready.' },
+              { q: 'What happens after the free trial?', a: 'Your card is charged $19/month on day 8 unless you cancel during the trial. We require a card up front so the transition is seamless if you decide to keep going. You can cancel any time from Settings — no questions asked, and your data stays put on the free tier.' },
               { q: 'Can I export my data?', a: 'Always. CSV, JSON, or PDF reports — your trades belong to you, not us.' },
             ].map(item => <FaqItem key={item.q} {...item} />)}
           </div>

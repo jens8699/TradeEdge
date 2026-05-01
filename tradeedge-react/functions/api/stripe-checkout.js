@@ -81,10 +81,14 @@ export async function onRequestPost(context) {
     const addBacktesting = !!body.addBacktesting;
 
     // 4. Build line items
+    //
+    // Backtesting is currently "Coming soon" — even if the request body asks
+    // for it, we don't add the line item. Defense in depth: prevents anyone
+    // from being charged for a feature that doesn't exist yet, even if the
+    // frontend regresses or someone POSTs to this endpoint directly.
+    // When backtesting ships, restore the original `if (addBacktesting...)` block.
     const lineItems = [{ price: env.STRIPE_PRICE_PRO, quantity: 1 }];
-    if (addBacktesting && env.STRIPE_PRICE_BACKTEST) {
-      lineItems.push({ price: env.STRIPE_PRICE_BACKTEST, quantity: 1 });
-    }
+    void addBacktesting; // intentionally ignored until feature ships
 
     // 5. Resolve return URLs from the Origin header (works in any environment)
     const origin = request.headers.get('origin') || 'https://tradeedge.today';

@@ -17,7 +17,6 @@ const FEATURES = [
 ];
 
 export default function UpgradeModal({ onClose }) {
-  const [addBacktesting, setAddBacktesting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -26,8 +25,9 @@ export default function UpgradeModal({ onClose }) {
     setError('');
     setLoading(true);
     try {
-      await startCheckout({ addBacktesting });
-      // We'll be redirected away — if not, surface that
+      // Backtesting add-on is "Coming soon" — never request it from checkout.
+      // When the feature ships, re-introduce the toggle and pass addBacktesting here.
+      await startCheckout({ addBacktesting: false });
     } catch (e) {
       setError(e.message || 'Could not start checkout.');
       setLoading(false);
@@ -109,37 +109,40 @@ export default function UpgradeModal({ onClose }) {
 
         {/* CTA */}
         <div style={{ padding: '0 24px 24px' }}>
-          {/* Backtesting add-on toggle */}
+          {/* Backtesting — Coming Soon. Re-enable interactive toggle when feature ships. */}
           <div
-            onClick={() => !loading && setAddBacktesting(v => !v)}
             style={{
               display: 'flex', alignItems: 'center', gap: 12,
               padding: '12px 14px', marginBottom: 12,
-              border: `1.5px ${addBacktesting ? 'solid' : 'dashed'} ${addBacktesting ? 'rgba(224,122,59,0.4)' : 'var(--c-border)'}`,
-              background: addBacktesting ? 'rgba(224,122,59,0.06)' : 'transparent',
-              borderRadius: 12, cursor: loading ? 'default' : 'pointer',
-              transition: 'all 0.15s',
+              border: '1.5px dashed var(--c-border)',
+              background: 'transparent',
+              borderRadius: 12, opacity: 0.7,
             }}
           >
             <div style={{
               width: 18, height: 18, borderRadius: 5, flexShrink: 0,
-              border: `1.5px solid ${addBacktesting ? '#E07A3B' : 'var(--c-border)'}`,
-              background: addBacktesting ? '#E07A3B' : 'transparent',
+              border: '1.5px solid var(--c-border)',
+              background: 'transparent',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', fontSize: 12, fontWeight: 800,
+              color: 'var(--c-text-2)', fontSize: 11, fontWeight: 800,
             }}>
-              {addBacktesting ? '✓' : ''}
+              ⏱
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text)', marginBottom: 2 }}>
-                Add Backtesting
+                Backtesting
               </div>
               <div style={{ fontSize: 11, color: 'var(--c-text-2)' }}>
                 5 years of tick data · same dashboard
               </div>
             </div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#E07A3B', whiteSpace: 'nowrap' }}>
-              +$10 /mo
+            <div style={{
+              fontSize: 10, fontWeight: 700, color: '#E07A3B',
+              background: 'rgba(224,122,59,0.1)', border: '1px solid rgba(224,122,59,0.35)',
+              padding: '4px 9px', borderRadius: 100, whiteSpace: 'nowrap',
+              letterSpacing: '0.06em', textTransform: 'uppercase',
+            }}>
+              Coming soon
             </div>
           </div>
 
@@ -167,9 +170,7 @@ export default function UpgradeModal({ onClose }) {
           >
             {loading
               ? 'Opening checkout…'
-              : addBacktesting
-                ? '⚡ Start 7-day free trial — then $29 / month →'
-                : '⚡ Start 7-day free trial — then $19 / month →'}
+              : '⚡ Start 7-day free trial — then $19 / month →'}
           </button>
           <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--c-text-2)', margin: '8px 0 0' }}>
             Card required · Free for 7 days · Cancel anytime from Settings
