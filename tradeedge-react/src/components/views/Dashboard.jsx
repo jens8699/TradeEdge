@@ -289,6 +289,73 @@ export default function Dashboard({ user, profile }) {
 
       <HR my={30} />
 
+      {/* ── First-time user welcome card (only when zero trades exist) ── */}
+      {trades.length === 0 && (
+        <div style={{
+          marginBottom: 32,
+          padding: '24px clamp(20px, 4vw, 32px)',
+          borderRadius: 18,
+          border: '1px solid rgba(224,122,59,0.25)',
+          background: 'radial-gradient(ellipse at top right, rgba(224,122,59,0.08) 0%, transparent 70%)',
+        }}>
+          <div style={{
+            fontSize: 11, color: '#E07A3B', letterSpacing: '0.16em',
+            textTransform: 'uppercase', marginBottom: 10, fontFamily: "'JetBrains Mono', monospace",
+            fontWeight: 700,
+          }}>
+            Welcome to TradeEdge
+          </div>
+          <div style={{
+            fontFamily: "'Fraunces', Georgia, serif",
+            fontSize: 'clamp(20px, 3.2vw, 26px)',
+            letterSpacing: '-0.02em', color: 'var(--c-text)',
+            lineHeight: 1.2, margin: '0 0 10px',
+          }}>
+            Your dashboard is ready. <em style={{ fontStyle: 'italic', color: 'var(--c-accent)' }}>Now feed it.</em>
+          </div>
+          <div style={{
+            fontSize: 13.5, color: 'var(--c-text-2)', lineHeight: 1.6,
+            marginBottom: 22, maxWidth: 560,
+          }}>
+            Log a trade, import your history from a CSV, or connect a broker to auto-sync. Stats, AI Insights, and the rest light up the moment your first trade lands.
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setActiveTab('entry')}
+              style={{
+                padding: '11px 20px', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                background: 'var(--c-accent)', color: '#fff', border: 'none', cursor: 'pointer',
+                fontFamily: "'Inter', sans-serif", letterSpacing: '-0.2px',
+              }}
+            >
+              ✦ Log your first trade →
+            </button>
+            <button
+              onClick={() => setActiveTab('connections')}
+              style={{
+                padding: '11px 18px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+                background: 'transparent', color: 'var(--c-text)',
+                border: '1px solid var(--c-border)', cursor: 'pointer',
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              Import from CSV
+            </button>
+            <button
+              onClick={() => setActiveTab('connections')}
+              style={{
+                padding: '11px 18px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+                background: 'transparent', color: 'var(--c-text-2)',
+                border: '1px solid var(--c-border)', cursor: 'pointer',
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              Connect a broker
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Three-up hero stats ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 28, rowGap: 24 }}>
 
