@@ -26,6 +26,7 @@ import ShortcutsCheatSheet from '../ui/ShortcutsCheatSheet';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import ErrorBoundary from '../ErrorBoundary';
 import { getGreeting } from '../../lib/utils';
+import { openPortal } from '../../lib/stripe';
 
 // Tiny fallback shown while a lazy view's chunk downloads. Matches the
 // existing AppLayout loading style so it feels native.
@@ -97,6 +98,7 @@ export default function AppLayout({ user, profile, showToast }) {
         <Sidebar user={user} profile={profile} onUpgrade={() => setShowUpgrade(true)} />
 
         <main className="jm-main">
+          <TrialBanner profile={profile} setActiveTab={setActiveTab} />
           <ErrorBoundary>
           <Suspense fallback={<ViewLoader />}>
             {activeTab === 'dashboard' && <Dashboard user={user} profile={profile} />}
@@ -140,6 +142,96 @@ export default function AppLayout({ user, profile, showToast }) {
         />
       )}
       <ShortcutsCheatSheet open={showHelp} onClose={() => setShowHelp(false)} />
+    </div>
+  );
+}
+
+// ── Trial Banner ────────────────────────────────────────────────────────────
+// Shown to Pro users while their trial is still active. Auto-disappears once
+// trial converts to a real subscription (webhook clears trial_ends_at) OR
+// the trial ends. Reduces "wait, why was I charged?" surprises on day 8.
+function TrialBanner({ profile, setActiveTab }) {
+  const [opening, setOpening] = useState(false);
+  const [error, setError] = useState('');
+
+  if (!profile?.trial_ends_at) return null;
+  const endsAt = new Date(profile.trial_ends_at);
+  if (!Number.isFinite(endsAt.getTime())) return null;
+
+  const now = Date.now();
+  const msLeft = endsAt.getTime() - now;
+  if (msLeft <= 0) return null; // trial already over — no banner
+
+  const daysLeft = Math.ceil(msLeft / 86400000);
+  const hoursLeft = Math.ceil(msLeft / 3600000);
+  const timeLabel =
+    daysLeft > 1 ? `${daysLeft} days`
+    : hoursLeft > 1 ? `${hoursLeft} hours`
+    : 'less than an hour';
+
+  // Friendly date format e.g. "May 8"
+  const chargeDate = endsAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  // 0 days left = urgent (red-ish), 1-2 days = warn (amber), else accent
+  const accent =
+    daysLeft <= 0 ? '#C65A45'
+    : daysLeft <= 2 ? '#EFC97A'
+    : 'var(--c-accent)';
+
+  const handleManage = async () => {
+    if (opening) return;
+    setError('');
+    setOpening(true);
+    try {
+      await openPortal();
+      // Browser redirects away.
+    } catch (e) {
+      setError(e.message || 'Could not open billing portal.');
+      setOpening(false);
+    }
+  };
+
+  return (
+    <div style={{
+      padding: '10px clamp(16px, 4.5vw, 44px)',
+      background: `linear-gradient(90deg, ${accent}1a 0%, ${accent}08 100%)`,
+      borderBottom: `1px solid ${accent}40`,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      gap: 14, flexWrap: 'wrap',
+      fontFamily: "'Inter', sans-serif",
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: 'var(--c-text)', flexWrap: 'wrap' }}>
+        <span style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: accent, background: `${accent}1a`, border: `1px solid ${accent}55`,
+          padding: '3px 8px', borderRadius: 100,
+        }}>
+          Pro trial
+        </span>
+        <span>
+          Your trial ends in <strong style={{ color: accent }}>{timeLabel}</strong>
+          {' '}— card charged $19 on <strong>{chargeDate}</strong>
+        </span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {error && (
+          <span style={{ fontSize: 11, color: '#C65A45' }}>{error}</span>
+        )}
+        <button
+          onClick={handleManage}
+          disabled={opening}
+          style={{
+            padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+            background: 'transparent', color: 'var(--c-text)',
+            border: `1px solid ${accent}80`,
+            cursor: opening ? 'default' : 'pointer',
+            opacity: opening ? 0.6 : 1,
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          {opening ? 'Opening…' : 'Manage subscription'}
+        </button>
+      </div>
     </div>
   );
 }

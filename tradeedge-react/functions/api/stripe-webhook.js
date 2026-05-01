@@ -47,7 +47,7 @@ export async function onRequestPost(context) {
       if (!userId) return ok(); // nothing we can do
 
       // Fetch the subscription to inspect its line items (so we know
-      // whether the Backtesting add-on is included)
+      // whether the Backtesting add-on is included) and get the trial end.
       const sub = subscriptionId
         ? await stripeGet(`/v1/subscriptions/${subscriptionId}?expand[]=items.data.price`, env)
         : null;
@@ -58,6 +58,7 @@ export async function onRequestPost(context) {
         has_backtesting: hasBacktest,
         stripe_customer_id:      customerId || null,
         stripe_subscription_id:  subscriptionId || null,
+        trial_ends_at:           trialEndIso(sub),
       });
       return ok();
     }
@@ -74,6 +75,8 @@ export async function onRequestPost(context) {
         has_backtesting: isActive && hasBacktest,
         stripe_customer_id:     sub.customer,
         stripe_subscription_id: sub.id,
+        // Only set trial_ends_at while actually in trial — clear once trial converts to active
+        trial_ends_at:          status === 'trialing' ? trialEndIso(sub) : null,
       });
       return ok();
     }
@@ -86,6 +89,7 @@ export async function onRequestPost(context) {
         plan: 'free',
         has_backtesting: false,
         stripe_subscription_id: null,
+        trial_ends_at: null,
       });
       return ok();
     }
@@ -100,6 +104,14 @@ export async function onRequestPost(context) {
 function ok() { return new Response('ok', { status: 200 }); }
 
 // ── Subscription helpers ─────────────────────────────────────────────────
+
+// Stripe gives trial_end as a Unix timestamp (seconds). Convert to ISO for
+// Supabase. Returns null if the subscription has no trial (or is missing).
+function trialEndIso(sub) {
+  const t = sub?.trial_end;
+  if (!t || typeof t !== 'number') return null;
+  return new Date(t * 1000).toISOString();
+}
 
 function subHasBacktest(sub, env) {
   if (!sub || !env.STRIPE_PRICE_BACKTEST) return false;
