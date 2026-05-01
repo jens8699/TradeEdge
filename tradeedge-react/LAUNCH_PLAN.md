@@ -50,6 +50,117 @@ Why this hook works:
 
 ---
 
+## ⚠️ Reddit reality check (read before week 1)
+
+Reddit has karma + account-age gates. New accounts get auto-rejected in most subs that matter (r/Daytrading needs ~500 karma; r/Forex requires 30+ day account age). **Don't expect Reddit traction in week 1-2.**
+
+**What to do instead:**
+- **Create the Reddit account on day 1** of week 1
+- Spend 15 min/day commenting helpfully on prop trading posts. NO self-promotion.
+- By week 3, you'll have ~200-300 karma + 2 weeks of account age — clears most subs' bars
+- Then post your story (draft below — write now, sit on it)
+
+## Channel ranking by week (revised for "no existing audience" reality)
+
+| Week | Lead channel | Why |
+|---|---|---|
+| 1-2 | **Discord** (TopStep, Apex, MyFundedFutures, Tradeify, FTMO) | No karma gate, no waiting. Be a real member, drop the tool naturally. |
+| 1-2 | **X / Twitter (DMs)** | No gate. Personalized DMs to people tweeting about prop trading frustration. |
+| 1-2 | **Reddit (passive)** | Create account, comment helpfully, build karma. NO self-promotion yet. |
+| 3+  | **Reddit (active)** | Once karma + age clear, post your story. By then you'll have testimonials too. |
+| 2-3 | **YouTube demo (one-time effort)** | Make a 3-min screencast Loom in week 2, then drop it everywhere from week 3. Trading is visual — text descriptions don't sell, demos do. Embed in every Reddit post, Discord drop, X thread. Evergreen. |
+
+## Discord post — ready to use Monday
+
+```
+Hey — multi-firm prop trader here, currently trading [TopStep / Apex /
+MyFundedFutures]. Got fed up opening 4 separate dashboards every morning
+just to know if I was up or down for the week. So I spent the last few
+weeks building something for myself.
+
+It's a multi-firm dashboard — every account, every firm, every payout
+in one place. Auto-imports from Tradovate. Per-firm ROI tracking so you
+can see which firm is actually making you money (vs just costing you fees).
+
+Free tier (no card needed). 7-day Pro trial if anyone wants the full
+thing. Mostly looking for honest feedback at this stage:
+
+https://tradeedge.today
+
+What would make a journal actually useful for how you trade across
+multiple firms? Anything you wish existed but doesn't?
+```
+
+Why this works:
+- Opens with identity ("multi-firm prop trader here") — establishes you belong, not a marketer
+- Concrete pain (4 dashboards every morning) — universal multi-firm pain
+- Mentions specific firms the audience uses
+- Soft asks for **feedback** instead of pushing the product (way better tone)
+- Ends with an open question — invites replies, not just clicks
+
+## Reddit post draft — for week 3+ (write now, sit on it)
+
+```
+Title: Built a multi-firm dashboard because I was tired of juggling
+4 prop firm tabs every morning — looking for feedback
+
+Body:
+Been trading prop firms for [time]. Currently across TopStep, Apex, and
+MyFundedFutures. Every morning starts the same: open one tab to check
+each account, scroll through each dashboard, manually mental-math
+whether I'm up or down for the week.
+
+Got fed up enough to spend the last few weeks building something for
+myself.
+
+It's TradeEdge — one dashboard for every account, every firm, every
+payout. Auto-imports trades from Tradovate. CSV import for DAS Trader
+and Thinkorswim. Per-firm ROI tracking so you can see which firm is
+actually making you money vs. just collecting your fees.
+
+Free tier (no card). 7-day Pro trial if you want the full thing.
+
+Honestly mostly looking for feedback at this stage. What would make a
+journal actually useful for how YOU trade across multiple firms?
+Anything you wish existed in a tool like this but doesn't?
+
+Link in comments (don't want this to look spammy).
+```
+
+**Critical posting tactic:** drop the link as the **first comment**, NOT in the post body. Most subs accept link-in-comment but auto-flag link-in-body as spam.
+
+Where to post:
+1. **r/PropFirms** first (small but exact match — friendliest audience)
+2. If well-received → adapt for **r/Forex** the following week
+3. **r/Daytrading** last (biggest, strictest, save for when you have testimonials)
+
+## YouTube demo — your single highest-leverage marketing artifact
+
+Make a 2-3 min screencast in week 2. Trading is visual — text descriptions don't sell, demos do.
+
+What it should show (in order):
+1. (10 sec) "Hey, I'm Jens, prop trader. Built TradeEdge because I was tired of juggling N dashboards." — face camera optional but adds trust
+2. (30 sec) Click through your real dashboard — show the multi-firm view, the per-firm ROI section, the trial banner. Narrate what each thing solves.
+3. (60 sec) Click "Log a trade" → fill out the form → save → show it appears in History with the account badge
+4. (30 sec) Show MarketBrief — click ✦ on a headline → AI brief generates
+5. (15 sec) "Free tier no card — link below. Lemme know what you'd want next."
+
+Don't over-polish. Loom or QuickTime + narrate while clicking. Authenticity > production value for trading audiences. Upload as unlisted YouTube link, embed in every Reddit/Discord post.
+
+## Sustainable daily time budget (3-4 hr/day)
+
+Don't spend 4 hr/day on cold outreach — you'll burn out by week 2. Mix it:
+
+| Time | Activity |
+|---|---|
+| 30 min | Community presence — Discord/Reddit comments/X engagement. Be helpful, no pitching. Compounds. |
+| 30 min | Outreach — 5-10 personalized DMs/day, one Reddit comment that could become a post |
+| 1.5-2 hr | Product iteration — fix what early users complain about, ship Phase 2, polish |
+| 30-45 min | Content creation — tweet drafts, YouTube demo, Reddit comments worth saving |
+| 15-30 min | Talk to users 1:1 — DM signups, watch session recordings, "what made you sign up?" |
+
+Total ~3.5 hours, sustainable for weeks.
+
 ## Week 2 — Wider net (one channel at a time)
 
 **Goal:** first paying customer. Don't go wide — go deep on one channel that worked in week 1.
