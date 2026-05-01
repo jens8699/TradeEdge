@@ -72,7 +72,7 @@ export default function UpgradeModal({ onClose }) {
                 <span style={{ fontSize: '32px', fontWeight: 800, color: '#E07A3B', letterSpacing: '-1px' }}>$19</span>
                 <span style={{ fontSize: '14px', color: 'var(--c-text-2)' }}>/month</span>
               </div>
-              <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--c-text-2)' }}>Cancel any time · No lock-in</p>
+              <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--c-text-2)' }}>7-day free trial · Cancel anytime</p>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '11px', color: '#E07A3B', fontWeight: 600, background: 'rgba(224,122,59,0.1)', padding: '4px 10px', borderRadius: '100px', marginBottom: '4px' }}>
@@ -168,11 +168,11 @@ export default function UpgradeModal({ onClose }) {
             {loading
               ? 'Opening checkout…'
               : addBacktesting
-                ? '⚡ Subscribe — $29 / month →'
-                : '⚡ Subscribe — $19 / month →'}
+                ? '⚡ Start 7-day free trial — then $29 / month →'
+                : '⚡ Start 7-day free trial — then $19 / month →'}
           </button>
           <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--c-text-2)', margin: '8px 0 0' }}>
-            Powered by Stripe · Cancel any time from Settings
+            Card required · Free for 7 days · Cancel anytime from Settings
           </p>
         </div>
       </div>

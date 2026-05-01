@@ -41,9 +41,15 @@ export default function TermsOfService() {
       </Section>
 
       <Section title="Subscriptions and billing">
-        TradeEdge offers a free tier and a paid <b>TradeEdge Pro</b> subscription. The current price is <b>$19 USD per month</b>, billed monthly. An optional <b>Backtesting</b> add-on is available for an additional <b>$10 USD per month</b>, bringing the total to $29 per month when enabled.
+        TradeEdge offers a free tier and a paid <b>TradeEdge Pro</b> subscription. The current price is <b>$19 USD per month</b>, billed monthly, with a <b>7-day free trial</b> for new subscribers. An optional <b>Backtesting</b> add-on is available for an additional <b>$10 USD per month</b>, bringing the total to $29 per month when enabled.
         <br /><br />
-        <b>How billing works:</b>
+        <b>How the free trial works:</b>
+        <ul style={{ margin: '8px 0', paddingLeft: '20px', lineHeight: 1.8 }}>
+          <li>You enter your card at the start of the trial, but you are not charged for the first 7 days.</li>
+          <li>Your card is automatically charged on day 8 unless you cancel beforehand.</li>
+          <li>You can cancel during the trial via Settings → Manage subscription, with no charge.</li>
+        </ul>
+        <b>How billing works after the trial:</b>
         <ul style={{ margin: '8px 0', paddingLeft: '20px', lineHeight: 1.8 }}>
           <li>Subscriptions are recurring and renew automatically each month until you cancel.</li>
           <li>Your card is charged at the start of each billing period.</li>

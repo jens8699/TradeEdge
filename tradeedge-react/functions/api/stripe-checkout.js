@@ -110,6 +110,11 @@ export async function onRequestPost(context) {
     if (addBacktesting) {
       params.append('subscription_data[metadata][has_backtesting]', 'true');
     }
+    // 7-day free trial — card required at checkout, charged on day 8.
+    // Stripe handles all the trial logic (no charge during trial, can cancel
+    // anytime without being billed). New subscription = new trial; if a user
+    // cancels and resubscribes, they get another trial.
+    params.append('subscription_data[trial_period_days]', '7');
     lineItems.forEach((li, i) => {
       params.append(`line_items[${i}][price]`, li.price);
       params.append(`line_items[${i}][quantity]`, String(li.quantity));

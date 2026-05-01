@@ -351,10 +351,10 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
             onClick={onUpgrade}
             style={{ width: '100%', maxWidth: 360, padding: '12px', background: 'var(--c-accent)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter', sans-serif" }}
           >
-            Upgrade to Pro — $19 / month
+            Try Pro free for 7 days
           </button>
           <div style={{ fontSize: 11, color: 'var(--c-text-2)', marginTop: 8, opacity: 0.7 }}>
-            Founding rate · No lock-in · Cancel any time
+            Then $19 / month · Founding rate · Cancel anytime
           </div>
         </>
       )}

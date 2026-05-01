@@ -78,7 +78,7 @@ function RegisterPanel({ onSwitch }) {
   return (
     <div className="tp-auth-card">
       <p className="tp-auth-title">Start trading smarter</p>
-      <p className="tp-auth-sub">Free 14-day trial. No credit card needed.</p>
+      <p className="tp-auth-sub">Free forever, no card needed. Upgrade when you want more.</p>
       <div className="tp-auth-field"><label>Your name</label>
         <input type="text" placeholder="John Doe" autoComplete="name" value={name} onChange={e => setName(e.target.value)} /></div>
       <div className="tp-auth-field"><label>Email</label>
@@ -91,14 +91,14 @@ function RegisterPanel({ onSwitch }) {
       <p className="tp-auth-err" style={msg.ok ? { color: '#E07A3B' } : {}}>{msg.text}</p>
       <div className="tp-plans">
         <div className="tp-plan">
-          <div className="tp-plan-label">Free trial</div>
-          <div className="tp-plan-price">14 <span>days</span></div>
-          <div className="tp-plan-note">Full access · No card needed</div>
+          <div className="tp-plan-label">Free</div>
+          <div className="tp-plan-price">$0 <span>forever</span></div>
+          <div className="tp-plan-note">Core journal · No card needed</div>
         </div>
         <div className="tp-plan pro">
           <div className="tp-plan-label">Pro</div>
-          <div className="tp-plan-price">$15 <span>/ mo</span></div>
-          <div className="tp-plan-note">After trial · Cancel anytime</div>
+          <div className="tp-plan-price">$19 <span>/ mo</span></div>
+          <div className="tp-plan-note">7-day free trial · Cancel anytime</div>
         </div>
       </div>
       <div className="tp-auth-switch" style={{ marginTop:'16px' }}>
