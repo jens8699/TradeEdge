@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { fmt, fmtR } from '../../lib/utils';
 import EditTradeModal from '../modals/EditTradeModal';
 import { setCritique as persistCritique } from '../../lib/tradeCritiques';
+import { loadAccountsForPicker } from '../../lib/tradeAccounts';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -353,7 +354,8 @@ Keep it brutally honest but constructive. No fluff, no generic platitudes.`;
 
 // ── Trade Row ─────────────────────────────────────────────────────────────────
 
-function TradeRow({ trade: t, onClick, isLast, selectMode, selected, onToggleSelect }) {
+function TradeRow({ trade: t, onClick, isLast, selectMode, selected, onToggleSelect, accountsById }) {
+  const linkedAccount = t.accountId && accountsById ? accountsById[t.accountId] : null;
   const isProfit = t.pnl > 0;
   const isLoss   = t.pnl < 0;
   const isLong   = t.direction === 'Long' || t.direction === 'long';
@@ -436,6 +438,16 @@ function TradeRow({ trade: t, onClick, isLast, selectMode, selected, onToggleSel
               background: 'rgba(239,201,122,0.12)', color: '#EFC97A',
             }}>⚠ Off plan</span>
           )}
+          {linkedAccount && (
+            <span title={`Logged on ${linkedAccount.firm}${linkedAccount.name ? ' · ' + linkedAccount.name : ''}`} style={{
+              fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 6,
+              background: 'rgba(224,122,59,0.10)', color: 'var(--c-accent)',
+              border: '1px solid rgba(224,122,59,0.25)',
+              letterSpacing: '0.04em',
+            }}>
+              {linkedAccount.firm}{linkedAccount.name ? ` · ${linkedAccount.name}` : ''}
+            </span>
+          )}
           {t.notes && <span style={{ fontSize: 11, color: 'var(--c-text-2)', opacity: 0.4 }}>✎</span>}
         </div>
         <div style={{ fontSize: 11, color: 'var(--c-text-2)', marginTop: 2, opacity: 0.7, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.02em' }}>
@@ -464,7 +476,7 @@ function TradeRow({ trade: t, onClick, isLast, selectMode, selected, onToggleSel
 
 // ── Date Group ────────────────────────────────────────────────────────────────
 
-function DateGroup({ date, trades, onSelect, selectMode, selectedIds, onToggleSelect }) {
+function DateGroup({ date, trades, onSelect, selectMode, selectedIds, onToggleSelect, accountsById }) {
   const dayPnl = trades.reduce((s, t) => s + t.pnl, 0);
   const wins   = trades.filter(t => t.pnl > 0).length;
   const label  = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -499,6 +511,7 @@ function DateGroup({ date, trades, onSelect, selectMode, selectedIds, onToggleSe
           selectMode={selectMode}
           selected={selectMode && selectedIds?.has(t.id)}
           onToggleSelect={onToggleSelect}
+          accountsById={accountsById}
         />
       ))}
     </div>
@@ -509,6 +522,26 @@ function DateGroup({ date, trades, onSelect, selectMode, selectedIds, onToggleSe
 
 export default function History({ showToast }) {
   const { trades, deleteTrade } = useApp();
+  // Build accountsById once so each TradeRow can resolve its accountId → firm name
+  // without re-reading localStorage per row. Refreshed on focus / storage event.
+  const [accountsById, setAccountsById] = useState(() => {
+    const map = {};
+    for (const a of loadAccountsForPicker()) map[a.id] = a;
+    return map;
+  });
+  useEffect(() => {
+    const refresh = () => {
+      const map = {};
+      for (const a of loadAccountsForPicker()) map[a.id] = a;
+      setAccountsById(map);
+    };
+    window.addEventListener('focus', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
   const [selectedTrade, setSelectedTrade] = useState(null);
   // Bulk-select state
   const [selectMode, setSelectMode] = useState(false);
@@ -784,6 +817,7 @@ export default function History({ showToast }) {
             selectMode={selectMode}
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
+            accountsById={accountsById}
           />
         ))
       ) : (
@@ -797,6 +831,7 @@ export default function History({ showToast }) {
               selectMode={selectMode}
               selected={selectMode && selectedIds.has(t.id)}
               onToggleSelect={toggleSelect}
+              accountsById={accountsById}
             />
           ))}
         </div>

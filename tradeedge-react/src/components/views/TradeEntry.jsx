@@ -4,6 +4,7 @@ import { sb } from '../../lib/supabase';
 import { setChecklistTag } from '../../lib/checklistTags';
 import { checkAgainst as checkRules } from '../../lib/tradingRules';
 import { setViolations as persistViolations } from '../../lib/ruleViolations';
+import { setTradeAccount, loadAccountsForPicker, formatAccountLabel } from '../../lib/tradeAccounts';
 
 const DRAFT_KEY = 'te_trade_draft';
 const CHECKLIST_SESSION_KEY = 'te_checklist_session';
@@ -116,7 +117,21 @@ export default function TradeEntry({ showToast }) {
     date: today(), symbol: '', direction: 'long', accounts: 1,
     riskPer: '', rewardPer: '', outcome: 'win', pnl: '', setup: '', notes: '',
     entry: '', exit: '', qty: '', session: '', rating: '',
+    accountId: '', // PropFirmTracker account this trade was placed on (optional)
   });
+
+  // Prop firm accounts available for the dropdown. Refresh on focus so newly
+  // added accounts (in another tab) appear without a full page reload.
+  const [propAccounts, setPropAccounts] = useState(loadAccountsForPicker);
+  useEffect(() => {
+    const refresh = () => setPropAccounts(loadAccountsForPicker());
+    window.addEventListener('focus', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
   const [pendingImage, setPendingImage]       = useState(null);
   const [previewSrc,   setPreviewSrc]         = useState(null);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
@@ -305,6 +320,11 @@ export default function TradeEntry({ showToast }) {
     if (checklistPassed === true || checklistPassed === false) {
       setChecklistTag(tradeId, checklistPassed);
     }
+    // Persist which prop firm account this trade was placed on (side-table,
+    // localStorage). Phase 2 will migrate to a real DB column.
+    if (form.accountId) {
+      setTradeAccount(tradeId, form.accountId);
+    }
     // Stamp any active rule violations so Stats can show adherence over time.
     if (ruleViolations && ruleViolations.length > 0) {
       persistViolations(tradeId, ruleViolations);
@@ -320,7 +340,7 @@ export default function TradeEntry({ showToast }) {
 
   const clearDraft = () => {
     localStorage.removeItem(DRAFT_KEY);
-    setForm({ date: today(), symbol: '', direction: 'long', accounts: 1, riskPer: '', rewardPer: '', outcome: 'win', pnl: '', setup: '', notes: '', entry: '', exit: '', qty: '', session: '', rating: '' });
+    setForm({ date: today(), symbol: '', direction: 'long', accounts: 1, riskPer: '', rewardPer: '', outcome: 'win', pnl: '', setup: '', notes: '', entry: '', exit: '', qty: '', session: '', rating: '', accountId: '' });
     setShowDraftBanner(false);
     setPendingImage(null); setPreviewSrc(null);
   };
@@ -462,6 +482,35 @@ export default function TradeEntry({ showToast }) {
       {/* ── Trade details ── */}
       <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '22px 24px', marginBottom: 24 }}>
         <div style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--c-text-2)', marginBottom: 18 }}>Trade details</div>
+
+        {/* Account picker — which prop firm account did this trade go on?
+            Optional but recommended — enables per-account analytics. */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={field}>
+            <span style={label}>Account</span>
+            {propAccounts.length > 0 ? (
+              <select
+                style={inp}
+                value={form.accountId}
+                onChange={e => set('accountId', e.target.value)}
+              >
+                <option value="">— Unassigned —</option>
+                {propAccounts.map(a => (
+                  <option key={a.id} value={a.id}>{formatAccountLabel(a)}</option>
+                ))}
+              </select>
+            ) : (
+              <div style={{
+                ...inp,
+                color: 'var(--c-text-2)', fontSize: 12, lineHeight: 1.5,
+                cursor: 'default',
+              }}>
+                Add prop firm accounts in <em>Prop Firms</em> to tag trades by account.
+              </div>
+            )}
+          </div>
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
           <div style={field}>
             <span style={label}>Symbol</span>

@@ -3,6 +3,7 @@ import { sb, dbToTrade, dbToPayout, tradeToDb, payoutToDb, fetchSignedUrls } fro
 import { mergeChecklistTags, setChecklistTag } from '../lib/checklistTags';
 import { mergeCritiques, clearCritique } from '../lib/tradeCritiques';
 import { mergeViolations, clearViolations } from '../lib/ruleViolations';
+import { mergeTradeAccounts } from '../lib/tradeAccounts';
 import { uid, computeStats } from '../lib/utils';
 
 const AppContext = createContext(null);
@@ -87,7 +88,7 @@ export function AppProvider({ userId, children }) {
         sb.from('profiles').select('theme').eq('id', uid_).single(),
       ]);
       const tradeListRaw = (t || []).map(dbToTrade);
-      const tradeList    = mergeViolations(mergeCritiques(mergeChecklistTags(tradeListRaw)));
+      const tradeList    = mergeTradeAccounts(mergeViolations(mergeCritiques(mergeChecklistTags(tradeListRaw))));
       const payoutList   = (p || []).map(dbToPayout);
       await fetchSignedUrls(tradeList);
       setTrades(tradeList);
