@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { sb } from '../../lib/supabase';
+import { startCheckout } from '../../lib/stripe';
 
 function LogoMark() {
   return (
@@ -60,6 +61,8 @@ function RegisterPanel({ onSwitch }) {
   const [name,  setName]  = useState('');
   const [email, setEmail] = useState('');
   const [pass,  setPass]  = useState('');
+  // Default to free — never silently push a card-collecting flow on the user.
+  const [plan,  setPlan]  = useState('free');
   const [msg,   setMsg]   = useState({ text: '', ok: false });
   const [busy,  setBusy]  = useState(false);
 
@@ -70,9 +73,24 @@ function RegisterPanel({ onSwitch }) {
     if (pass.length < 6)           { setMsg({ text: 'Password must be at least 6 characters.', ok: false }); return; }
     setBusy(true);
     const { error } = await sb.auth.signUp({ email: email.trim().toLowerCase(), password: pass, options: { data: { name } } });
+    if (error) { setBusy(false); setMsg({ text: error.message, ok: false }); return; }
+
+    // Pro: hand off to Stripe Checkout for the 7-day trial. With Supabase
+    // "Confirm email" disabled, signUp returns an active session immediately,
+    // so startCheckout() can read the access token and POST to the worker.
+    // startCheckout calls window.location.assign on success — we never return.
+    if (plan === 'pro') {
+      try {
+        await startCheckout();
+      } catch (err) {
+        setBusy(false);
+        setMsg({ text: `Account created, but couldn't reach Stripe: ${err.message}. You can start your trial from Settings → Billing.`, ok: false });
+      }
+      return;
+    }
+
     setBusy(false);
-    if (error) { setMsg({ text: error.message, ok: false }); return; }
-    setMsg({ text: '✓ Account created! Check your email to confirm, then sign in.', ok: true });
+    setMsg({ text: '✓ Account created — signing you in…', ok: true });
   };
 
   return (
@@ -85,22 +103,38 @@ function RegisterPanel({ onSwitch }) {
         <input type="email" placeholder="you@example.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} /></div>
       <div className="tp-auth-field"><label>Password</label>
         <input type="password" placeholder="Min. 6 characters" autoComplete="new-password" value={pass} onChange={e => setPass(e.target.value)} /></div>
-      <button className="tp-auth-btn" disabled={busy} onClick={submit}>
-        {busy ? 'Creating account…' : (msg.ok ? 'Check your email ✓' : 'Create free account')}
-      </button>
-      <p className="tp-auth-err" style={msg.ok ? { color: '#E07A3B' } : {}}>{msg.text}</p>
       <div className="tp-plans">
-        <div className="tp-plan">
+        <div
+          className={`tp-plan ${plan === 'free' ? 'tp-plan-selected' : ''}`}
+          role="radio"
+          aria-checked={plan === 'free'}
+          tabIndex={0}
+          onClick={() => setPlan('free')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPlan('free'); } }}
+        >
           <div className="tp-plan-label">Free</div>
           <div className="tp-plan-price">$0 <span>forever</span></div>
           <div className="tp-plan-note">Core journal · No card needed</div>
         </div>
-        <div className="tp-plan pro">
+        <div
+          className={`tp-plan pro ${plan === 'pro' ? 'tp-plan-selected' : ''}`}
+          role="radio"
+          aria-checked={plan === 'pro'}
+          tabIndex={0}
+          onClick={() => setPlan('pro')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPlan('pro'); } }}
+        >
           <div className="tp-plan-label">Pro</div>
           <div className="tp-plan-price">$19 <span>/ mo</span></div>
           <div className="tp-plan-note">7-day free trial · Cancel anytime</div>
         </div>
       </div>
+      <button className="tp-auth-btn" disabled={busy} onClick={submit} style={{ marginTop: '16px' }}>
+        {busy
+          ? (plan === 'pro' ? 'Redirecting to Stripe…' : 'Creating account…')
+          : (plan === 'pro' ? 'Start 7-day free trial' : 'Create free account')}
+      </button>
+      <p className="tp-auth-err" style={msg.ok ? { color: '#E07A3B' } : {}}>{msg.text}</p>
       <div className="tp-auth-switch" style={{ marginTop:'16px' }}>
         Already have an account? <button onClick={() => onSwitch('login')}>Sign in</button>
       </div>

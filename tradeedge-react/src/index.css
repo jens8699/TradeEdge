@@ -146,8 +146,13 @@ h1 em, h2 em, h3 em { font-style: italic; color: var(--c-accent); }
 .tp-auth-switch button { background:none; border:none; color:#E07A3B; font-weight:500; cursor:pointer; font-family:var(--font-sans); font-size:13px; padding:0; }
 .tp-auth-switch button:hover { color:#F0904E; }
 .tp-plans { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:22px; }
-.tp-plan { background:#0E0C08; border:0.5px solid #3D2E25; border-radius:14px; padding:14px 16px; }
+.tp-plan { background:#0E0C08; border:0.5px solid #3D2E25; border-radius:14px; padding:14px 16px; cursor:pointer; transition:border-color 120ms ease, background 120ms ease, box-shadow 120ms ease; }
+.tp-plan:hover { border-color:#5C4538; }
+.tp-plan:focus-visible { outline:none; box-shadow:0 0 0 2px rgba(224,122,59,0.4); }
 .tp-plan.pro { border-color:rgba(224,122,59,0.4); background:rgba(224,122,59,0.05); }
+.tp-plan.pro:hover { border-color:rgba(224,122,59,0.7); }
+.tp-plan-selected { border-color:#E07A3B; box-shadow:0 0 0 1px #E07A3B inset; }
+.tp-plan.pro.tp-plan-selected { background:rgba(224,122,59,0.12); }
 .tp-plan-label { font-size:10px; color:#5F5C56; text-transform:uppercase; letter-spacing:0.7px; font-weight:500; margin-bottom:6px; }
 .tp-plan.pro .tp-plan-label { color:#E07A3B; }
 .tp-plan-price { font-size:20px; font-weight:600; color:#F5F3ED; letter-spacing:-0.5px; }
