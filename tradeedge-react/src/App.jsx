@@ -56,6 +56,16 @@ export default function App() {
     return () => { subscription.unsubscribe(); clearTimeout(timeout); };
   }, []);
 
+  // Wire legal-page transitions to browser history so the browser Back button
+  // returns to the landing page instead of closing the tab. Without this,
+  // showing /privacy or /terms via state alone leaves no history entry to
+  // pop, so Back exits the SPA entirely.
+  useEffect(() => {
+    const onPop = () => setLegalPage(null);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   // Handle return from Stripe Checkout / Portal
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -104,11 +114,14 @@ export default function App() {
     );
   }
 
-  // Legal pages — shown standalone for guests reaching them from the footer
+  // Legal pages — shown standalone for guests reaching them from the footer.
+  // onBack uses history.back() so both the in-page button and the browser's
+  // own Back button funnel through the same popstate handler, keeping
+  // history and React state in sync.
   if (legalPage && status !== 'authed') {
     return (
       <>
-        <LegalLayout page={legalPage} onBack={() => setLegalPage(null)} />
+        <LegalLayout page={legalPage} onBack={() => window.history.back()} />
         <ToastContainer toasts={toasts} />
       </>
     );
@@ -131,8 +144,14 @@ export default function App() {
         <LandingPage
           onSignIn={() => { setShowLanding(false); setAuthPanel('login'); }}
           onStartTrial={() => { setShowLanding(false); setAuthPanel('register'); }}
-          onShowPrivacy={() => setLegalPage('privacy')}
-          onShowTerms={() => setLegalPage('terms')}
+          onShowPrivacy={() => {
+            window.history.pushState({ legalPage: 'privacy' }, '', '#privacy');
+            setLegalPage('privacy');
+          }}
+          onShowTerms={() => {
+            window.history.pushState({ legalPage: 'terms' }, '', '#terms');
+            setLegalPage('terms');
+          }}
         />
         <ToastContainer toasts={toasts} />
       </>
