@@ -123,7 +123,7 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
             <span>Built by a prop trader, for prop traders</span>
           </div>
           <h1 className="lp-h1">One dashboard for every <em>prop firm account</em>.</h1>
-          <p className="lp-hero-sub">I got tired of opening 4 different dashboards every morning just to know if I was up or down. So I built TradeEdge — every account, every firm, every payout in one place.</p>
+          <p className="lp-hero-sub">The trading journal built for prop firm traders. Log every trade, see every account, track every payout — whether you're on your first Apex eval or running six funded combines. No spreadsheets, no juggling logins.</p>
           <div className="lp-cta-row">
             <button className="lp-btn lp-btn-primary lp-btn-lg" onClick={onStartTrial}>Get started — free →</button>
             <button className="lp-btn lp-btn-outline lp-btn-lg" onClick={onSignIn}>See it live</button>
@@ -414,7 +414,7 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
         <div className="lp-container">
           <div className="lp-eyebrow-label" style={{ color: '#E07A3B' }}>How we stack up</div>
           <h2 className="lp-section-title" style={{ color: '#F0E6D8' }}>More than a tracker. <em>Less than the cost of one.</em></h2>
-          <p className="lp-section-sub" style={{ color: '#A89687' }}>Most journals were built for retail traders, not prop firm operators. We were built for you.</p>
+          <p className="lp-section-sub" style={{ color: '#A89687' }}>Most journals were built for retail traders, not prop firm traders. We were built for you.</p>
           <div className="lp-compare-table">
             <div className="lp-compare-row head">
               <div>Feature</div>
@@ -452,7 +452,7 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
         <div className="lp-container">
           <div className="lp-eyebrow-label">Pricing</div>
           <h2 className="lp-section-title">Simple. <em>Honest.</em> Cheaper than your last reset.</h2>
-          <p className="lp-section-sub">Start free. Upgrade when you're tracking more than two accounts. Cancel anytime — no contracts.</p>
+          <p className="lp-section-sub">Start free. Upgrade when you want more — automated imports, drawdown alerts, AI news. Cancel anytime — no contracts.</p>
           <div className="lp-pricing-grid">
             {/* Starter */}
             <div className="lp-price-card">
@@ -508,8 +508,8 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
       {/* ── FINAL CTA ── */}
       <section className="lp-final-cta">
         <div className="lp-container">
-          <h2 className="lp-final-h2">Stop the <em>fragmentation</em>.</h2>
-          <p className="lp-final-sub">One dashboard. Every account. Every firm. See your real numbers in under 5 minutes.</p>
+          <h2 className="lp-final-h2">See your <em>real numbers</em>.</h2>
+          <p className="lp-final-sub">Whether you trade one account or twenty — TradeEdge shows your true edge in under 5 minutes.</p>
           <div className="lp-cta-row" style={{ justifyContent: 'center' }}>
             <button className="lp-btn lp-btn-primary lp-btn-lg" onClick={onStartTrial}>Start free trial →</button>
             <button className="lp-btn lp-btn-outline lp-btn-lg" onClick={onSignIn}>See the product</button>
@@ -523,7 +523,7 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
           <div className="lp-footer-row">
             <div className="lp-footer-brand">
               <div className="lp-wordmark">tradeedge<span className="lp-dot">.</span></div>
-              <p>The trading journal built for prop firm traders. One dashboard for every account, every firm, every payout.</p>
+              <p>The trading journal built for prop firm traders. Log every trade, see every account, track every payout — whether you run one challenge or six.</p>
             </div>
             <div className="lp-footer-col">
               <h4>Product</h4>
