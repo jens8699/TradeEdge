@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { computeStats, filterPeriod, fmt } from '../../lib/utils';
+import { sanitizeHtml } from '../../lib/sanitize';
 
 // ── Pattern Engine ────────────────────────────────────────────────────────────
 
@@ -710,7 +711,7 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
                   fontSize: 13, color: 'var(--c-text)', lineHeight: 1.7,
                   borderTop: '1px solid var(--c-border)', paddingTop: 18,
                 }}
-                dangerouslySetInnerHTML={{ __html: aiResult }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(aiResult) }}
               />
             )}
           </div>
@@ -750,7 +751,7 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
             {openFaq === i && (
               <div
                 style={{ fontSize: 13, color: 'var(--c-text-2)', lineHeight: 1.7, paddingBottom: 16 }}
-                dangerouslySetInnerHTML={{ __html: item.body }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.body) }}
               />
             )}
           </div>

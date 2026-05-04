@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { computeStats } from '../../lib/utils';
 import { callClaudeText } from '../../lib/claude';
+import { sanitizeHtml } from '../../lib/sanitize';
 
 const SESSIONS = [
   { id: 'sydney',  label: 'Sydney',   open: 21, close: 6  },
@@ -454,7 +455,7 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
               border: '1px solid var(--c-border)', borderRadius: 14, padding: '20px 22px',
               marginBottom: 12,
             }}
-            dangerouslySetInnerHTML={{ __html: briefHtml }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(briefHtml) }}
           />
           <div style={{ fontSize: 11, color: 'var(--c-text-2)', opacity: 0.6, marginBottom: 28, lineHeight: 1.5 }}>
             AI-generated for informational purposes only. Not financial advice. Always do your own analysis before trading.

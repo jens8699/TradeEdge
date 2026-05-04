@@ -70,7 +70,7 @@ function RegisterPanel({ onSwitch }) {
     setMsg({ text: '', ok: false });
     if (!name || !email || !pass) { setMsg({ text: 'Please fill in all fields.', ok: false }); return; }
     if (!email.includes('@'))      { setMsg({ text: 'Enter a valid email address.', ok: false }); return; }
-    if (pass.length < 6)           { setMsg({ text: 'Password must be at least 6 characters.', ok: false }); return; }
+    if (pass.length < 8)           { setMsg({ text: 'Password must be at least 8 characters.', ok: false }); return; }
     setBusy(true);
     const { error } = await sb.auth.signUp({ email: email.trim().toLowerCase(), password: pass, options: { data: { name } } });
     if (error) { setBusy(false); setMsg({ text: error.message, ok: false }); return; }
@@ -102,7 +102,7 @@ function RegisterPanel({ onSwitch }) {
       <div className="tp-auth-field"><label>Email</label>
         <input type="email" placeholder="you@example.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} /></div>
       <div className="tp-auth-field"><label>Password</label>
-        <input type="password" placeholder="Min. 6 characters" autoComplete="new-password" value={pass} onChange={e => setPass(e.target.value)} /></div>
+        <input type="password" placeholder="Min. 8 characters" autoComplete="new-password" value={pass} onChange={e => setPass(e.target.value)} /></div>
       <div className="tp-plans">
         <div
           className={`tp-plan ${plan === 'free' ? 'tp-plan-selected' : ''}`}
@@ -182,7 +182,7 @@ function NewPassPanel() {
 
   const submit = async () => {
     setMsg({ text: '', ok: false });
-    if (pass.length < 6) { setMsg({ text: 'Password must be at least 6 characters.', ok: false }); return; }
+    if (pass.length < 8) { setMsg({ text: 'Password must be at least 8 characters.', ok: false }); return; }
     if (pass !== confirm) { setMsg({ text: 'Passwords do not match.', ok: false }); return; }
     setBusy(true);
     const { error } = await sb.auth.updateUser({ password: pass });
@@ -196,7 +196,7 @@ function NewPassPanel() {
       <p className="tp-auth-title">Set new password</p>
       <p className="tp-auth-sub">Choose a strong password for your account.</p>
       <div className="tp-auth-field"><label>New password</label>
-        <input type="password" placeholder="Min. 6 characters" autoComplete="new-password" value={pass} onChange={e => setPass(e.target.value)} /></div>
+        <input type="password" placeholder="Min. 8 characters" autoComplete="new-password" value={pass} onChange={e => setPass(e.target.value)} /></div>
       <div className="tp-auth-field"><label>Confirm password</label>
         <input type="password" placeholder="Repeat password" autoComplete="new-password" value={confirm} onChange={e => setConfirm(e.target.value)} /></div>
       <button className="tp-auth-btn" disabled={busy} onClick={submit}>

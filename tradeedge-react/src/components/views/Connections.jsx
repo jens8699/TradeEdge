@@ -5,6 +5,7 @@ import { sb } from '../../lib/supabase';
 import {
   parseDAS, parseTOS, parseWithMapping, parseCsv, detectFormat,
 } from '../../lib/csvImporters';
+import { sanitizeHtml } from '../../lib/sanitize';
 
 // ── Platform definitions ──────────────────────────────────────────────────────
 
@@ -1097,7 +1098,7 @@ function GenericCSVImportModal({ platformId, onClose, onImported }) {
                 {preset.instructions.map((s, i) => (
                   <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                     <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, background: accentBg, color: preset.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, marginTop: 1 }}>{i + 1}</div>
-                    <span dangerouslySetInnerHTML={{ __html: s.replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--c-text)">$1</strong>') }} />
+                    <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(s.replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--c-text)">$1</strong>')) }} />
                   </div>
                 ))}
               </div>

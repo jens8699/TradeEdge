@@ -29,8 +29,13 @@ export async function onRequestGet(context) {
   const url = new URL(request.url);
   const q = (url.searchParams.get('q') || '').trim().slice(0, 80);
 
-  // Edge cache lookup — keyed on full URL incl. query
-  const cacheKey = new Request(url.toString(), { method: 'GET' });
+  // Build a sanitized cache key that ONLY includes the q param (and the
+  // canonical origin). Without this, an attacker could vary unknown query
+  // params (?z=1, ?z=2, ...) to bypass the cache and exhaust our Marketaux
+  // free-tier quota (100 reqs/day) in minutes — breaking news for legit users.
+  const canonicalUrl = new URL(url.pathname, url.origin);
+  if (q) canonicalUrl.searchParams.set('q', q);
+  const cacheKey = new Request(canonicalUrl.toString(), { method: 'GET' });
   const cached = await caches.default.match(cacheKey);
   if (cached) return cached;
 
