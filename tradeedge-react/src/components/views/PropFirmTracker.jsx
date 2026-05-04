@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { fmt } from '../../lib/utils';
+import { computeAllAccountStats } from '../../lib/accountStats';
 
 // Persisted in localStorage under this key. Move to Supabase when needed.
 const STORAGE_KEY = 'te_prop_firm_accounts';
@@ -93,12 +94,11 @@ function AccountModal({ initial, onSave, onClose }) {
     name: '',
     accountSize: 50000,
     status: 'eval',
-    pnl: 0,
-    ddRemaining: 2000,
     ddMax: 2000,
     payoutPct: 0,
     cost: 0, // total spent on this account (challenge fee + resets + monthly subs)
     notes: '',
+    // Note: pnl and ddRemaining are auto-computed from tagged trades — no longer manual.
   });
 
   function set(field, v) { setAcc(a => ({ ...a, [field]: v })); }
@@ -108,11 +108,10 @@ function AccountModal({ initial, onSave, onClose }) {
     onSave({
       ...acc,
       accountSize: Number(acc.accountSize) || 0,
-      pnl: Number(acc.pnl) || 0,
-      ddRemaining: Number(acc.ddRemaining) || 0,
       ddMax: Number(acc.ddMax) || 0,
       payoutPct: Math.max(0, Math.min(100, Number(acc.payoutPct) || 0)),
       cost: Math.max(0, Number(acc.cost) || 0),
+      // pnl and ddRemaining intentionally NOT saved here — they're computed live from trades.
     });
   }
 
@@ -171,11 +170,11 @@ function AccountModal({ initial, onSave, onClose }) {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="Current P&L ($)">
+            <Field label="Max drawdown ($)">
               <input
                 type="number"
-                value={acc.pnl}
-                onChange={e => set('pnl', e.target.value)}
+                value={acc.ddMax}
+                onChange={e => set('ddMax', e.target.value)}
                 style={modalStyles.input}
               />
             </Field>
@@ -191,23 +190,13 @@ function AccountModal({ initial, onSave, onClose }) {
             </Field>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="Drawdown left ($)">
-              <input
-                type="number"
-                value={acc.ddRemaining}
-                onChange={e => set('ddRemaining', e.target.value)}
-                style={modalStyles.input}
-              />
-            </Field>
-            <Field label="Max drawdown ($)">
-              <input
-                type="number"
-                value={acc.ddMax}
-                onChange={e => set('ddMax', e.target.value)}
-                style={modalStyles.input}
-              />
-            </Field>
+          <div style={{
+            padding: '10px 12px', marginBottom: 12,
+            fontSize: 11.5, color: 'var(--c-text-2)', lineHeight: 1.55,
+            background: 'var(--c-overlay-subtle)',
+            border: '1px dashed var(--c-border)', borderRadius: 8,
+          }}>
+            <b style={{ color: 'var(--c-text)', fontWeight: 600 }}>P&amp;L and drawdown auto-update</b> from trades you tag with this account in <em>Log a trade</em>. No manual entry needed.
           </div>
 
           <Field label="Total spent on this account ($)">
@@ -259,10 +248,16 @@ function Field({ label, children }) {
 
 // ── Account row ──────────────────────────────────────────────────────────────
 
-function AccountRow({ account, onEdit, onDelete }) {
-  const isWarn = account.status === 'near-dd' || account.status === 'breached' || account.pnl < 0;
+function AccountRow({ account, stats, onEdit, onDelete }) {
+  // Use computed stats when available (Phase 2). Fall back to legacy manual
+  // fields if for some reason stats is missing.
+  const livePnl       = stats ? stats.pnl         : (account.pnl || 0);
+  const liveDDRem     = stats ? stats.ddRemaining : (account.ddRemaining || 0);
+  const tradeCount    = stats ? stats.tradeCount  : 0;
+
+  const isWarn = account.status === 'near-dd' || account.status === 'breached' || livePnl < 0;
   const status = STATUS_OPTIONS.find(s => s.value === account.status) || STATUS_OPTIONS[1];
-  const ddPct = account.ddMax > 0 ? Math.max(0, Math.min(100, 100 - (account.ddRemaining / account.ddMax) * 100)) : 0;
+  const ddPct = account.ddMax > 0 ? Math.max(0, Math.min(100, 100 - (liveDDRem / account.ddMax) * 100)) : 0;
 
   return (
     <div style={{
@@ -315,7 +310,7 @@ function AccountRow({ account, onEdit, onDelete }) {
             <span>{account.payoutPct.toFixed(0)}% to next payout</span>
           )}
           {account.ddMax > 0 && (
-            <span>· ${account.ddRemaining.toLocaleString()} / ${account.ddMax.toLocaleString()} DD left</span>
+            <span>· ${liveDDRem.toLocaleString(undefined, { maximumFractionDigits: 0 })} / ${account.ddMax.toLocaleString()} DD left</span>
           )}
         </div>
         {/* Drawdown progress bar */}
@@ -331,17 +326,19 @@ function AccountRow({ account, onEdit, onDelete }) {
         )}
       </div>
 
-      {/* P&L */}
+      {/* P&L (auto-computed from tagged trades) */}
       <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
         <div style={{
           fontSize: 18, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
           letterSpacing: '-0.02em',
-          color: account.pnl >= 0 ? 'var(--c-accent)' : '#C65A45',
+          color: livePnl >= 0 ? 'var(--c-accent)' : '#C65A45',
         }}>
-          {account.pnl >= 0 ? '+' : ''}{fmt(account.pnl)}
+          {livePnl >= 0 ? '+' : ''}{fmt(livePnl)}
         </div>
         <div style={{ fontSize: 10, color: 'var(--c-text-2)', marginTop: 2 }}>
-          MTD
+          {tradeCount > 0
+            ? `${tradeCount} trade${tradeCount === 1 ? '' : 's'} · live`
+            : 'No trades yet'}
         </div>
       </div>
 
@@ -380,11 +377,18 @@ const iconBtn = {
 // ── Main view ────────────────────────────────────────────────────────────────
 
 export default function PropFirmTracker() {
-  const { payouts } = useApp();
+  const { payouts, trades } = useApp();
   const [accounts, setAccounts] = useState(loadAccounts);
   const [editing, setEditing] = useState(null); // account being edited, or 'new', or null
 
   useEffect(() => { saveAccounts(accounts); }, [accounts]);
+
+  // Live per-account stats computed from tagged trades. Map of accountId → stats.
+  // Replaces the old manual `pnl` and `ddRemaining` fields.
+  const statsByAccount = useMemo(
+    () => computeAllAccountStats(accounts, trades),
+    [accounts, trades],
+  );
 
   // Per-firm ROI: aggregate cost from accounts + payouts received per firm.
   // Includes firms that only appear in payouts (no account in tracker yet) so
@@ -422,20 +426,26 @@ export default function PropFirmTracker() {
     setAccounts(prev => prev.filter(a => a.id !== id));
   }
 
-  // Derived stats
-  const totalPnl   = accounts.reduce((s, a) => s + (a.pnl || 0), 0);
+  // Derived stats — pull live numbers from statsByAccount instead of stale manual fields.
+  const totalPnl    = accounts.reduce((s, a) => s + (statsByAccount.get(a.id)?.pnl || 0), 0);
   const fundedCount = accounts.filter(a => a.status === 'funded').length;
   const evalCount   = accounts.filter(a => a.status === 'eval').length;
   const closestDD = accounts
-    .filter(a => a.ddMax > 0 && a.ddRemaining < a.ddMax)
-    .reduce((min, a) => (a.ddRemaining < min.ddRemaining || min.ddRemaining < 0 ? a : min), { ddRemaining: -1 });
+    .map(a => ({ acc: a, ddRem: statsByAccount.get(a.id)?.ddRemaining ?? a.ddMax }))
+    .filter(x => x.acc.ddMax > 0 && x.ddRem < x.acc.ddMax)
+    .reduce(
+      (min, x) => (x.ddRem < min.ddRem ? x : min),
+      { acc: null, ddRem: Infinity },
+    );
 
-  // Sort: warn first, then funded by P&L desc, then eval
+  // Sort: warn first, then by computed P&L desc
   const sorted = [...accounts].sort((a, b) => {
     const aWarn = a.status === 'near-dd' || a.status === 'breached' ? 1 : 0;
     const bWarn = b.status === 'near-dd' || b.status === 'breached' ? 1 : 0;
     if (aWarn !== bWarn) return bWarn - aWarn;
-    return (b.pnl || 0) - (a.pnl || 0);
+    const aPnl = statsByAccount.get(a.id)?.pnl || 0;
+    const bPnl = statsByAccount.get(b.id)?.pnl || 0;
+    return bPnl - aPnl;
   });
 
   return (
@@ -465,13 +475,13 @@ export default function PropFirmTracker() {
           gap: 12,
           marginBottom: 24,
         }}>
-          <Stat label="Net P&L · MTD" value={`${totalPnl >= 0 ? '+' : ''}${fmt(totalPnl)}`} accent={totalPnl >= 0 ? 'accent' : 'warn'} />
+          <Stat label="Net P&L · live" value={`${totalPnl >= 0 ? '+' : ''}${fmt(totalPnl)}`} accent={totalPnl >= 0 ? 'accent' : 'warn'} />
           <Stat label="Active accounts" value={accounts.length} sub={`${fundedCount} funded · ${evalCount} eval`} />
           <Stat label="Funded" value={fundedCount} />
           <Stat
             label="Closest to DD"
-            value={closestDD.ddRemaining >= 0 ? fmt(closestDD.ddRemaining) : '—'}
-            sub={closestDD.ddRemaining >= 0 ? `${closestDD.firm}` : 'Nothing in danger'}
+            value={closestDD.acc ? fmt(closestDD.ddRem) : '—'}
+            sub={closestDD.acc ? `${closestDD.acc.firm}` : 'Nothing in danger'}
             accent="warn"
           />
         </div>
@@ -609,6 +619,7 @@ export default function PropFirmTracker() {
             <AccountRow
               key={a.id}
               account={a}
+              stats={statsByAccount.get(a.id)}
               onEdit={() => setEditing(a)}
               onDelete={handleDelete}
             />
@@ -626,7 +637,7 @@ export default function PropFirmTracker() {
             letterSpacing: '0.06em',
             color: 'var(--c-text-2)',
           }}>
-            <span>{accounts.length} accounts · MTD</span>
+            <span>{accounts.length} accounts · live from trades</span>
             <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontStyle: 'italic', fontSize: 14, color: 'var(--c-text-2)', textTransform: 'none' }}>
               Net <b style={{ fontStyle: 'normal', fontWeight: 600, color: totalPnl >= 0 ? 'var(--c-accent)' : '#C65A45', fontFamily: "'Inter', sans-serif" }}>
                 {totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)}
