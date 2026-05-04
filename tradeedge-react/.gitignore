@@ -1,3 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build output (Vite emits to dist/, Cloudflare Pages rebuilds on push anyway)
+dist/
+build/
+
+# Local env files — NEVER commit secrets
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# Vite temporary build artifacts (config rebuilds during dev)
+vite.config.js.timestamp-*.mjs
+vite.config.ts.timestamp-*.mjs
+
+# Editor / OS junk
+.DS_Store
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Coverage / test output
+coverage/
+.nyc_output/
+
+# Existing project ignores
 market-agent/
 push_bugfixes.html
 upload_to_github.html

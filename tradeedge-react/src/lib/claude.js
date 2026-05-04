@@ -1,10 +1,14 @@
 // Shared Claude client.
 // Default path: /api/claude (Cloudflare Pages function, uses platform's
 // ANTHROPIC_API_KEY env var). Free for users — no key setup needed.
+// The platform proxy is auth-gated by Supabase token so randoms can't
+// drain our Anthropic quota by hitting /api/claude directly.
 //
 // BYO path: if the user pasted their own key in Settings (`te_claude_key` or
 // the legacy `jens_claude_key`), we hit Anthropic directly. Power users who
 // want to use their own quota / a different model.
+
+import { sb } from './supabase';
 
 export function getUserClaudeKey() {
   return localStorage.getItem('te_claude_key') ||
@@ -65,10 +69,19 @@ export async function callClaude({
     }
   }
 
-  // Platform proxy (default path)
+  // Platform proxy (default path) — auth-gated by Supabase token.
+  // Pull the user's session token; the worker verifies it before calling
+  // Anthropic so anonymous traffic can't drain our API quota.
+  const { data: { session } } = await sb.auth.getSession();
+  const token = session?.access_token || '';
+  if (!token) throw new Error('You need to be signed in to use AI features.');
+
   const resp = await fetch('/api/claude', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(payload),
   });
   const data = await resp.json().catch(() => ({}));

@@ -1,0 +1,19 @@
+# Cloudflare Pages security headers — applied to every response
+# Docs: https://developers.cloudflare.com/pages/configuration/headers/
+#
+# Notes on CSP:
+#   - We need 'unsafe-inline' for styles because Vite + inline style props.
+#   - Scripts are restricted to self + Cloudflare Insights (analytics beacon).
+#   - 'connect-src' permits Supabase (auth + REST + realtime), Stripe Checkout,
+#     Anthropic (BYO key path), Marketaux (news), Tradovate, ElevenLabs (kept
+#     in CSP as no-op since the feature is gone), and Cloudflare Insights.
+#   - 'frame-src' allows Stripe Checkout to render its 3DS challenges if it ever
+#     embeds them; the main flow redirects so this is rarely hit.
+
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(self "https://checkout.stripe.com")
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://checkout.stripe.com https://api.anthropic.com https://api.marketaux.com https://newsapi.org https://*.tradovateapi.com https://static.cloudflareinsights.com https://cloudflareinsights.com; frame-src https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; object-src 'none'; upgrade-insecure-requests

@@ -1,6 +1,20 @@
 // ── Tradovate API Client ─────────────────────────────────────────────────────
 // All requests go through /api/tradovate/* Cloudflare Pages Functions
 // to avoid CORS restrictions. The proxy forwards to live/demo Tradovate APIs.
+//
+// The proxy is auth-gated by Supabase token in the X-Supabase-Auth header
+// (the Authorization header is reserved for the Tradovate token that gets
+// passed straight through to Tradovate). Without this gate the proxy was an
+// open relay anyone could use to flood Tradovate from our domain.
+
+import { sb } from './supabase';
+
+async function authHeaders() {
+  const { data: { session } } = await sb.auth.getSession();
+  const token = session?.access_token || '';
+  if (!token) throw new Error('You need to be signed in to use broker connections.');
+  return { 'X-Supabase-Auth': token };
+}
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -41,7 +55,7 @@ function parseAuthResponse(data, isDemo) {
 export async function tradovateAuth({ username, password, isDemo = false }) {
   const res = await fetch('/api/tradovate/auth', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
     body: JSON.stringify({ ...AUTH_BODY_BASE(username, password), isDemo }),
   });
   if (!res.ok) throw new Error(`Auth failed: ${res.status}`);
@@ -53,7 +67,7 @@ export async function tradovateAuth({ username, password, isDemo = false }) {
 export async function tradovateAuthMFA({ username, password, isDemo = false, pTicket, pTime, pCaptcha, mfaCode }) {
   const res = await fetch('/api/tradovate/auth', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
     body: JSON.stringify({
       ...AUTH_BODY_BASE(username, password),
       isDemo,
@@ -72,7 +86,7 @@ export async function tradovateAuthMFA({ username, password, isDemo = false, pTi
 
 export async function tradovateGetAccounts({ accessToken, isDemo = false }) {
   const res = await fetch(`/api/tradovate/accounts?isDemo=${isDemo}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: { Authorization: `Bearer ${accessToken}`, ...(await authHeaders()) },
   });
   if (!res.ok) throw new Error(`Failed to load accounts: ${res.status}`);
   const accounts = await res.json();
@@ -111,7 +125,7 @@ export async function tradovateSyncTrades({
   since,       // ISO date string — only pull trades after this date
 }) {
   const res = await fetch(`/api/tradovate/executions?isDemo=${isDemo}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: { Authorization: `Bearer ${accessToken}`, ...(await authHeaders()) },
   });
   if (!res.ok) throw new Error(`Failed to fetch executions: ${res.status}`);
   const execs = await res.json();

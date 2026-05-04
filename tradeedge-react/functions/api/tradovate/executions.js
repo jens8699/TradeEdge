@@ -1,9 +1,21 @@
-// Cloudflare Pages Function — proxies Tradovate execution reports
+// Cloudflare Pages Function — proxies Tradovate execution reports.
+// Auth-gated: Supabase token in X-Supabase-Auth header, Tradovate token in
+// Authorization header (passed straight through to Tradovate).
 export async function onRequestGet(context) {
   try {
-    const url = new URL(context.request.url);
+    const { env, request } = context;
+    const sbToken = request.headers.get('X-Supabase-Auth') || '';
+    if (!sbToken || !env?.SUPABASE_URL || !env?.SUPABASE_ANON_KEY) {
+      return Response.json({ errorText: 'Unauthorized' }, { status: 401 });
+    }
+    const verify = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${sbToken}`, apikey: env.SUPABASE_ANON_KEY },
+    });
+    if (!verify.ok) return Response.json({ errorText: 'Unauthorized' }, { status: 401 });
+
+    const url = new URL(request.url);
     const isDemo = url.searchParams.get('isDemo') === 'true';
-    const auth = context.request.headers.get('Authorization') || '';
+    const tvAuth = request.headers.get('Authorization') || '';
 
     const base = isDemo
       ? 'https://demo.tradovateapi.com/v1'
@@ -11,7 +23,7 @@ export async function onRequestGet(context) {
 
     const res = await fetch(`${base}/executionReport/list`, {
       headers: {
-        Authorization: auth,
+        Authorization: tvAuth,
         Accept: 'application/json',
       },
     });

@@ -2,7 +2,17 @@
  * Cloudflare Pages Function — Claude proxy
  * POST /api/claude  { messages, model?, max_tokens? }
  *
- * Set env var ANTHROPIC_API_KEY in Cloudflare Pages → Settings → Environment variables.
+ * Headers: Authorization: Bearer <supabase_access_token>
+ *
+ * Auth-gated so randoms can't drain our Anthropic quota by hitting this
+ * endpoint directly. Verifies the caller's Supabase token before forwarding
+ * to Anthropic — same pattern as stripe-checkout.js / stripe-portal.js.
+ *
+ * Set env vars in Cloudflare Pages → Settings → Environment variables:
+ *   ANTHROPIC_API_KEY        primary key
+ *   ANTHROPIC_API_KEY2       optional fallback key (used on 401/403 from primary)
+ *   SUPABASE_URL             https://<proj>.supabase.co
+ *   SUPABASE_ANON_KEY        anon public key (for the JWT verify call)
  */
 export async function onRequestPost(context) {
   const { env, request } = context;
@@ -13,6 +23,39 @@ export async function onRequestPost(context) {
   };
 
   try {
+    // Verify the user via their Supabase access token. Without this gate the
+    // endpoint is a free Claude API for the public — easy way to drain our
+    // Anthropic bill in a few minutes of malicious scripting.
+    const auth = request.headers.get('authorization') || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: corsHeaders,
+      });
+    }
+    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+      return new Response(JSON.stringify({ error: 'Server not configured (missing Supabase env)' }), {
+        status: 503, headers: corsHeaders,
+      });
+    }
+    const userResp = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: env.SUPABASE_ANON_KEY,
+      },
+    });
+    if (!userResp.ok) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: corsHeaders,
+      });
+    }
+    const user = await userResp.json();
+    if (!user?.id) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: corsHeaders,
+      });
+    }
+
     const body = await request.json();
     const {
       messages,
