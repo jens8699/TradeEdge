@@ -51,7 +51,6 @@ export default function PrivacyPolicy() {
           <li><b>Supabase</b> — database and authentication</li>
           <li><b>Cloudflare Pages</b> — hosting and edge functions</li>
           <li><b>Anthropic (Claude)</b> — AI-powered market brief and insights (trade data may be sent to generate insights; Anthropic does not store or train on this data)</li>
-          <li><b>ElevenLabs</b> — text-to-speech for the voice readout feature (text sent for synthesis is not stored)</li>
         </ul>
       </Section>
 

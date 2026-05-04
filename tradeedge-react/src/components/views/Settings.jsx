@@ -77,8 +77,6 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
   const [passMsg,     setPassMsg]     = useState('');
   const [claudeKey,   setClaudeKey]   = useState(localStorage.getItem('te_claude_key') || localStorage.getItem('jens_claude_key') || '');
   const [claudeMsg,   setClaudeMsg]   = useState('');
-  const [elKey,       setElKey]       = useState(localStorage.getItem('te_el_key') || localStorage.getItem('jens_el_key') || '');
-  const [elMsg,       setElMsg]       = useState('');
   const [dailyLimit,  setDailyLimit]  = useState(localStorage.getItem('te_daily_loss_limit') || '');
   const [limitMsg,    setLimitMsg]    = useState('');
   const [portalLoading, setPortalLoading] = useState(false);
@@ -87,7 +85,6 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
 
   useEffect(() => {
     if (claudeKey) setClaudeMsg('✓ Key saved');
-    if (elKey)     setElMsg('✓ Key saved');
   }, []);
 
   const saveName = async () => {
@@ -117,14 +114,6 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
     localStorage.removeItem('jens_claude_key');
     setClaudeMsg('✓ Key saved');
     showToast('Claude key saved');
-  };
-
-  const saveElKey = () => {
-    if (!elKey.trim()) { setElMsg('Please enter a key.'); return; }
-    localStorage.setItem('te_el_key', elKey);
-    localStorage.removeItem('jens_el_key');
-    setElMsg('✓ Key saved');
-    showToast('ElevenLabs key saved');
   };
 
   const saveDailyLimit = () => {
@@ -246,15 +235,6 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
       <div style={{ marginBottom: 24 }}>
         <ActionButton onClick={saveClaudeKey}>Save Claude key</ActionButton>
       </div>
-
-      <Field
-        label="ElevenLabs API key"
-        hint={<>Optional — enables voice narration in Market Brief. Get yours at <a href="https://elevenlabs.io" target="_blank" rel="noreferrer" style={{ color: 'var(--c-text-2)', textDecoration: 'underline' }}>elevenlabs.io</a>.</>}
-      >
-        <input type="password" style={inputStyle} placeholder="Paste your ElevenLabs key…" value={elKey} onChange={e => setElKey(e.target.value)} />
-        <SaveMsg msg={elMsg} />
-      </Field>
-      <ActionButton onClick={saveElKey}>Save ElevenLabs key</ActionButton>
 
       <HR />
 
