@@ -311,6 +311,12 @@ export default function TradeEntry({ showToast }) {
       session: form.session || null,
       rating:  form.rating  || null,
       checklistPassed,
+      // Tag immediately so PropFirmTracker / Stats see this trade tied to the
+      // chosen account WITHOUT needing a page reload (the side-table localStorage
+      // tag below is the persistent backup that survives reloads). Field is
+      // ignored by tradeToDb / Supabase — purely client-side until a real
+      // schema migration lands in Phase 3.
+      accountId: form.accountId || null,
     };
 
     const result = await addTrade(trade);
