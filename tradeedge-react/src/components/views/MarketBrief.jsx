@@ -15,8 +15,6 @@ function isActive(s) {
   return s.open < s.close ? (h >= s.open && h < s.close) : (h >= s.open || h < s.close);
 }
 
-function getElKey()     { return localStorage.getItem('te_el_key')     || localStorage.getItem('jens_el_key')     || ''; }
-
 function timeAgo(iso) {
   if (!iso) return '';
   const t = new Date(iso).getTime();
@@ -61,16 +59,7 @@ export default function MarketBrief({ showToast }) {
   const [newsError, setNewsError]   = useState('');
   const [newsFetchedAt, setNewsFetchedAt] = useState(null);
   const [customQuestion, setCustomQuestion] = useState('');
-  // Default to free browser TTS so new users hear something on day one
-  // without first pasting an ElevenLabs API key. The choice persists once
-  // the user actively switches.
-  const [ttsMode, setTtsMode]       = useState(() => localStorage.getItem('te_tts_mode') || 'browser');
-  const [ttsPlaying, setTtsPlaying] = useState(false);
-  const [elVoices, setElVoices]     = useState([]);
-  const [selectedVoice, setSelectedVoice] = useState(localStorage.getItem('jens_el_voice') || '');
-  const [elKeyStatus, setElKeyStatus] = useState('');
   const rawBriefText = useRef('');
-  const audioObj     = useRef(null);
 
   // Clock
   useEffect(() => {
@@ -84,26 +73,6 @@ export default function MarketBrief({ showToast }) {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
-
-  // ElevenLabs voices
-  const loadElVoices = useCallback(async () => {
-    const key = getElKey();
-    if (!key) { setElKeyStatus(''); return; }
-    setElKeyStatus('Loading…');
-    try {
-      const resp = await fetch('https://api.elevenlabs.io/v1/voices', { headers: { 'xi-api-key': key } });
-      if (!resp.ok) throw new Error('API ' + resp.status);
-      const data = await resp.json();
-      const voices = (data.voices || []).map(v => ({ id: v.voice_id, name: v.name })).sort((a,b) => a.name.localeCompare(b.name));
-      setElVoices(voices);
-      setElKeyStatus('✓ ' + voices.length + ' voices');
-      if (!selectedVoice && voices.length) setSelectedVoice(voices[0].id);
-    } catch(e) {
-      setElKeyStatus('✗ ' + e.message);
-    }
-  }, []);
-
-  useEffect(() => { loadElVoices(); }, []);
 
   // Load real market headlines from /api/news (Marketaux-backed, edge-cached 10min)
   const loadNews = useCallback(async () => {
@@ -213,42 +182,6 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
       setCustomQuestion('');
     } catch(e) { showToast('Error: ' + e.message, 'error'); }
     setGenerating(false);
-  };
-
-  const speakBrief = async () => {
-    const text = rawBriefText.current;
-    if (!text) return;
-    if (ttsPlaying) {
-      if (audioObj.current) { audioObj.current.pause(); audioObj.current = null; }
-      window.speechSynthesis?.cancel();
-      setTtsPlaying(false); return;
-    }
-    if (ttsMode === 'browser') {
-      const utt = new SpeechSynthesisUtterance(text);
-      utt.rate = 0.95; utt.pitch = 1;
-      utt.onend = () => setTtsPlaying(false);
-      window.speechSynthesis.speak(utt);
-      setTtsPlaying(true); return;
-    }
-    const key = getElKey();
-    if (!key) { showToast('Add ElevenLabs key in Settings', 'warn'); return; }
-    const voiceId = selectedVoice || (elVoices[0]?.id);
-    if (!voiceId) { showToast('No voice selected', 'warn'); return; }
-    setTtsPlaying(true);
-    try {
-      const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-        method: 'POST',
-        headers: { 'xi-api-key': key, 'content-type': 'application/json', 'accept': 'audio/mpeg' },
-        body: JSON.stringify({ text: text.slice(0, 2500), model_id: 'eleven_multilingual_v2', voice_settings: { stability: 0.5, similarity_boost: 0.75 } })
-      });
-      if (!resp.ok) throw new Error('ElevenLabs ' + resp.status);
-      const blob  = await resp.blob();
-      const url   = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audioObj.current = audio;
-      audio.onended = () => { setTtsPlaying(false); URL.revokeObjectURL(url); };
-      audio.play();
-    } catch(e) { showToast('TTS error: ' + e.message, 'error'); setTtsPlaying(false); }
   };
 
   const todayTrades = trades.filter(t => t.date === new Date().toISOString().slice(0, 10));
@@ -485,60 +418,6 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
             : '✦ Generate Brief'
           }
         </button>
-        {briefHtml && (
-          <button
-            onClick={speakBrief}
-            style={{
-              padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-              background: 'transparent', border: '1px solid var(--c-border)',
-              color: ttsPlaying ? 'var(--c-accent)' : 'var(--c-text-2)',
-              cursor: 'pointer', fontFamily: "'Inter', sans-serif", transition: 'all 0.15s',
-            }}
-          >
-            {ttsPlaying ? '⏸ Stop' : '▶ Listen'}
-          </button>
-        )}
-      </div>
-
-      {/* TTS settings */}
-      <div style={{ marginBottom: 20, padding: '14px 16px', border: '1px solid var(--c-border)', borderRadius: 12 }}>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-          {[['el', '🎙 ElevenLabs'], ['browser', '🔊 Browser']].map(([mode, label]) => (
-            <button
-              key={mode}
-              onClick={() => { setTtsMode(mode); localStorage.setItem('te_tts_mode', mode); }}
-              style={{
-                padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
-                background: ttsMode === mode ? 'var(--c-accent)' : 'transparent',
-                border: ttsMode === mode ? '1px solid var(--c-accent)' : '1px solid var(--c-border)',
-                color: ttsMode === mode ? '#17150F' : 'var(--c-text-2)',
-                cursor: 'pointer', fontFamily: "'Inter', sans-serif", transition: 'all 0.15s',
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        {ttsMode === 'el' && (
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-            <select
-              value={selectedVoice}
-              onChange={e => { setSelectedVoice(e.target.value); localStorage.setItem('jens_el_voice', e.target.value); }}
-              style={{
-                flex: 1, minWidth: 160, background: 'transparent', border: '1px solid var(--c-border)',
-                borderRadius: 8, padding: '7px 10px', fontSize: 12, color: 'var(--c-text)',
-                fontFamily: "'Inter', sans-serif", outline: 'none',
-              }}
-            >
-              {elVoices.length === 0 && <option>— Add key in Settings first —</option>}
-              {elVoices.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-            </select>
-            {elKeyStatus && <span style={{ fontSize: 11, color: 'var(--c-text-2)' }}>{elKeyStatus}</span>}
-          </div>
-        )}
-        <div style={{ fontSize: 11, color: 'var(--c-text-2)', opacity: 0.7 }}>
-          {ttsMode === 'el' ? 'Uses your ElevenLabs API key from Settings.' : 'Uses your browser\'s built-in text-to-speech engine (free, no key needed).'}
-        </div>
       </div>
 
       {/* Custom question */}
