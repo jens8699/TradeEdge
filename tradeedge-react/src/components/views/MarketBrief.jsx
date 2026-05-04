@@ -61,7 +61,10 @@ export default function MarketBrief({ showToast }) {
   const [newsError, setNewsError]   = useState('');
   const [newsFetchedAt, setNewsFetchedAt] = useState(null);
   const [customQuestion, setCustomQuestion] = useState('');
-  const [ttsMode, setTtsMode]       = useState('el');
+  // Default to free browser TTS so new users hear something on day one
+  // without first pasting an ElevenLabs API key. The choice persists once
+  // the user actively switches.
+  const [ttsMode, setTtsMode]       = useState(() => localStorage.getItem('te_tts_mode') || 'browser');
   const [ttsPlaying, setTtsPlaying] = useState(false);
   const [elVoices, setElVoices]     = useState([]);
   const [selectedVoice, setSelectedVoice] = useState(localStorage.getItem('jens_el_voice') || '');
@@ -503,7 +506,7 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
           {[['el', '🎙 ElevenLabs'], ['browser', '🔊 Browser']].map(([mode, label]) => (
             <button
               key={mode}
-              onClick={() => setTtsMode(mode)}
+              onClick={() => { setTtsMode(mode); localStorage.setItem('te_tts_mode', mode); }}
               style={{
                 padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
                 background: ttsMode === mode ? 'var(--c-accent)' : 'transparent',
