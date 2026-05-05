@@ -5,6 +5,7 @@ import { setChecklistTag } from '../../lib/checklistTags';
 import { checkAgainst as checkRules } from '../../lib/tradingRules';
 import { setViolations as persistViolations } from '../../lib/ruleViolations';
 import { setTradeAccount, loadAccountsForPicker, formatAccountLabel } from '../../lib/tradeAccounts';
+import { calcPnlFromPrices, isKnownFuturesSymbol } from '../../lib/futuresMath';
 
 const DRAFT_KEY = 'te_trade_draft';
 const CHECKLIST_SESSION_KEY = 'te_checklist_session';
@@ -256,16 +257,35 @@ export default function TradeEntry({ showToast }) {
 
   const save = async () => {
     const { date, symbol, direction, accounts, riskPer, rewardPer, outcome, setup, notes } = form;
-    let pnl = parseFloat(form.pnl);
-    // Tell users EXACTLY what's missing — the old "Need date, symbol,
-    // accounts, and risk" was vague enough that users with 3 of 4 filled
-    // saw their already-filled fields in the message and got confused.
-    // Misleading validation messages = confused users = bounces.
+
+    // Three valid ways to determine P&L — try them in order of user intent:
+    //   1. User typed a manual P&L value (most explicit)
+    //   2. Entry + Exit + Qty filled with a known futures symbol (auto-calc)
+    //   3. Risk per account + outcome (the original R:R workflow)
+    // Any one of these is enough to save the trade. We don't force users
+    // through the R:R path anymore — that was the friction Jens flagged
+    // when prepping the demo video.
+    const accounts_   = parseInt(accounts) || 1;
+    const riskPer_    = parseFloat(riskPer) || 0;
+    const rewardPer_  = parseFloat(rewardPer) || 0;
+    const totalRisk   = riskPer_ * accounts_;
+    const totalReward = rewardPer_ * accounts_;
+
+    const manualPnlNum = parseFloat(form.pnl);
+    const hasManualPnl = !isNaN(manualPnlNum);
+    const autoCalcPnl  = calcPnlFromPrices({
+      symbol, entry: form.entry, exit: form.exit, qty: form.qty, direction,
+    });
+
+    // Validation — list everything missing so users know exactly what to fix.
     const missing = [];
-    if (!date)                                                      missing.push('date');
-    if (!symbol)                                                    missing.push('symbol');
-    if (isNaN(parseFloat(riskPer)) || parseFloat(riskPer) <= 0)     missing.push('risk per account');
-    if (parseInt(accounts) < 1)                                     missing.push('account count');
+    if (!date)                   missing.push('date');
+    if (!symbol)                 missing.push('symbol');
+    if (parseInt(accounts) < 1)  missing.push('account count');
+    const hasPnlPath = hasManualPnl || autoCalcPnl != null || riskPer_ > 0;
+    if (!hasPnlPath && missing.length === 0) {
+      missing.push('P&L (or risk per account, or entry + exit + qty)');
+    }
     if (missing.length) {
       setSaveMsg(missing.length === 1
         ? `Missing: ${missing[0]}`
@@ -273,17 +293,17 @@ export default function TradeEntry({ showToast }) {
       setTimeout(() => setSaveMsg(''), 4000);
       return;
     }
-    const accounts_ = parseInt(accounts) || 1;
-    const riskPer_   = parseFloat(riskPer) || 0;
-    const rewardPer_ = parseFloat(rewardPer) || 0;
-    const totalRisk  = riskPer_ * accounts_;
-    const totalReward = rewardPer_ * accounts_;
-    // Auto-calc P&L unless the user explicitly typed a custom value
-    const manualPnl = String(form.pnl).trim();
-    if (manualPnl === '' || isNaN(pnl)) {
-      if (outcome === 'win') pnl = totalReward;
+
+    // Resolve final P&L: manual > auto-calc > risk-derived.
+    let pnl;
+    if (hasManualPnl) {
+      pnl = manualPnlNum;
+    } else if (autoCalcPnl != null) {
+      pnl = autoCalcPnl;
+    } else {
+      if (outcome === 'win')       pnl = totalReward;
       else if (outcome === 'loss') pnl = -totalRisk;
-      else pnl = 0;
+      else                         pnl = 0;
     }
     setSaving(true); setSaveMsg('Saving…');
 
@@ -373,6 +393,19 @@ export default function TradeEntry({ showToast }) {
   const label = { fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--c-text-2)', display: 'block', marginBottom: 7 };
   const field = { display: 'flex', flexDirection: 'column' };
   const hr = { height: 1, background: 'var(--c-border)', margin: '28px 0' };
+
+  // Auto-calculated P&L from entry + exit + qty for known futures contracts.
+  // Computed every render so the UI reflects what the user is typing live.
+  // Returns null if symbol isn't a known futures contract or any input is
+  // missing — UI then falls back to the manual / risk-reward path.
+  const autoCalcPnlPreview = calcPnlFromPrices({
+    symbol:    form.symbol,
+    entry:     form.entry,
+    exit:      form.exit,
+    qty:       form.qty,
+    direction: form.direction,
+  });
+  const isAutoCalcSymbol = isKnownFuturesSymbol(form.symbol);
 
   const outcomeActive = (v) => ({
     flex: 1, padding: '14px', borderRadius: 12, fontSize: 15, fontWeight: 600,
@@ -588,12 +621,37 @@ export default function TradeEntry({ showToast }) {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: 16 }}>
           <div style={field}>
-            <span style={label}>P/L ($) <span style={{ fontWeight: 400, opacity: 0.55 }}>— override</span></span>
-            <input style={inp} type="number" placeholder="auto" step="0.01" value={form.pnl} onChange={e => set('pnl', e.target.value)} />
+            <span style={label}>
+              P/L ($) <span style={{ fontWeight: 400, opacity: 0.55 }}>— override</span>
+              {autoCalcPnlPreview != null && !form.pnl && (
+                <span style={{
+                  marginLeft: 8, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+                  color: 'var(--c-accent)', background: 'rgba(224,122,59,0.12)',
+                  border: '1px solid rgba(224,122,59,0.35)',
+                  padding: '2px 7px', borderRadius: 100, textTransform: 'uppercase',
+                }}>
+                  ✦ Auto
+                </span>
+              )}
+            </span>
+            <input
+              style={inp}
+              type="number"
+              placeholder={autoCalcPnlPreview != null
+                ? `${autoCalcPnlPreview >= 0 ? '+' : ''}${autoCalcPnlPreview}`
+                : 'auto'}
+              step="0.01"
+              value={form.pnl}
+              onChange={e => set('pnl', e.target.value)}
+            />
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
             <div style={{ fontSize: 11, color: 'var(--c-text-2)', lineHeight: 1.6, opacity: 0.7 }}>
-              Leave blank to auto-calculate — wins save as Target × Accounts, losses save as −Risk × Accounts.
+              {autoCalcPnlPreview != null
+                ? <>Auto-calculated from your <b>entry</b>, <b>exit</b>, and <b>qty</b> for {form.symbol.toUpperCase()}. Type to override.</>
+                : isAutoCalcSymbol
+                  ? <>Fill <b>entry</b>, <b>exit</b>, and <b>qty</b> below for instant P&L on {form.symbol.toUpperCase()}. Otherwise wins save as Target × Accounts, losses as −Risk × Accounts.</>
+                  : <>Leave blank to auto-calculate — wins save as Target × Accounts, losses as −Risk × Accounts.</>}
             </div>
           </div>
         </div>
