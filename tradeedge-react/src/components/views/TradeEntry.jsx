@@ -257,9 +257,20 @@ export default function TradeEntry({ showToast }) {
   const save = async () => {
     const { date, symbol, direction, accounts, riskPer, rewardPer, outcome, setup, notes } = form;
     let pnl = parseFloat(form.pnl);
-    if (!date || !symbol || parseFloat(riskPer) <= 0 || parseInt(accounts) < 1) {
-      setSaveMsg('Need date, symbol, accounts, and risk');
-      setTimeout(() => setSaveMsg(''), 3000);
+    // Tell users EXACTLY what's missing — the old "Need date, symbol,
+    // accounts, and risk" was vague enough that users with 3 of 4 filled
+    // saw their already-filled fields in the message and got confused.
+    // Misleading validation messages = confused users = bounces.
+    const missing = [];
+    if (!date)                                                      missing.push('date');
+    if (!symbol)                                                    missing.push('symbol');
+    if (isNaN(parseFloat(riskPer)) || parseFloat(riskPer) <= 0)     missing.push('risk per account');
+    if (parseInt(accounts) < 1)                                     missing.push('account count');
+    if (missing.length) {
+      setSaveMsg(missing.length === 1
+        ? `Missing: ${missing[0]}`
+        : `Missing: ${missing.join(', ')}`);
+      setTimeout(() => setSaveMsg(''), 4000);
       return;
     }
     const accounts_ = parseInt(accounts) || 1;
