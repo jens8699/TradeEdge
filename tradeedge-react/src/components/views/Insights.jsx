@@ -412,14 +412,92 @@ function BreakdownCard({ title, children }) {
   );
 }
 
+// ── Pro paywall ──────────────────────────────────────────────────────────────
+//
+// Free users hitting the AI Insights tab see this card instead of the
+// full pattern engine. Tone matches the brand voice (Fraunces serif, Cream
+// theme, no marketing speak). Lists what they get behind the gate so the
+// upgrade decision is informed, not blind.
+
+function InsightsPaywall({ onUpgrade }) {
+  const features = [
+    { icon: '🧠', title: 'Pattern engine', body: 'Surfaces hidden patterns in your trading — best/worst days, sessions, setups, symbols, ratings. Updates automatically as you log.' },
+    { icon: '✨', title: 'AI coaching summary', body: 'On-demand coaching write-up that reads your last N trades and tells you what to fix this week.' },
+    { icon: '🎯', title: 'Consistency score', body: 'A single number that tracks whether you\'re becoming more consistent or more erratic over time.' },
+    { icon: '📊', title: 'Symbol & session breakdowns', body: 'See which markets and which sessions you actually have edge in — not which ones feel right.' },
+  ];
+
+  return (
+    <div style={{ padding: 'clamp(20px, 5vw, 36px) clamp(16px, 4.5vw, 44px) 64px', maxWidth: 760, margin: '0 auto' }}>
+      <div style={{ fontSize: 11, color: 'var(--c-text-2)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
+        AI Insights
+      </div>
+      <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 'clamp(28px, 5vw, 38px)', lineHeight: 1.1, letterSpacing: '-0.03em', color: 'var(--c-text)', marginBottom: 16 }}>
+        Find your edge. <em style={{ color: 'var(--c-accent)', fontStyle: 'italic' }}>Then double it.</em>
+      </div>
+      <p style={{ fontSize: 14, color: 'var(--c-text-2)', lineHeight: 1.7, marginBottom: 28, maxWidth: 560 }}>
+        AI Insights is a Pro feature. It reads every trade you've logged and surfaces the patterns you can't see on your own — best days, worst sessions, which setups actually have edge, where you're leaking money. Without it, you're guessing.
+      </p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12, marginBottom: 32 }}>
+        {features.map(f => (
+          <div key={f.title} style={{
+            border: '1px solid var(--c-border)', borderRadius: 14, padding: '16px 18px',
+            background: 'var(--c-surface)',
+          }}>
+            <div style={{ fontSize: 18, marginBottom: 8 }}>{f.icon}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-text)', marginBottom: 6 }}>{f.title}</div>
+            <div style={{ fontSize: 12, color: 'var(--c-text-2)', lineHeight: 1.55 }}>{f.body}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{
+        padding: '20px 22px', borderRadius: 14,
+        background: 'rgba(224,122,59,0.06)', border: '1px solid rgba(224,122,59,0.25)',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        flexWrap: 'wrap', gap: 14,
+      }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-accent)', marginBottom: 4 }}>
+            TradeEdge Pro · $19/mo
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--c-text-2)' }}>
+            7-day free trial · cancel anytime · all features unlocked
+          </div>
+        </div>
+        <button
+          onClick={onUpgrade}
+          style={{
+            padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+            background: 'var(--c-accent)', color: '#17150F', border: 'none',
+            fontFamily: "'Inter', sans-serif", cursor: 'pointer',
+          }}
+        >
+          Start free trial →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main View ─────────────────────────────────────────────────────────────────
 
-export default function Insights({ showToast }) {
+export default function Insights({ showToast, profile, onUpgrade }) {
   const { trades } = useApp();
   const [period, setPeriod]     = useState('all');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult]   = useState('');
   const [openFaq, setOpenFaq]     = useState(null);
+
+  // Pro gating — AI Insights pattern engine, coaching advice, and emotion
+  // tracking are Pro-tier features. Free users hit a paywall card explaining
+  // what's behind the gate, with a single Upgrade CTA. Trialing users land
+  // here as plan === 'pro' (per the Stripe webhook), so they see the full UI.
+  const isPro = profile?.plan === 'pro';
+  if (!isPro) {
+    return <InsightsPaywall onUpgrade={onUpgrade} />;
+  }
 
   const list     = filterPeriod(trades, period);
   const s        = computeStats(list);

@@ -109,7 +109,7 @@ export default function AppLayout({ user, profile, showToast }) {
             {activeTab === 'history'  && <History showToast={showToast} />}
             {activeTab === 'payouts'  && <Payouts showToast={showToast} />}
             {activeTab === 'brief'    && <MarketBrief showToast={showToast} />}
-            {activeTab === 'insights' && <Insights showToast={showToast} />}
+            {activeTab === 'insights' && <Insights showToast={showToast} profile={profile} onUpgrade={() => setShowUpgrade(true)} />}
             {activeTab === 'digest'   && <WeeklyDigest />}
             {activeTab === 'calendar'  && <Calendar />}
             {activeTab === 'social'       && <Social user={user} profile={profile} showToast={showToast} />}
