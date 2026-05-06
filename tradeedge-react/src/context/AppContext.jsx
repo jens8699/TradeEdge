@@ -3,7 +3,12 @@ import { sb, dbToTrade, dbToPayout, tradeToDb, payoutToDb, fetchSignedUrls } fro
 import { mergeChecklistTags, setChecklistTag } from '../lib/checklistTags';
 import { mergeCritiques, clearCritique } from '../lib/tradeCritiques';
 import { mergeViolations, clearViolations } from '../lib/ruleViolations';
-import { mergeTradeAccounts } from '../lib/tradeAccounts';
+import {
+  mergeTradeAccounts,
+  dbToAccount,
+  accountToDb,
+  migrateLocalStorageToSupabase,
+} from '../lib/tradeAccounts';
 import { uid, computeStats } from '../lib/utils';
 
 const AppContext = createContext(null);
@@ -57,6 +62,12 @@ async function syncOfflineQueue(userId) {
 export function AppProvider({ userId, children }) {
   const [trades,   setTrades]   = useState([]);
   const [payouts,  setPayouts]  = useState([]);
+  // Prop firm accounts (TopStep $50k, Apex $100k, …) and the trade↔account
+  // side-table. Both moved from localStorage to Supabase 2026-05-06 so users
+  // see the same data across devices/browsers. Owned here so every consumer
+  // (PropFirmTracker, TradeEntry, History) reads the same instance.
+  const [propFirmAccounts, setPropFirmAccounts] = useState([]);
+  const [accountTags,      setAccountTags]      = useState({}); // { tradeId: accountId }
   const [loading,  setLoading]  = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [syncPending, setSyncPending] = useState(() => oqGet().length > 0);
@@ -78,21 +89,50 @@ export function AppProvider({ userId, children }) {
     }
   }, [theme, userId]);
 
-  // Initial data load
+  // Initial data load. Order matters:
+  //   1. Migrate any legacy localStorage prop-firm-accounts/tags to Supabase
+  //      (idempotent — no-op for already-migrated users or fresh installs)
+  //   2. Fetch trades, payouts, accounts, tags, profile in parallel
+  //   3. Build the in-memory accountTags map (used by mergeTradeAccounts)
   const load = useCallback(async (uid_) => {
     setLoading(true);
     try {
-      const [{ data: t }, { data: p }, { data: profileData }] = await Promise.all([
+      // 1. One-time migration. Runs on every load but no-ops once cleared.
+      await migrateLocalStorageToSupabase(uid_);
+
+      // 2. Parallel fetch.
+      const [
+        { data: t },
+        { data: p },
+        { data: accs },
+        { data: tags },
+        { data: profileData },
+      ] = await Promise.all([
         sb.from('trades').select('*').eq('user_id', uid_).order('date', { ascending: false }),
         sb.from('payouts').select('*').eq('user_id', uid_).order('date', { ascending: false }),
+        sb.from('prop_firm_accounts').select('*').eq('user_id', uid_).order('created_at', { ascending: true }),
+        sb.from('trade_account_tags').select('trade_id, account_id').eq('user_id', uid_),
         sb.from('profiles').select('theme').eq('id', uid_).single(),
       ]);
+
+      // 3. Build the tag map for mergeTradeAccounts.
+      const tagMap = {};
+      for (const row of (tags || [])) tagMap[row.trade_id] = row.account_id;
+
       const tradeListRaw = (t || []).map(dbToTrade);
-      const tradeList    = mergeTradeAccounts(mergeViolations(mergeCritiques(mergeChecklistTags(tradeListRaw))));
+      const tradeList    = mergeTradeAccounts(
+        mergeViolations(mergeCritiques(mergeChecklistTags(tradeListRaw))),
+        tagMap,
+      );
       const payoutList   = (p || []).map(dbToPayout);
+      const accountList  = (accs || []).map(dbToAccount);
+
       await fetchSignedUrls(tradeList);
       setTrades(tradeList);
       setPayouts(payoutList);
+      setPropFirmAccounts(accountList);
+      setAccountTags(tagMap);
+
       // Restore theme from profile if available
       if (profileData?.theme && !localStorage.getItem('te_theme')) {
         setTheme(profileData.theme);
@@ -199,6 +239,14 @@ export function AppProvider({ userId, children }) {
     setChecklistTag(tradeId, null);
     clearCritique(tradeId);
     clearViolations(tradeId);
+    // Account tag side-table is now in Supabase — delete the row + local map.
+    sb.from('trade_account_tags').delete().eq('trade_id', tradeId).then(() => {});
+    setAccountTags(prev => {
+      if (!(tradeId in prev)) return prev;
+      const next = { ...prev };
+      delete next[tradeId];
+      return next;
+    });
   }, [trades]);
 
   const updateTrade = useCallback(async (updated) => {
@@ -210,6 +258,94 @@ export function AppProvider({ userId, children }) {
     }
     const { error } = await sb.from('trades').update(tradeToDb(updated, userId)).eq('id', updated.id);
     if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  }, [userId]);
+
+  // ── Prop Firm Account CRUD ──────────────────────────────────────────────────
+  // Optimistic UI updates — local state changes immediately, Supabase write
+  // happens in the background. On failure we roll back and surface the error
+  // so the caller can show a toast.
+
+  const addPropFirmAccount = useCallback(async (account) => {
+    if (!userId) return { ok: false, error: 'No user' };
+    setPropFirmAccounts(prev => [...prev, account]);
+    const { error } = await sb.from('prop_firm_accounts').insert([accountToDb(account, userId)]);
+    if (error) {
+      setPropFirmAccounts(prev => prev.filter(a => a.id !== account.id));
+      return { ok: false, error: error.message };
+    }
+    return { ok: true };
+  }, [userId]);
+
+  const updatePropFirmAccount = useCallback(async (account) => {
+    if (!userId) return { ok: false, error: 'No user' };
+    let prevSnapshot = null;
+    setPropFirmAccounts(prev => {
+      prevSnapshot = prev;
+      const idx = prev.findIndex(a => a.id === account.id);
+      if (idx < 0) return [...prev, account];
+      const next = [...prev];
+      next[idx] = account;
+      return next;
+    });
+    const { error } = await sb
+      .from('prop_firm_accounts')
+      .update(accountToDb(account, userId))
+      .eq('id', account.id);
+    if (error) {
+      if (prevSnapshot) setPropFirmAccounts(prevSnapshot);
+      return { ok: false, error: error.message };
+    }
+    return { ok: true };
+  }, [userId]);
+
+  const deletePropFirmAccount = useCallback(async (id) => {
+    if (!userId) return { ok: false, error: 'No user' };
+    let prevSnapshot = null;
+    setPropFirmAccounts(prev => {
+      prevSnapshot = prev;
+      return prev.filter(a => a.id !== id);
+    });
+    const { error } = await sb.from('prop_firm_accounts').delete().eq('id', id);
+    if (error) {
+      if (prevSnapshot) setPropFirmAccounts(prevSnapshot);
+      return { ok: false, error: error.message };
+    }
+    return { ok: true };
+  }, [userId]);
+
+  // ── Trade↔Account tag CRUD ──────────────────────────────────────────────────
+  // `null`/empty accountId clears the tag (deletes the row).
+
+  const setTradeAccountTag = useCallback(async (tradeId, accountId) => {
+    if (!userId || !tradeId) return { ok: false, error: 'Missing input' };
+
+    // Optimistic local update first.
+    setAccountTags(prev => {
+      const next = { ...prev };
+      if (accountId) next[tradeId] = accountId;
+      else delete next[tradeId];
+      return next;
+    });
+    // Mirror onto the trades array so consumers re-render with the new tag.
+    setTrades(prev => prev.map(t => {
+      if (t.id !== tradeId) return t;
+      const { accountId: _drop, ...rest } = t;
+      return accountId ? { ...rest, accountId } : rest;
+    }));
+
+    if (accountId) {
+      const { error } = await sb
+        .from('trade_account_tags')
+        .upsert({ trade_id: tradeId, user_id: userId, account_id: accountId }, { onConflict: 'trade_id' });
+      if (error) return { ok: false, error: error.message };
+    } else {
+      const { error } = await sb
+        .from('trade_account_tags')
+        .delete()
+        .eq('trade_id', tradeId);
+      if (error) return { ok: false, error: error.message };
+    }
     return { ok: true };
   }, [userId]);
 
@@ -277,6 +413,10 @@ export function AppProvider({ userId, children }) {
       theme, toggleTheme,
       load, addTrade, deleteTrade, updateTrade,
       addPayout, deletePayout,
+      // Cross-device prop firm accounts + trade tags (Supabase-backed).
+      propFirmAccounts, accountTags,
+      addPropFirmAccount, updatePropFirmAccount, deletePropFirmAccount,
+      setTradeAccountTag,
       exportData, importData, doSync,
     }}>
       {children}

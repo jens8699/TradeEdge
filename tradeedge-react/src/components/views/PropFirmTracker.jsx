@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { fmt } from '../../lib/utils';
 import { computeAllAccountStats } from '../../lib/accountStats';
 
-// Persisted in localStorage under this key. Move to Supabase when needed.
-const STORAGE_KEY = 'te_prop_firm_accounts';
+// Accounts are now stored in Supabase (`prop_firm_accounts`) and exposed via
+// AppContext. This view is a pure consumer — no local state, no localStorage.
+// See cross_device_sync_migration.sql for the schema.
 
 // Common prop firms — shown as suggestions in the firm-name input.
 const FIRM_PRESETS = [
@@ -21,23 +22,6 @@ const STATUS_OPTIONS = [
 
 function uid() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-}
-
-function loadAccounts() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveAccounts(accs) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(accs));
-  } catch {}
 }
 
 // ── Per-firm ROI aggregation ────────────────────────────────────────────────
@@ -87,7 +71,7 @@ function computeFirmROI(accounts, payouts) {
 
 // ── Edit / Add modal ─────────────────────────────────────────────────────────
 
-function AccountModal({ initial, onSave, onClose }) {
+function AccountModal({ initial, onSave, onClose, saving = false, error = '' }) {
   const [acc, setAcc] = useState(initial || {
     id: uid(),
     firm: '',
@@ -223,10 +207,20 @@ function AccountModal({ initial, onSave, onClose }) {
             />
           </Field>
 
+          {error && (
+            <div style={{ fontSize: 12, color: '#C65A45', marginTop: 4, fontFamily: "'Inter', sans-serif" }}>
+              {error}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button onClick={onClose} style={modalStyles.ghostBtn}>Cancel</button>
-            <button onClick={handleSubmit} style={modalStyles.primaryBtn}>
-              {initial ? 'Save changes' : 'Add account'}
+            <button onClick={onClose} style={modalStyles.ghostBtn} disabled={saving}>Cancel</button>
+            <button
+              onClick={handleSubmit}
+              style={{ ...modalStyles.primaryBtn, opacity: saving ? 0.6 : 1, cursor: saving ? 'default' : 'pointer' }}
+              disabled={saving}
+            >
+              {saving ? 'Saving…' : (initial ? 'Save changes' : 'Add account')}
             </button>
           </div>
         </div>
@@ -377,11 +371,14 @@ const iconBtn = {
 // ── Main view ────────────────────────────────────────────────────────────────
 
 export default function PropFirmTracker() {
-  const { payouts, trades } = useApp();
-  const [accounts, setAccounts] = useState(loadAccounts);
+  const {
+    payouts, trades,
+    propFirmAccounts: accounts,
+    addPropFirmAccount, updatePropFirmAccount, deletePropFirmAccount,
+  } = useApp();
   const [editing, setEditing] = useState(null); // account being edited, or 'new', or null
-
-  useEffect(() => { saveAccounts(accounts); }, [accounts]);
+  const [saving,  setSaving]  = useState(false);
+  const [error,   setError]   = useState('');
 
   // Live per-account stats computed from tagged trades. Map of accountId → stats.
   // Replaces the old manual `pnl` and `ddRemaining` fields.
@@ -408,22 +405,26 @@ export default function PropFirmTracker() {
     return t;
   }, [firmROI]);
 
-  function handleSave(acc) {
-    setAccounts(prev => {
-      const idx = prev.findIndex(a => a.id === acc.id);
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = acc;
-        return next;
-      }
-      return [...prev, acc];
-    });
+  async function handleSave(acc) {
+    if (saving) return;
+    setSaving(true);
+    setError('');
+    const exists = accounts.some(a => a.id === acc.id);
+    const result = exists
+      ? await updatePropFirmAccount(acc)
+      : await addPropFirmAccount(acc);
+    setSaving(false);
+    if (!result.ok) {
+      setError(result.error || 'Could not save account.');
+      return;
+    }
     setEditing(null);
   }
 
-  function handleDelete(id) {
+  async function handleDelete(id) {
     if (!confirm('Delete this account from the tracker?')) return;
-    setAccounts(prev => prev.filter(a => a.id !== id));
+    const result = await deletePropFirmAccount(id);
+    if (!result.ok) setError(result.error || 'Could not delete account.');
   }
 
   // Derived stats — pull live numbers from statsByAccount instead of stale manual fields.
@@ -651,7 +652,9 @@ export default function PropFirmTracker() {
         <AccountModal
           initial={editing === 'new' ? null : editing}
           onSave={handleSave}
-          onClose={() => setEditing(null)}
+          onClose={() => { setEditing(null); setError(''); }}
+          saving={saving}
+          error={error}
         />
       )}
     </div>

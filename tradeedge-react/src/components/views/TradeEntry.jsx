@@ -4,7 +4,7 @@ import { sb } from '../../lib/supabase';
 import { setChecklistTag } from '../../lib/checklistTags';
 import { checkAgainst as checkRules } from '../../lib/tradingRules';
 import { setViolations as persistViolations } from '../../lib/ruleViolations';
-import { setTradeAccount, loadAccountsForPicker, formatAccountLabel } from '../../lib/tradeAccounts';
+import { formatAccountLabel } from '../../lib/tradeAccounts';
 import { calcPnlFromPrices, isKnownFuturesSymbol } from '../../lib/futuresMath';
 
 const DRAFT_KEY = 'te_trade_draft';
@@ -60,7 +60,10 @@ const DEFAULT_SYMBOLS = [
 ];
 
 export default function TradeEntry({ showToast }) {
-  const { userId, trades, addTrade, setActiveTab } = useApp();
+  const {
+    userId, trades, addTrade, setActiveTab,
+    propFirmAccounts, setTradeAccountTag,
+  } = useApp();
 
   // Setup suggestions = defaults + every distinct setup the user has used
   // before, frequency-sorted (their most-used setups float to the top).
@@ -121,18 +124,10 @@ export default function TradeEntry({ showToast }) {
     accountId: '', // PropFirmTracker account this trade was placed on (optional)
   });
 
-  // Prop firm accounts available for the dropdown. Refresh on focus so newly
-  // added accounts (in another tab) appear without a full page reload.
-  const [propAccounts, setPropAccounts] = useState(loadAccountsForPicker);
-  useEffect(() => {
-    const refresh = () => setPropAccounts(loadAccountsForPicker());
-    window.addEventListener('focus', refresh);
-    window.addEventListener('storage', refresh);
-    return () => {
-      window.removeEventListener('focus', refresh);
-      window.removeEventListener('storage', refresh);
-    };
-  }, []);
+  // Prop firm accounts available for the dropdown — read from AppContext
+  // (Supabase-backed). No window listeners needed; context updates re-render
+  // this component automatically when accounts change anywhere in the app.
+  const propAccounts = propFirmAccounts;
   const [pendingImage, setPendingImage]       = useState(null);
   const [previewSrc,   setPreviewSrc]         = useState(null);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
@@ -357,10 +352,11 @@ export default function TradeEntry({ showToast }) {
     if (checklistPassed === true || checklistPassed === false) {
       setChecklistTag(tradeId, checklistPassed);
     }
-    // Persist which prop firm account this trade was placed on (side-table,
-    // localStorage). Phase 2 will migrate to a real DB column.
+    // Persist which prop firm account this trade was placed on. Now stored
+    // in Supabase (`trade_account_tags`) so it follows the user across
+    // devices. Fire-and-forget — failures only matter for the next page load.
     if (form.accountId) {
-      setTradeAccount(tradeId, form.accountId);
+      setTradeAccountTag(tradeId, form.accountId);
     }
     // Stamp any active rule violations so Stats can show adherence over time.
     if (ruleViolations && ruleViolations.length > 0) {

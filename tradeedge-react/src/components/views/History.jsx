@@ -1,9 +1,8 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { fmt, fmtR } from '../../lib/utils';
 import EditTradeModal from '../modals/EditTradeModal';
 import { setCritique as persistCritique } from '../../lib/tradeCritiques';
-import { loadAccountsForPicker } from '../../lib/tradeAccounts';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -521,27 +520,15 @@ function DateGroup({ date, trades, onSelect, selectMode, selectedIds, onToggleSe
 // ── Main View ─────────────────────────────────────────────────────────────────
 
 export default function History({ showToast }) {
-  const { trades, deleteTrade } = useApp();
-  // Build accountsById once so each TradeRow can resolve its accountId → firm name
-  // without re-reading localStorage per row. Refreshed on focus / storage event.
-  const [accountsById, setAccountsById] = useState(() => {
+  const { trades, deleteTrade, propFirmAccounts } = useApp();
+  // Build accountsById from context so each TradeRow can resolve its
+  // accountId → firm name. Re-derived whenever propFirmAccounts changes
+  // (Supabase-backed, so changes anywhere in the app propagate here).
+  const accountsById = useMemo(() => {
     const map = {};
-    for (const a of loadAccountsForPicker()) map[a.id] = a;
+    for (const a of propFirmAccounts) map[a.id] = a;
     return map;
-  });
-  useEffect(() => {
-    const refresh = () => {
-      const map = {};
-      for (const a of loadAccountsForPicker()) map[a.id] = a;
-      setAccountsById(map);
-    };
-    window.addEventListener('focus', refresh);
-    window.addEventListener('storage', refresh);
-    return () => {
-      window.removeEventListener('focus', refresh);
-      window.removeEventListener('storage', refresh);
-    };
-  }, []);
+  }, [propFirmAccounts]);
   const [selectedTrade, setSelectedTrade] = useState(null);
   // Bulk-select state
   const [selectMode, setSelectMode] = useState(false);
