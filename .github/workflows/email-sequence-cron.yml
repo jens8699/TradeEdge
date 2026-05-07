@@ -1,0 +1,20 @@
+name: Email sequence cron
+
+on:
+  schedule:
+    - cron: '3 * * * *'
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger email sequence tick
+        env:
+          CRON_SECRET: ${{ secrets.EMAIL_CRON_SECRET }}
+        run: |
+          response=$(curl -fsS --max-time 60 \
+            -H "X-Email-Cron-Secret: $CRON_SECRET" \
+            "https://tradeedge.today/api/email-sequence-tick")
+          echo "Response: $response"
