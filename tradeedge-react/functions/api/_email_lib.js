@@ -265,7 +265,12 @@ Unsubscribe: ${ctx.unsubscribeUrl}`,
 
 export const STEP_ELIGIBILITY = {
   day_0_welcome:     (u, now) => hoursSinceSignup(u, now) >= 0,
-  day_1_question:    (u, now) => hoursSinceSignup(u, now) >= 24,
+  // Skip Day 1 if the user already answered the same question in-app via the
+  // onboarding modal (profiles.expectation set). No point asking twice.
+  day_1_question:    (u, now) => (
+    hoursSinceSignup(u, now) >= 24 &&
+    !(u.expectation && u.expectation.trim().length > 0)
+  ),
   day_3_use_case:    (u, now) => hoursSinceSignup(u, now) >= 72,
   // Trial end warning — only for users in trial whose trial ends within 24h.
   day_6_trial_end:   (u, now) => {

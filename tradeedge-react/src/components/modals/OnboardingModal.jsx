@@ -68,22 +68,31 @@ export default function OnboardingModal({ user, profile, onClose }) {
     profile?.name || user?.user_metadata?.name || ''
   );
   const [style,   setStyle]   = useState(null);
+  // Customer-dev signal: what does the user expect TradeEdge to do for them?
+  // Captured in-app from EVERY signup so we have product-roadmap signal
+  // beyond just email-clickers. Saved to profiles.expectation in Supabase.
+  const [expectation, setExpectation] = useState('');
   const [saving,  setSaving]  = useState(false);
 
   // Animate in on mount
   const [visible, setVisible] = useState(false);
   useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
 
-  const totalSteps = 4;
+  // 4 step components (0-3). totalSteps = 5 makes Dots render 4 dots.
+  const totalSteps = 5;
 
   const saveAndClose = async (tab = 'dashboard') => {
     setSaving(true);
     markOnboardingDone();
-    // Update profile name + trading_style if changed
+    // Update profile name + trading_style + expectation if changed
     if (user?.id) {
       const updates = {};
       if (name && name !== (profile?.name)) updates.name = name.trim();
       if (style) updates.trading_style = style;
+      if (expectation && expectation.trim()) {
+        updates.expectation = expectation.trim();
+        updates.expectation_at = new Date().toISOString();
+      }
       if (Object.keys(updates).length > 0) {
         try {
           await sb.from('profiles').update(updates).eq('id', user.id);
@@ -145,12 +154,24 @@ export default function OnboardingModal({ user, profile, onClose }) {
           />
         )}
 
-        {/* ── Step 2: What to do first ─────────────────────────── */}
+        {/* ── Step 2: Customer-dev question ────────────────────── */}
         {step === 2 && (
+          <StepExpectation
+            value={expectation}
+            setValue={setExpectation}
+            onNext={next}
+            onBack={() => setStep(1)}
+            totalSteps={totalSteps}
+            step={step}
+          />
+        )}
+
+        {/* ── Step 3: What to do first ─────────────────────────── */}
+        {step === 3 && (
           <StepStart
             name={name}
             onPick={(tab) => saveAndClose(tab)}
-            onBack={() => setStep(1)}
+            onBack={() => setStep(2)}
             saving={saving}
             totalSteps={totalSteps}
             step={step}
@@ -301,7 +322,80 @@ function StepStyle({ selected, setSelected, onNext, onBack, totalSteps, step }) 
   );
 }
 
-// ── Step 2: How to start ──────────────────────────────────────────────────────
+// ── Step 2: Customer-dev question ─────────────────────────────────────────────
+// Single textarea asking what the user expects TradeEdge to solve. Skippable
+// (empty input is allowed — we don't gatekeep onboarding behind a question).
+// The answer is the highest-signal piece of qualitative product feedback we
+// can collect — captured during the moment of highest user intent (just
+// signed up, just told us their trading style, mind on the problem they
+// came to solve).
+function StepExpectation({ value, setValue, onNext, onBack, totalSteps, step }) {
+  return (
+    <div style={{ padding: '32px 28px 28px' }}>
+      <Dots total={totalSteps - 1} current={step} />
+
+      <div style={{ marginBottom: '20px' }}>
+        <h2 style={{ margin: '0 0 6px', fontSize: '20px', fontWeight: 800, color: 'var(--c-text)', lineHeight: 1.25 }}>
+          What's the one thing your current journal doesn't do?
+        </h2>
+        <p style={{ margin: 0, fontSize: '13px', color: 'var(--c-text-2)', lineHeight: 1.55 }}>
+          Spreadsheet, Tradezella, notebook, screenshots — whatever you've used. What's the gap that made you sign up? <em>Optional, but it shapes what gets built next.</em>
+        </p>
+      </div>
+
+      <div style={{ marginBottom: '20px' }}>
+        <textarea
+          autoFocus
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          placeholder="e.g. tracking net P&L across multiple prop firms after eval fees"
+          rows={4}
+          style={{
+            width: '100%', background: 'var(--c-bg)',
+            border: '1.5px solid var(--c-border)',
+            borderRadius: '10px', padding: '11px 14px',
+            color: 'var(--c-text)', fontSize: '14px',
+            boxSizing: 'border-box', outline: 'none',
+            transition: 'border-color 0.15s',
+            fontFamily: 'inherit',
+            resize: 'vertical', minHeight: '88px',
+            lineHeight: 1.5,
+          }}
+          onFocus={e => e.target.style.borderColor = '#E07A3B'}
+          onBlur={e => e.target.style.borderColor = 'var(--c-border)'}
+          maxLength={500}
+        />
+        <div style={{ fontSize: '10px', color: 'var(--c-text-2)', textAlign: 'right', marginTop: '4px', opacity: 0.7 }}>
+          {value.length}/500
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <button onClick={onBack} style={{
+          flex: '0 0 auto', padding: '12px 18px',
+          background: 'none', border: '0.5px solid var(--c-border)',
+          borderRadius: '12px', color: 'var(--c-text-2)',
+          fontSize: '13px', cursor: 'pointer',
+        }}>
+          ← Back
+        </button>
+        <button
+          onClick={onNext}
+          style={{
+            flex: 1, padding: '13px',
+            background: '#E07A3B', color: '#fff',
+            border: 'none', borderRadius: '12px',
+            fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+          }}
+        >
+          {value.trim() ? 'Continue →' : 'Skip →'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Step 3: How to start ──────────────────────────────────────────────────────
 function StepStart({ name, onPick, onBack, saving, totalSteps, step }) {
   const firstName = name?.split(' ')[0] || 'Trader';
   return (

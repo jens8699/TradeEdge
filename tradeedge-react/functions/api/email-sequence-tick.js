@@ -68,7 +68,7 @@ async function handle(env, request) {
   const [authUsers, profiles] = await Promise.all([
     listAuthUsers(env, singleUserId),
     sbGet(env,
-      `/rest/v1/profiles?select=id,name,plan,trial_ends_at,unsubscribed_at${
+      `/rest/v1/profiles?select=id,name,plan,trial_ends_at,unsubscribed_at,expectation${
         singleUserId ? `&id=eq.${encodeURIComponent(singleUserId)}` : ''
       }`,
     ),
@@ -90,6 +90,7 @@ async function handle(env, request) {
         plan:            p.plan || 'free',
         trial_ends_at:   p.trial_ends_at || null,
         unsubscribed_at: p.unsubscribed_at || null,
+        expectation:     p.expectation || null,
       };
     })
     .filter(u => u.email && u.created_at && !u.unsubscribed_at);
