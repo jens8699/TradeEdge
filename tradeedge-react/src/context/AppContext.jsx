@@ -249,6 +249,56 @@ export function AppProvider({ userId, children }) {
     });
   }, [trades]);
 
+  // Bulk delete every trade for the current user. Bypasses the per-trade
+  // path because we'd otherwise loop N round-trips. Cleans up:
+  //   - all rows in `trades`
+  //   - all screenshots in trade-screenshots storage
+  //   - all rows in `trade_account_tags`
+  //   - all localStorage side-tables (checklist tags, critiques, violations)
+  // Returns { ok, count, error? } so the caller can toast accurately.
+  const deleteAllTrades = useCallback(async () => {
+    if (!userId) return { ok: false, error: 'Not signed in', count: 0 };
+    const before = trades.length;
+    if (!before) return { ok: true, count: 0 };
+    // Snapshot for rollback if the server delete fails.
+    const snapshot = trades;
+    setTrades([]);
+
+    try {
+      // 1. Delete all trades.
+      const { error: tErr } = await sb.from('trades').delete().eq('user_id', userId);
+      if (tErr) throw new Error(tErr.message);
+
+      // 2. Best-effort cleanup of side-tables and storage. None of these
+      // are critical — orphaned rows are invisible without a parent trade.
+      // We still try so storage doesn't accumulate dead images.
+      sb.from('trade_account_tags').delete().eq('user_id', userId).then(() => {});
+      setAccountTags({});
+      // Storage: list every file under userId/ and remove in one call.
+      (async () => {
+        try {
+          const { data: list } = await sb.storage.from('trade-screenshots').list(userId, { limit: 1000 });
+          const paths = (list || []).map(o => `${userId}/${o.name}`);
+          if (paths.length) await sb.storage.from('trade-screenshots').remove(paths);
+        } catch {}
+      })();
+      // localStorage side-tables — these have no per-user scope (they live
+      // on the device), so wiping them clears everything for the device.
+      // Acceptable: anyone hitting "Delete all" wants a clean slate.
+      try {
+        localStorage.removeItem('te_checklist_tags');
+        localStorage.removeItem('te_trade_critiques');
+        localStorage.removeItem('te_rule_violations');
+      } catch {}
+
+      return { ok: true, count: before };
+    } catch (e) {
+      // Rollback in-memory state on failure so the UI is consistent.
+      setTrades(snapshot);
+      return { ok: false, error: e.message || String(e), count: 0 };
+    }
+  }, [userId, trades]);
+
   const updateTrade = useCallback(async (updated) => {
     setTrades(prev => prev.map(t => t.id === updated.id ? updated : t));
     if (!navigator.onLine) {
@@ -411,7 +461,7 @@ export function AppProvider({ userId, children }) {
       trades, payouts, userId, loading, activeTab, setActiveTab,
       syncPending, isOnline, offlineQueueCount,
       theme, toggleTheme,
-      load, addTrade, deleteTrade, updateTrade,
+      load, addTrade, deleteTrade, deleteAllTrades, updateTrade,
       addPayout, deletePayout,
       // Cross-device prop firm accounts + trade tags (Supabase-backed).
       propFirmAccounts, accountTags,

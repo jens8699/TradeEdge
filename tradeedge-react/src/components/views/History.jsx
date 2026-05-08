@@ -4,6 +4,7 @@ import { fmt, fmtR } from '../../lib/utils';
 import EditTradeModal from '../modals/EditTradeModal';
 import { setCritique as persistCritique } from '../../lib/tradeCritiques';
 import { fetchSignedUrlForPath } from '../../lib/supabase';
+import { callClaude } from '../../lib/claude';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -92,21 +93,13 @@ Give a tight critique in 4 short paragraphs (≈ 90 words each, no headings, no 
 
 Keep it brutally honest but constructive. No fluff, no generic platitudes.`;
 
-      const resp = await fetch('/api/claude', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 800,
-          messages: [{ role: 'user', content: prompt }],
-        }),
+      // Use callClaude helper — it attaches the Supabase access token to the
+      // request. Raw fetch() bypassed our auth gate and got 401.
+      const data = await callClaude({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 800,
+        messages: [{ role: 'user', content: prompt }],
       });
-      if (!resp.ok) {
-        let errMsg = `HTTP ${resp.status}`;
-        try { const err = await resp.json(); errMsg = err.error?.message || err.error || errMsg; } catch {}
-        throw new Error(errMsg);
-      }
-      const data = await resp.json();
       const text = data.content?.[0]?.text || '(no response)';
       setCritique(text);
       setCritiqueAt(new Date().toISOString());
@@ -539,7 +532,9 @@ function DateGroup({ date, trades, onSelect, selectMode, selectedIds, onToggleSe
 // ── Main View ─────────────────────────────────────────────────────────────────
 
 export default function History({ showToast }) {
-  const { trades, deleteTrade, propFirmAccounts } = useApp();
+  const { trades, deleteTrade, deleteAllTrades, propFirmAccounts, exportData } = useApp();
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [deleteAllRunning, setDeleteAllRunning] = useState(false);
   // Build accountsById from context so each TradeRow can resolve its
   // accountId → firm name. Re-derived whenever propFirmAccounts changes
   // (Supabase-backed, so changes anywhere in the app propagate here).
@@ -798,6 +793,20 @@ export default function History({ showToast }) {
             >
               Export CSV
             </button>
+            {trades.length > 0 && (
+              <button
+                onClick={() => setDeleteAllOpen(true)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid rgba(198,90,69,0.3)', color: '#C65A45',
+                  padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600,
+                  cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+                }}
+                title="Delete every trade in your history"
+              >
+                Delete all
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -891,6 +900,102 @@ export default function History({ showToast }) {
 
       {editTrade && (
         <EditTradeModal trade={editTrade} onClose={() => setEditTrade(null)} showToast={showToast} />
+      )}
+
+      {/* ── Delete-all-trades confirmation ── */}
+      {deleteAllOpen && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 16,
+          }}
+          onClick={() => !deleteAllRunning && setDeleteAllOpen(false)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--c-surface)', borderRadius: 16,
+              border: '1px solid var(--c-border)',
+              maxWidth: 440, width: '100%', padding: 28,
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            <h3 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 700, color: 'var(--c-text)' }}>
+              Delete all {trades.length} trade{trades.length === 1 ? '' : 's'}?
+            </h3>
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--c-text-2)', lineHeight: 1.55 }}>
+              Permanent — every trade, screenshot, and tagged account link is wiped from the journal. This can't be undone.
+            </p>
+            <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--c-text)', lineHeight: 1.55, fontWeight: 500 }}>
+              Want a backup file first? <span style={{ color: 'var(--c-text-2)', fontWeight: 400 }}>Export downloads a JSON of all your trades + payouts before deletion.</span>
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                onClick={async () => {
+                  if (deleteAllRunning) return;
+                  setDeleteAllRunning(true);
+                  // Export first — saves to disk via blob download.
+                  try { exportData(); } catch {}
+                  // Small delay so the download starts before the data wipes.
+                  await new Promise(r => setTimeout(r, 300));
+                  const result = await deleteAllTrades();
+                  setDeleteAllRunning(false);
+                  if (result.ok) {
+                    showToast?.(`Backed up + deleted ${result.count} trade${result.count === 1 ? '' : 's'}`, 'success', 3500);
+                    setDeleteAllOpen(false);
+                  } else {
+                    showToast?.(result.error || 'Delete failed', 'error', 4000);
+                  }
+                }}
+                disabled={deleteAllRunning}
+                style={{
+                  padding: '11px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+                  background: 'var(--c-accent)', color: '#fff', border: 'none',
+                  cursor: deleteAllRunning ? 'wait' : 'pointer', fontFamily: 'inherit',
+                  opacity: deleteAllRunning ? 0.7 : 1,
+                }}
+              >
+                {deleteAllRunning ? 'Working…' : '↓ Export backup, then delete all'}
+              </button>
+              <button
+                onClick={async () => {
+                  if (deleteAllRunning) return;
+                  setDeleteAllRunning(true);
+                  const result = await deleteAllTrades();
+                  setDeleteAllRunning(false);
+                  if (result.ok) {
+                    showToast?.(`Deleted ${result.count} trade${result.count === 1 ? '' : 's'}`, 'success', 3500);
+                    setDeleteAllOpen(false);
+                  } else {
+                    showToast?.(result.error || 'Delete failed', 'error', 4000);
+                  }
+                }}
+                disabled={deleteAllRunning}
+                style={{
+                  padding: '11px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+                  background: 'transparent', color: '#C65A45',
+                  border: '1px solid rgba(198,90,69,0.4)',
+                  cursor: deleteAllRunning ? 'wait' : 'pointer', fontFamily: 'inherit',
+                  opacity: deleteAllRunning ? 0.7 : 1,
+                }}
+              >
+                Delete all without backup
+              </button>
+              <button
+                onClick={() => setDeleteAllOpen(false)}
+                disabled={deleteAllRunning}
+                style={{
+                  padding: '11px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+                  background: 'transparent', color: 'var(--c-text-2)',
+                  border: '1px solid var(--c-border)',
+                  cursor: deleteAllRunning ? 'wait' : 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Floating bulk action bar ── */}
