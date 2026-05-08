@@ -3,7 +3,8 @@ import { useApp } from '../../context/AppContext';
 import { tradovateAuth, tradovateAuthMFA, tradovateGetAccounts, tradovateSyncTrades } from '../../lib/tradovate';
 import { sb } from '../../lib/supabase';
 import {
-  parseDAS, parseTOS, parseWithMapping, parseCsv, detectFormat,
+  parseDAS, parseTOS, parseRithmic, parseNinjaTrader,
+  parseWithMapping, parseCsv, detectFormat,
 } from '../../lib/csvImporters';
 import { sanitizeHtml } from '../../lib/sanitize';
 
@@ -24,8 +25,8 @@ const PLATFORMS = [
     name: 'Rithmic',
     logo: 'Ri',
     color: '#7C5CFC',
-    description: 'Futures & options — used by many prop firms',
-    status: 'coming_soon',
+    description: 'Futures broker — Order History CSV from R | Trader Pro',
+    status: 'csv_only',
     tags: ['Futures', 'Prop Firms'],
   },
   {
@@ -69,8 +70,8 @@ const PLATFORMS = [
     name: 'NinjaTrader',
     logo: 'NT',
     color: '#F4A460',
-    description: 'Advanced futures & forex platform',
-    status: 'coming_soon',
+    description: 'Futures & forex — Executions or Trade Performance CSV',
+    status: 'csv_only',
     tags: ['Futures', 'Forex'],
   },
   {
@@ -953,6 +954,30 @@ const PLATFORM_PRESETS = {
       'In thinkorswim, open **Monitor → Account Statement**',
       'Pick your date range and click **Export to File** → CSV',
       'Drop the file below — we extract the Account Trade History section',
+    ],
+  },
+  rithmic: {
+    title: 'Import Rithmic CSV',
+    color: '#7C5CFC',
+    logo: 'Ri',
+    parser: parseRithmic,
+    sourceLabel: 'rithmic_csv',
+    instructions: [
+      'In **R | Trader Pro**, open the **Order History** window',
+      'Filter to your date range, then right-click → **Export to CSV**',
+      'Drop the file below — we pair fills into round-trip trades',
+    ],
+  },
+  ninjatrader: {
+    title: 'Import NinjaTrader CSV',
+    color: '#F4A460',
+    logo: 'NT',
+    parser: parseNinjaTrader,
+    sourceLabel: 'ninjatrader_csv',
+    instructions: [
+      'In NinjaTrader, open **Control Center → Account Performance**',
+      'Either the **Executions** tab (we pair fills) or **Trade Performance** report (already round-tripped) works',
+      'Click **Right-click → Save As → CSV**, then drop the file below',
     ],
   },
 };

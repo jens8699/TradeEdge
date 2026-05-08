@@ -56,11 +56,26 @@ export function cleanSymbol(sym) {
 
 // ── Format detection ─────────────────────────────────────────────────────────
 
-/** Sniff which platform exported this CSV. Returns 'das' | 'tos' | 'unknown'. */
+/** Sniff which platform exported this CSV. Returns 'das' | 'tos' | 'rithmic' | 'ninjatrader' | 'unknown'. */
 export function detectFormat(text) {
   const head = text.slice(0, 4000).toLowerCase();
   // Thinkorswim Account Statement always contains this section header.
   if (head.includes('account trade history') || head.includes('exec time')) return 'tos';
+  // Rithmic R|Trader Pro exports — distinctive columns.
+  // Note: check Rithmic before DAS since both have "symbol" + "side"; Rithmic
+  // adds "ssboe" (commission tag) or "fcm" / "ib" / "user tag" / "buy/sell".
+  if (
+    head.includes('ssboe') ||
+    head.includes('completion reason') ||
+    (head.includes('account') && head.includes('buy/sell') && head.includes('avg fill price')) ||
+    (head.includes('exchange') && head.includes('product code') && head.includes('contract month'))
+  ) return 'rithmic';
+  // NinjaTrader exports — Trade Performance or Executions report.
+  if (
+    head.includes('ninjatrader') ||
+    (head.includes('instrument') && head.includes('action') && head.includes('quantity') && head.includes('price')) ||
+    (head.includes('trade #') && head.includes('instrument'))
+  ) return 'ninjatrader';
   // DAS Trader exports usually have these column names.
   if (
     (head.includes('symbol') && head.includes('side') && head.includes('route')) ||
@@ -267,6 +282,206 @@ export function parseTOS(text) {
 
   const { trades, leftover } = pairFillsIntoTrades(fills, 'Thinkorswim');
   return { trades, skipped, leftover };
+}
+
+// ── Rithmic parser ───────────────────────────────────────────────────────────
+
+/**
+ * Rithmic R|Trader Pro exports. Common formats:
+ *   • Order History export — per-fill rows
+ *     Typical columns:
+ *       Account, FCM, IB, Buy/Sell, Qty Filled, Avg Fill Price, Exchange,
+ *       Product Code, Contract Month, Last Update Time, Order ID
+ *   • Some prop firms export with column names like:
+ *       Symbol, B/S, Quantity, Price, Time, Account
+ *
+ * Side values: 'B' / 'Buy' / 'BUY' / 'BOT' for buy, 'S' / 'Sell' / 'SELL' / 'SLD' for sell.
+ * Symbol comes either as a single contract symbol (e.g. "ESM6") or split into
+ * Product Code ("ES") + Contract Month ("M6"). We handle both.
+ */
+export function parseRithmic(text) {
+  const { headers, rows } = parseCsv(text);
+  if (!headers.length) throw new Error('CSV is empty.');
+
+  const idxTime    = findCol(headers, ['last update time', 'fill time', 'update time', 'timestamp', 'time', 'datetime', 'date']);
+  const idxSym     = findCol(headers, ['symbol', 'instrument', 'product symbol']);
+  const idxProduct = findCol(headers, ['product code', 'product']);
+  const idxMonth   = findCol(headers, ['contract month', 'contract']);
+  const idxSide    = findCol(headers, ['buy/sell', 'b/s', 'side', 'action']);
+  const idxQty     = findCol(headers, ['qty filled', 'filled qty', 'quantity', 'qty']);
+  const idxPrice   = findCol(headers, ['avg fill price', 'fill price', 'price', 'avg price']);
+
+  if (idxSide < 0 || idxQty < 0 || idxPrice < 0) {
+    throw new Error('Could not find Side/Qty/Price columns. Is this a Rithmic Order History export?');
+  }
+  if (idxSym < 0 && idxProduct < 0) {
+    throw new Error('No Symbol or Product Code column found in Rithmic CSV.');
+  }
+
+  const fills = [];
+  const skipped = [];
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    const sideRaw = (r[idxSide] || '').toUpperCase().trim();
+    let side;
+    if (sideRaw === 'B' || sideRaw === 'BUY' || sideRaw === 'BOT' || sideRaw === '+') side = 'buy';
+    else if (sideRaw === 'S' || sideRaw === 'SELL' || sideRaw === 'SLD' || sideRaw === '-') side = 'sell';
+    else { skipped.push(i + 2); continue; }
+
+    const qty   = parseFloat(String(r[idxQty]).replace(/[+,\s]/g, ''));
+    const price = parseFloat(String(r[idxPrice]).replace(/[$,\s]/g, ''));
+    if (!isFinite(qty) || qty === 0 || !isFinite(price)) { skipped.push(i + 2); continue; }
+
+    // Resolve symbol — full Symbol column wins, otherwise Product+Month, fall back to Product alone.
+    let symbol;
+    if (idxSym >= 0 && r[idxSym]) {
+      symbol = cleanSymbol(r[idxSym]);
+    } else if (idxProduct >= 0 && r[idxProduct]) {
+      symbol = cleanSymbol(r[idxProduct]);
+    } else {
+      skipped.push(i + 2); continue;
+    }
+
+    const timeStr = idxTime >= 0 ? r[idxTime] : '';
+    const time = timeStr ? new Date(timeStr) : new Date();
+    if (isNaN(+time)) { skipped.push(i + 2); continue; }
+
+    fills.push({
+      time,
+      symbol,
+      side,
+      qty: Math.abs(qty),
+      price,
+    });
+  }
+
+  const { trades, leftover } = pairFillsIntoTrades(fills, 'Rithmic');
+  return { trades, skipped, leftover };
+}
+
+// ── NinjaTrader parser ───────────────────────────────────────────────────────
+
+/**
+ * NinjaTrader exports come from Control Center → Account Performance → Executions
+ * (CSV) or from Trade Performance reports.
+ *
+ * Typical Executions columns:
+ *   Account, Instrument, Time, Action (Buy/Sell), Quantity, Price, Order ID,
+ *   Position, P&L, Commission
+ *
+ * Trade Performance reports already round-trip the trades:
+ *   Trade #, Instrument, Account, Strategy, Market pos., Qty, Entry price,
+ *   Exit price, Entry time, Exit time, Profit, Cum. net profit, % gain, MAE, MFE
+ *
+ * We auto-detect which format and handle both.
+ */
+export function parseNinjaTrader(text) {
+  const { headers, rows } = parseCsv(text);
+  if (!headers.length) throw new Error('CSV is empty.');
+
+  // Trade Performance format → already round-tripped, parse directly.
+  const idxEntryPrice = findCol(headers, ['entry price']);
+  const idxExitPrice  = findCol(headers, ['exit price']);
+  if (idxEntryPrice >= 0 && idxExitPrice >= 0) {
+    return parseNinjaTraderRoundTrip(headers, rows);
+  }
+
+  // Otherwise treat as Executions / fills.
+  const idxTime  = findCol(headers, ['time', 'datetime', 'date']);
+  const idxSym   = findCol(headers, ['instrument', 'symbol']);
+  const idxSide  = findCol(headers, ['action', 'side', 'b/s']);
+  const idxQty   = findCol(headers, ['quantity', 'qty', 'shares']);
+  const idxPrice = findCol(headers, ['price', 'fill price']);
+
+  if (idxSym < 0 || idxSide < 0 || idxQty < 0 || idxPrice < 0) {
+    throw new Error('Could not find Instrument/Action/Quantity/Price columns. Is this an Executions or Trade Performance export?');
+  }
+
+  const fills = [];
+  const skipped = [];
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    const sideRaw = (r[idxSide] || '').toUpperCase().trim();
+    let side;
+    if (sideRaw === 'BUY' || sideRaw === 'B' || sideRaw === 'BOT') side = 'buy';
+    else if (sideRaw === 'SELL' || sideRaw === 'S' || sideRaw === 'SLD') side = 'sell';
+    else { skipped.push(i + 2); continue; }
+
+    const qty   = parseFloat(String(r[idxQty]).replace(/[+,\s]/g, ''));
+    const price = parseMoney(r[idxPrice]);
+    if (!isFinite(qty) || qty === 0 || !isFinite(price)) { skipped.push(i + 2); continue; }
+
+    const timeStr = idxTime >= 0 ? r[idxTime] : '';
+    const time = timeStr ? new Date(timeStr) : new Date();
+    if (isNaN(+time)) { skipped.push(i + 2); continue; }
+
+    fills.push({
+      time,
+      symbol: cleanSymbol(r[idxSym]),
+      side,
+      qty: Math.abs(qty),
+      price,
+    });
+  }
+
+  const { trades, leftover } = pairFillsIntoTrades(fills, 'NinjaTrader');
+  return { trades, skipped, leftover };
+}
+
+/**
+ * NinjaTrader Trade Performance report — already paired into round-trip trades.
+ * No need for FIFO matching; just normalize each row into our trade shape.
+ */
+function parseNinjaTraderRoundTrip(headers, rows) {
+  const idxSym       = findCol(headers, ['instrument', 'symbol']);
+  const idxPos       = findCol(headers, ['market pos.', 'market position', 'direction']);
+  const idxQty       = findCol(headers, ['qty', 'quantity']);
+  const idxEntry     = findCol(headers, ['entry price']);
+  const idxExit      = findCol(headers, ['exit price']);
+  const idxEntryTime = findCol(headers, ['entry time']);
+  const idxExitTime  = findCol(headers, ['exit time']);
+  const idxProfit    = findCol(headers, ['profit', 'p&l', 'pnl', 'net profit']);
+
+  const trades = [];
+  const skipped = [];
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    const symRaw = idxSym >= 0 ? r[idxSym] : '';
+    if (!symRaw) { skipped.push(i + 2); continue; }
+    const entry = parseMoney(r[idxEntry]);
+    const exit  = parseMoney(r[idxExit]);
+    if (!isFinite(entry) || !isFinite(exit)) { skipped.push(i + 2); continue; }
+    const qty = parseFloat(String(r[idxQty] || '1').replace(/[+,\s]/g, ''));
+    if (!isFinite(qty) || qty === 0) { skipped.push(i + 2); continue; }
+    const posRaw = (r[idxPos] || '').toLowerCase();
+    const direction = posRaw.includes('short') ? 'Short' : 'Long';
+
+    let pnl = parseMoney(r[idxProfit]);
+    if (!isFinite(pnl)) {
+      pnl = direction === 'Long'
+        ? (exit - entry) * qty
+        : (entry - exit) * qty;
+    }
+
+    const entryStr = idxEntryTime >= 0 ? r[idxEntryTime] : '';
+    const entryDate = entryStr ? new Date(entryStr) : new Date();
+    const date = isNaN(+entryDate) ? new Date().toISOString().slice(0, 10) : entryDate.toISOString().slice(0, 10);
+
+    const symbol = cleanSymbol(symRaw);
+    trades.push({
+      symbol,
+      direction,
+      entry,
+      exit,
+      qty,
+      pnl: parseFloat(pnl.toFixed(2)),
+      date,
+      notes: `Imported from NinjaTrader (${symRaw})`,
+      source: 'ninjatrader_csv',
+      external_id: `nt_csv_${symbol}_${+entryDate}_${entry}_${exit}_${qty}`,
+    });
+  }
+  return { trades, skipped, leftover: [] };
 }
 
 // ── Manual mapping (fallback for unknown formats) ────────────────────────────
