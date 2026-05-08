@@ -213,6 +213,83 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
         </div>
       </header>
 
+      {/* ── 5-SECOND LOGGING DEMO ── */}
+      <section className="lp-quick-log" id="quick-log">
+        <div className="lp-container">
+          <div className="lp-eyebrow">
+            <span className="lp-eyebrow-dot" />
+            <span>New · just shipped</span>
+          </div>
+          <h2 className="lp-quick-h2">
+            Log a trade in <em>5 seconds</em>.
+          </h2>
+          <p className="lp-quick-sub">
+            Drop a screenshot from your broker. Claude reads symbol, prices, qty, and P&amp;L. You review and save.
+          </p>
+
+          <div className="lp-demo-card">
+            {/* LEFT: fake broker screenshot */}
+            <div className="lp-demo-shot">
+              <div className="lp-demo-shot-head">
+                <span className="lp-demo-shot-tab">Tradovate · NQM6</span>
+                <span className="lp-demo-shot-status">+$3,145</span>
+              </div>
+              <div className="lp-demo-shot-chart">
+                <svg viewBox="0 0 280 110" preserveAspectRatio="none" aria-hidden>
+                  <path d="M0,80 L24,75 L48,82 L72,68 L96,71 L120,55 L144,60 L168,42 L192,46 L216,28 L240,30 L264,18 L280,22"
+                    fill="none" stroke="currentColor" strokeWidth="1.5" />
+                  <circle cx="240" cy="30" r="3" fill="currentColor" />
+                </svg>
+              </div>
+              <div className="lp-demo-shot-meta">
+                <span>Long · 20 contracts</span>
+                <span>Entry 25017.50 → Exit 25074.25</span>
+              </div>
+            </div>
+
+            {/* MIDDLE: arrow + status */}
+            <div className="lp-demo-arrow-wrap">
+              <div className="lp-demo-pulse">
+                <span>✨</span>
+                <span className="lp-demo-pulse-text">Reading…</span>
+              </div>
+              <div className="lp-demo-arrow">→</div>
+            </div>
+
+            {/* RIGHT: form with fields auto-filling */}
+            <div className="lp-demo-form">
+              <div className="lp-demo-form-head">Trade entry</div>
+              <div className="lp-demo-grid">
+                <div className="lp-demo-field" style={{ '--d': '0.4s' }}>
+                  <span className="lp-demo-flabel">Symbol</span>
+                  <span className="lp-demo-fvalue">NQ</span>
+                </div>
+                <div className="lp-demo-field" style={{ '--d': '0.7s' }}>
+                  <span className="lp-demo-flabel">Direction</span>
+                  <span className="lp-demo-fvalue">Long</span>
+                </div>
+                <div className="lp-demo-field" style={{ '--d': '1.0s' }}>
+                  <span className="lp-demo-flabel">Entry</span>
+                  <span className="lp-demo-fvalue">25017.50</span>
+                </div>
+                <div className="lp-demo-field" style={{ '--d': '1.3s' }}>
+                  <span className="lp-demo-flabel">Exit</span>
+                  <span className="lp-demo-fvalue">25074.25</span>
+                </div>
+                <div className="lp-demo-field" style={{ '--d': '1.6s' }}>
+                  <span className="lp-demo-flabel">Qty</span>
+                  <span className="lp-demo-fvalue">20</span>
+                </div>
+                <div className="lp-demo-field lp-demo-field-pnl" style={{ '--d': '1.9s' }}>
+                  <span className="lp-demo-flabel">P&amp;L</span>
+                  <span className="lp-demo-fvalue">+$3,145.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── LOGO STATEMENT (typographic) ── */}
       <section className="lp-logos" id="firms">
         <div className="lp-container">
