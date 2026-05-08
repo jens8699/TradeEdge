@@ -6,6 +6,7 @@ import { checkAgainst as checkRules } from '../../lib/tradingRules';
 import { setViolations as persistViolations } from '../../lib/ruleViolations';
 import { formatAccountLabel } from '../../lib/tradeAccounts';
 import { calcPnlFromPrices, isKnownFuturesSymbol } from '../../lib/futuresMath';
+import { extractTradeFromScreenshot } from '../../lib/screenshotExtract';
 
 const DRAFT_KEY = 'te_trade_draft';
 const CHECKLIST_SESSION_KEY = 'te_checklist_session';
@@ -134,6 +135,10 @@ export default function TradeEntry({ showToast }) {
   const [saving, setSaving]                   = useState(false);
   const [saveMsg, setSaveMsg]                 = useState('');
   const [isDragOver, setIsDragOver]           = useState(false);
+  // Screenshot AI extract — Claude vision parses a broker screenshot and
+  // pre-fills the form (symbol / direction / entry / exit / qty / pnl / etc.).
+  const [extracting, setExtracting]           = useState(false);
+  const [extractMsg, setExtractMsg]           = useState('');
   const [showDailyLoss, setShowDailyLoss]     = useState(false);
   const [dailyLossMsg, setDailyLossMsg]       = useState('');
   const fileRef = useRef(null);
@@ -249,6 +254,51 @@ export default function TradeEntry({ showToast }) {
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
   }, [handleFile, showToast]);
+
+  // Run Claude vision on the uploaded screenshot and pre-fill form fields
+  // from the result. Always shows a toast on success/failure so the user
+  // knows what just happened — silent fills feel like magic-but-spooky.
+  const extractFromScreenshot = useCallback(async () => {
+    if (extracting) return;
+    if (!pendingImage) return;
+    setExtracting(true);
+    setExtractMsg('');
+    try {
+      const result = await extractTradeFromScreenshot(pendingImage);
+      if (result?.error) {
+        setExtractMsg(result.error);
+        showToast?.(result.error, 'warn', 3500);
+        return;
+      }
+      // Map AI fields → form fields. Only overwrite empty/default fields so
+      // we don't blow away anything the user already typed.
+      setForm(f => {
+        const next = { ...f };
+        if (result.symbol && !f.symbol)       next.symbol    = String(result.symbol).toUpperCase();
+        if (result.direction)                  next.direction = /short/i.test(result.direction) ? 'short' : 'long';
+        if (result.entry  && !f.entry)         next.entry     = String(result.entry);
+        if (result.exit   && !f.exit)          next.exit      = String(result.exit);
+        if (result.qty    && !f.qty)           next.qty       = String(result.qty);
+        if (Number.isFinite(result.pnl) && !f.pnl) next.pnl   = String(result.pnl);
+        if (result.date   && !f.date)          next.date      = result.date;
+        if (result.session && !f.session)      next.session   = result.session;
+        if (result.notes && !f.notes)          next.notes     = result.notes;
+        // Outcome is inferable from PnL.
+        if (Number.isFinite(result.pnl) && !f.outcome) {
+          next.outcome = result.pnl >= 0 ? 'win' : 'loss';
+        }
+        return next;
+      });
+      const filled = Object.keys(result).filter(k => k !== 'error').length;
+      showToast?.(`Pre-filled ${filled} field${filled === 1 ? '' : 's'} from screenshot`, 'success', 3500);
+    } catch (e) {
+      const msg = e.message || 'Could not extract trade from screenshot.';
+      setExtractMsg(msg);
+      showToast?.(msg, 'error', 4000);
+    } finally {
+      setExtracting(false);
+    }
+  }, [pendingImage, extracting, showToast]);
 
   const save = async () => {
     const { date, symbol, direction, accounts, riskPer, rewardPer, outcome, setup, notes } = form;
@@ -751,6 +801,42 @@ export default function TradeEntry({ showToast }) {
         </div>
         <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
           onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]); }} />
+
+        {/* AI extract button — only shows when a screenshot has been uploaded. */}
+        {previewSrc && (
+          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={extractFromScreenshot}
+              disabled={extracting}
+              style={{
+                padding: '8px 14px', borderRadius: 10, fontSize: 12, fontWeight: 600,
+                fontFamily: "'Inter', sans-serif",
+                background: extracting ? 'var(--c-border)' : 'rgba(224,122,59,0.12)',
+                color: extracting ? 'var(--c-text-2)' : '#E07A3B',
+                border: '1px solid rgba(224,122,59,0.3)',
+                cursor: extracting ? 'wait' : 'pointer',
+                transition: 'background 0.15s',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              {extracting ? (
+                <>
+                  <span className="jm-spinner" style={{ width: 12, height: 12, borderWidth: 1.5 }} />
+                  Reading screenshot…
+                </>
+              ) : (
+                <>✨ Auto-fill from screenshot</>
+              )}
+            </button>
+            <span style={{ fontSize: 11, color: 'var(--c-text-2)', opacity: 0.7, fontStyle: 'italic' }}>
+              Claude vision pulls symbol, prices, qty, P&L. Review before saving.
+            </span>
+            {extractMsg && (
+              <div style={{ fontSize: 11, color: '#C65A45', flexBasis: '100%' }}>{extractMsg}</div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Save row ── */}
