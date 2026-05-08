@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { fmt, fmtR } from '../../lib/utils';
 import EditTradeModal from '../modals/EditTradeModal';
 import { setCritique as persistCritique } from '../../lib/tradeCritiques';
+import { fetchSignedUrlForPath } from '../../lib/supabase';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -28,12 +29,27 @@ function relativeTime(iso) {
 
 function TradeDetailModal({ trade: t, onClose, onEdit, onDelete }) {
   const [imgOpen, setImgOpen] = useState(false);
+  // Trade screenshot src — starts with whatever AppContext attached
+  // (signed URL or data URL). On image-load error we refetch a fresh
+  // signed URL JIT, so stale URLs from a long-running session still work.
+  const [imgSrc, setImgSrc] = useState(t?.imageUrl || t?.image || '');
+  const [imgRetried, setImgRetried] = useState(false);
   // Hydrate from any persisted critique merged onto the trade by AppContext
   const [critique, setCritique] = useState(t?.aiCritique || null);
   const [critiqueAt, setCritiqueAt] = useState(t?.aiCritiqueAt || null);
   const [critiqueLoading, setCritiqueLoading] = useState(false);
   const [critiqueError, setCritiqueError] = useState('');
   if (!t) return null;
+
+  // Refetch a fresh signed URL when the <img> reports an error. Only retries
+  // once to avoid an infinite loop if the file is genuinely missing.
+  async function handleImgError() {
+    if (imgRetried) return;
+    if (!t.image || t.image.startsWith('data:')) return;
+    setImgRetried(true);
+    const fresh = await fetchSignedUrlForPath(t.image);
+    if (fresh) setImgSrc(fresh);
+  }
 
   async function runCritique() {
     if (critiqueLoading) return;
@@ -216,13 +232,16 @@ Keep it brutally honest but constructive. No fluff, no generic platitudes.`;
           </div>
         )}
 
-        {/* Chart screenshot */}
-        {(t.imageUrl || (t.image && t.image.startsWith('data:'))) && (
+        {/* Chart screenshot — show whenever the trade has any image reference,
+            including a Supabase storage path (the signed URL gets resolved
+            JIT below if t.imageUrl was missing or expired). */}
+        {(t.imageUrl || t.image) && (
           <div style={{ margin: '0 24px 18px' }}>
             <div style={{ fontSize: 10, color: 'var(--c-text-2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Chart</div>
             <img
-              src={t.imageUrl || t.image} alt="chart"
+              src={imgSrc} alt="chart"
               onClick={() => setImgOpen(true)}
+              onError={handleImgError}
               style={{ width: '100%', borderRadius: 10, cursor: 'zoom-in', border: '1px solid var(--c-border)' }}
             />
           </div>
@@ -343,7 +362,7 @@ Keep it brutally honest but constructive. No fluff, no generic platitudes.`;
             onClick={() => setImgOpen(false)}
           >
             <button onClick={() => setImgOpen(false)} style={{ position: 'fixed', top: 20, right: 20, background: 'var(--c-overlay-strong)', border: 'none', borderRadius: '50%', width: 40, height: 40, fontSize: 18, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001 }}>✕</button>
-            <img src={t.imageUrl || t.image} alt="chart" style={{ maxWidth: '92vw', maxHeight: '88vh', borderRadius: 12, objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
+            <img src={imgSrc} alt="chart" onError={handleImgError} style={{ maxWidth: '92vw', maxHeight: '88vh', borderRadius: 12, objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
           </div>
         )}
       </div>

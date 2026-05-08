@@ -62,15 +62,39 @@ export function dbToPayout(r) {
 }
 
 // ── Signed URLs for screenshots ──────────────────────────────────────────────
+// Supabase signed URLs are time-bounded. We use 24h TTL (was 1h) so users
+// who load the app once and come back hours later still see their images.
+// Even with the longer TTL, a URL CAN expire if the user keeps the app open
+// for a full day — fetchSignedUrlForPath() below provides a JIT refresh
+// path that components can call from an <img onError> handler.
+
+const SIGNED_URL_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
 export async function fetchSignedUrls(tradeList) {
   const paths = tradeList
     .filter(t => t.image && !t.image.startsWith('data:'))
     .map(t => t.image);
   if (!paths.length) return;
-  const { data } = await sb.storage.from('trade-screenshots').createSignedUrls(paths, 3600);
+  const { data } = await sb.storage.from('trade-screenshots').createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
   if (!data) return;
   const urlMap = {};
   data.forEach(item => { if (item.signedUrl) urlMap[item.path] = item.signedUrl; });
   tradeList.forEach(t => { if (t.image && urlMap[t.image]) t.imageUrl = urlMap[t.image]; });
+}
+
+/**
+ * Fetch a fresh signed URL for a single storage path. Used as a recovery
+ * path when an <img> fails to load (URL expired, browser cached a stale
+ * URL, etc.). Returns null on failure.
+ */
+export async function fetchSignedUrlForPath(path) {
+  if (!path || path.startsWith('data:')) return null;
+  try {
+    const { data } = await sb.storage
+      .from('trade-screenshots')
+      .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+    return data?.signedUrl || null;
+  } catch (e) {
+    return null;
+  }
 }
