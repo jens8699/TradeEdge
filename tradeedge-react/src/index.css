@@ -243,6 +243,12 @@ h1 em, h2 em, h3 em { font-style: italic; color: var(--c-accent); }
   --c-surface: #FFFFFF;
   --c-surface-2: #F0EBE0;
 
+  /* Recessed input/button background — was missing on light theme so any
+     element using var(--c-bg) (Dashboard goal input, Onboarding buttons,
+     Settings inputs, Connections tiles) rendered with the dark-theme
+     #1C1613 value over a cream page = "black box" bug. */
+  --c-bg:      #EDE8DC;
+
   /* Light-mode overlays use black-on-light instead of white-on-dark */
   --c-overlay-subtle: rgba(0, 0, 0, 0.03);
   --c-overlay-medium: rgba(0, 0, 0, 0.05);
