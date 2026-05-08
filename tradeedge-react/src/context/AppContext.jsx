@@ -9,7 +9,7 @@ import {
   accountToDb,
   migrateLocalStorageToSupabase,
 } from '../lib/tradeAccounts';
-import { uid, computeStats } from '../lib/utils';
+import { uid, computeStats, dataUrlToBlob } from '../lib/utils';
 
 const AppContext = createContext(null);
 
@@ -28,11 +28,11 @@ async function syncOfflineQueue(userId) {
       if (item.type === 'trade') {
         if (item.action === 'insert') {
           const data = { ...item.data };
-          // Handle base64 image upload
+          // Handle base64 image upload — direct conversion (CSP blocks
+          // fetch() on data: URIs, so we decode the base64 ourselves).
           if (data.image && data.image.startsWith('data:')) {
             try {
-              const res = await fetch(data.image);
-              const blob = await res.blob();
+              const blob = dataUrlToBlob(data.image);
               const ext = blob.type.includes('png') ? 'png' : 'jpg';
               const filePath = `${userId}/${Date.now()}.${ext}`;
               const { error: upErr } = await sb.storage.from('trade-screenshots').upload(filePath, blob, { contentType: blob.type });

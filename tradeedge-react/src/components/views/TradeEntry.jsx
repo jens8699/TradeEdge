@@ -7,6 +7,7 @@ import { setViolations as persistViolations } from '../../lib/ruleViolations';
 import { formatAccountLabel } from '../../lib/tradeAccounts';
 import { calcPnlFromPrices, isKnownFuturesSymbol } from '../../lib/futuresMath';
 import { extractTradeFromScreenshot } from '../../lib/screenshotExtract';
+import { dataUrlToBlob } from '../../lib/utils';
 
 const DRAFT_KEY = 'te_trade_draft';
 const CHECKLIST_SESSION_KEY = 'te_checklist_session';
@@ -358,8 +359,8 @@ export default function TradeEntry({ showToast }) {
     const tradeId = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
     if (pendingImage && userId) {
       try {
-        const res = await fetch(pendingImage);
-        const blob = await res.blob();
+        // Don't use fetch() on the data URL — CSP blocks it. Convert directly.
+        const blob = dataUrlToBlob(pendingImage);
         const filePath = `${userId}/${tradeId}.jpg`;
         const { error: upErr } = await sb.storage.from('trade-screenshots').upload(filePath, blob, { contentType: 'image/jpeg', upsert: true });
         if (!upErr) {

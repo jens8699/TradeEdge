@@ -1,3 +1,34 @@
+// ── Data URL helpers ─────────────────────────────────────────────────────────
+// We convert data: URLs to Blobs WITHOUT going through fetch() because our
+// CSP `connect-src` doesn't (and shouldn't) include `data:` — using fetch on
+// a data URL gets silently blocked, which previously caused screenshot
+// uploads to fail without any user-visible error. Direct base64 → Blob
+// conversion is also faster (no network roundtrip) and works in every modern
+// browser without policy concerns.
+
+export function dataUrlToBlob(dataUrl) {
+  if (!dataUrl || typeof dataUrl !== 'string') {
+    throw new Error('dataUrlToBlob: input must be a data URL string');
+  }
+  // "data:image/jpeg;base64,XXXX..." → mime + base64 body
+  const m = /^data:([^;,]+)(?:;base64)?,(.*)$/.exec(dataUrl);
+  if (!m) throw new Error('dataUrlToBlob: not a data URL');
+  const mime = m[1] || 'application/octet-stream';
+  const isBase64 = /;base64/.test(dataUrl);
+  const body = m[2];
+  let bytes;
+  if (isBase64) {
+    const bin = atob(body);
+    bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  } else {
+    // Rare: text data URL (image dataURLs are always base64). Decode percent.
+    const str = decodeURIComponent(body);
+    bytes = new TextEncoder().encode(str);
+  }
+  return new Blob([bytes], { type: mime });
+}
+
 // ── Number formatting ────────────────────────────────────────────────────────
 
 export function fmt(n) {
