@@ -76,6 +76,9 @@ export default function UpgradeModal({ onClose }) {
           }}>
             <button
               type="button"
+              role="switch"
+              aria-pressed={!isAnnual}
+              aria-label="Monthly billing"
               onClick={() => setBillingInterval('monthly')}
               style={{
                 flex: 1, padding: '8px 14px',
@@ -92,6 +95,9 @@ export default function UpgradeModal({ onClose }) {
             </button>
             <button
               type="button"
+              role="switch"
+              aria-pressed={isAnnual}
+              aria-label="Annual billing, save 17 percent"
               onClick={() => setBillingInterval('annual')}
               style={{
                 flex: 1, padding: '8px 14px',
@@ -106,7 +112,7 @@ export default function UpgradeModal({ onClose }) {
               }}
             >
               Annual
-              <span style={{
+              <span aria-hidden="true" style={{
                 fontSize: 9, fontWeight: 800,
                 color: '#E07A3B',
                 background: 'rgba(224,122,59,0.12)',
@@ -128,13 +134,15 @@ export default function UpgradeModal({ onClose }) {
             <div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                 <span style={{ fontSize: '32px', fontWeight: 800, color: '#E07A3B', letterSpacing: '-1px' }}>
-                  ${isAnnual ? '15.83' : '19'}
+                  ${isAnnual ? '190' : '19'}
                 </span>
-                <span style={{ fontSize: '14px', color: 'var(--c-text-2)' }}>/month</span>
+                <span style={{ fontSize: '14px', color: 'var(--c-text-2)' }}>
+                  {isAnnual ? '/year' : '/month'}
+                </span>
               </div>
               <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--c-text-2)' }}>
                 {isAnnual
-                  ? '7-day free trial · Billed $190/year · Cancel anytime'
+                  ? '7-day free trial · ~$15.83/mo equivalent · Cancel anytime'
                   : '7-day free trial · Cancel anytime'}
               </p>
             </div>

@@ -91,10 +91,13 @@ export async function onRequestPost(context) {
       ? env.STRIPE_PRICE_PRO_ANNUAL
       : env.STRIPE_PRICE_PRO;
     if (!priceId) {
-      // Annual selected but env var missing → graceful error, not 503.
-      // (Monthly missing is already caught by the early validation block above.)
+      // Branch the error message based on which interval was missing, so if
+      // anyone refactors the early monthly-validation block away, this still
+      // surfaces a sensible message.
       return json({
-        error: 'Annual pricing not configured yet — please use monthly for now.',
+        error: interval === 'annual'
+          ? 'Annual pricing not configured yet — please use monthly for now.'
+          : 'Server not configured: missing price.',
       }, 503, cors);
     }
 
