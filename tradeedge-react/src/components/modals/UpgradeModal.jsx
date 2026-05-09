@@ -19,6 +19,10 @@ const FEATURES = [
 export default function UpgradeModal({ onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Billing interval — 'monthly' default. Annual is opt-in via toggle.
+  // Renamed from setInterval to avoid clashing with the global setInterval.
+  const [billingInterval, setBillingInterval] = useState('monthly');
+  const isAnnual = billingInterval === 'annual';
 
   async function handleSubscribe() {
     if (loading) return;
@@ -27,7 +31,7 @@ export default function UpgradeModal({ onClose }) {
     try {
       // Backtesting add-on is "Coming soon" — never request it from checkout.
       // When the feature ships, re-introduce the toggle and pass addBacktesting here.
-      await startCheckout({ addBacktesting: false });
+      await startCheckout({ interval: billingInterval, addBacktesting: false });
     } catch (e) {
       setError(e.message || 'Could not start checkout.');
       setLoading(false);
@@ -61,6 +65,60 @@ export default function UpgradeModal({ onClose }) {
             <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--c-text-2)', cursor: 'pointer', fontSize: '18px', padding: '4px', flexShrink: 0 }}>✕</button>
           </div>
 
+          {/* Billing interval toggle */}
+          <div style={{
+            display: 'flex',
+            background: 'rgba(0,0,0,0.04)',
+            border: '1px solid var(--c-border)',
+            borderRadius: 100,
+            padding: 3,
+            marginBottom: 14,
+          }}>
+            <button
+              type="button"
+              onClick={() => setBillingInterval('monthly')}
+              style={{
+                flex: 1, padding: '8px 14px',
+                background: !isAnnual ? 'var(--c-surface)' : 'transparent',
+                border: 'none', borderRadius: 100,
+                fontSize: 13, fontWeight: 600,
+                color: !isAnnual ? 'var(--c-text)' : 'var(--c-text-2)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: !isAnnual ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+              }}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setBillingInterval('annual')}
+              style={{
+                flex: 1, padding: '8px 14px',
+                background: isAnnual ? 'var(--c-surface)' : 'transparent',
+                border: 'none', borderRadius: 100,
+                fontSize: 13, fontWeight: 600,
+                color: isAnnual ? 'var(--c-text)' : 'var(--c-text-2)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                boxShadow: isAnnual ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+              }}
+            >
+              Annual
+              <span style={{
+                fontSize: 9, fontWeight: 800,
+                color: '#E07A3B',
+                background: 'rgba(224,122,59,0.12)',
+                padding: '2px 6px',
+                borderRadius: 100,
+                letterSpacing: '0.04em',
+              }}>
+                SAVE 17%
+              </span>
+            </button>
+          </div>
+
           {/* Price */}
           <div style={{
             background: 'rgba(224,122,59,0.08)', border: '1px solid rgba(224,122,59,0.2)',
@@ -69,10 +127,16 @@ export default function UpgradeModal({ onClose }) {
           }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <span style={{ fontSize: '32px', fontWeight: 800, color: '#E07A3B', letterSpacing: '-1px' }}>$19</span>
+                <span style={{ fontSize: '32px', fontWeight: 800, color: '#E07A3B', letterSpacing: '-1px' }}>
+                  ${isAnnual ? '15.83' : '19'}
+                </span>
                 <span style={{ fontSize: '14px', color: 'var(--c-text-2)' }}>/month</span>
               </div>
-              <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--c-text-2)' }}>7-day free trial · Cancel anytime</p>
+              <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--c-text-2)' }}>
+                {isAnnual
+                  ? '7-day free trial · Billed $190/year · Cancel anytime'
+                  : '7-day free trial · Cancel anytime'}
+              </p>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '11px', color: '#E07A3B', fontWeight: 600, background: 'rgba(224,122,59,0.1)', padding: '4px 10px', borderRadius: '100px', marginBottom: '4px' }}>
@@ -170,7 +234,9 @@ export default function UpgradeModal({ onClose }) {
           >
             {loading
               ? 'Opening checkout…'
-              : '⚡ Start 7-day free trial — then $19 / month →'}
+              : isAnnual
+                ? '⚡ Start 7-day free trial — then $190 / year →'
+                : '⚡ Start 7-day free trial — then $19 / month →'}
           </button>
           <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--c-text-2)', margin: '8px 0 0' }}>
             Card required · Free for 7 days · Cancel anytime from Settings
