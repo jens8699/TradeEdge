@@ -29,7 +29,13 @@ export async function startCheckout({ addBacktesting = false } = {}) {
   });
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok) {
-    throw new Error(data.error || `Checkout failed (HTTP ${resp.status})`);
+    // Attach machine-readable code + status to the thrown Error so callers
+    // (e.g. UpgradeModal) can branch on specific cases like 'already_subscribed'
+    // without parsing the user-facing message string.
+    const err = new Error(data.message || data.error || `Checkout failed (HTTP ${resp.status})`);
+    err.status = resp.status;
+    err.code   = data.error || null;
+    throw err;
   }
   if (!data.url) throw new Error('Checkout did not return a redirect URL.');
   window.location.assign(data.url);

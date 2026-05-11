@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { startCheckout } from '../../lib/stripe';
+import { startCheckout, openPortal } from '../../lib/stripe';
 
 const FEATURES = [
   { label: 'Trade journal (unlimited)',    free: true,  pro: true  },
@@ -19,6 +19,9 @@ const FEATURES = [
 export default function UpgradeModal({ onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Set when the server tells us the user already has an active subscription.
+  // We swap the CTA from "Start trial" to "Manage subscription" in that case.
+  const [alreadySubscribed, setAlreadySubscribed] = useState(false);
 
   async function handleSubscribe() {
     if (loading) return;
@@ -29,7 +32,25 @@ export default function UpgradeModal({ onClose }) {
       // When the feature ships, re-introduce the toggle and pass addBacktesting here.
       await startCheckout({ addBacktesting: false });
     } catch (e) {
-      setError(e.message || 'Could not start checkout.');
+      // 409 + code='already_subscribed' → user has an active sub, send them to portal
+      // instead of letting them double-subscribe.
+      if (e.code === 'already_subscribed') {
+        setAlreadySubscribed(true);
+      } else {
+        setError(e.message || 'Could not start checkout.');
+      }
+      setLoading(false);
+    }
+  }
+
+  async function handleManage() {
+    if (loading) return;
+    setError('');
+    setLoading(true);
+    try {
+      await openPortal();
+    } catch (e) {
+      setError(e.message || 'Could not open the Customer Portal.');
       setLoading(false);
     }
   }
@@ -156,25 +177,56 @@ export default function UpgradeModal({ onClose }) {
             </div>
           )}
 
-          <button
-            onClick={handleSubscribe}
-            disabled={loading}
-            style={{
-              width: '100%', padding: '13px', background: '#E07A3B',
-              color: '#fff', border: 'none', borderRadius: '12px',
-              fontSize: '14px', fontWeight: 700,
-              cursor: loading ? 'default' : 'pointer',
-              opacity: loading ? 0.7 : 1,
-              letterSpacing: '-0.2px',
-            }}
-          >
-            {loading
-              ? 'Opening checkout…'
-              : '⚡ Start 7-day free trial — then $19 / month →'}
-          </button>
-          <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--c-text-2)', margin: '8px 0 0' }}>
-            Card required · Free for 7 days · Cancel anytime from Settings
-          </p>
+          {alreadySubscribed ? (
+            <>
+              <div style={{
+                padding: '12px 14px', marginBottom: 12, borderRadius: 10,
+                background: 'rgba(224,122,59,0.08)', border: '1px solid rgba(224,122,59,0.25)',
+                fontSize: 12.5, color: 'var(--c-text)', lineHeight: 1.5,
+              }}>
+                You're already on Pro. Open the Customer Portal to switch plan, update your card, or cancel.
+              </div>
+              <button
+                onClick={handleManage}
+                disabled={loading}
+                style={{
+                  width: '100%', padding: '13px', background: '#E07A3B',
+                  color: '#fff', border: 'none', borderRadius: '12px',
+                  fontSize: '14px', fontWeight: 700,
+                  cursor: loading ? 'default' : 'pointer',
+                  opacity: loading ? 0.7 : 1,
+                  letterSpacing: '-0.2px',
+                }}
+              >
+                {loading ? 'Opening portal…' : 'Manage subscription →'}
+              </button>
+              <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--c-text-2)', margin: '8px 0 0' }}>
+                Manage plan, payment method, and invoices in Stripe
+              </p>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={handleSubscribe}
+                disabled={loading}
+                style={{
+                  width: '100%', padding: '13px', background: '#E07A3B',
+                  color: '#fff', border: 'none', borderRadius: '12px',
+                  fontSize: '14px', fontWeight: 700,
+                  cursor: loading ? 'default' : 'pointer',
+                  opacity: loading ? 0.7 : 1,
+                  letterSpacing: '-0.2px',
+                }}
+              >
+                {loading
+                  ? 'Opening checkout…'
+                  : '⚡ Start 7-day free trial — then $19 / month →'}
+              </button>
+              <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--c-text-2)', margin: '8px 0 0' }}>
+                Card required · Free for 7 days · Cancel anytime from Settings
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

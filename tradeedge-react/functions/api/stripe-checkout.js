@@ -75,6 +75,42 @@ export async function onRequestPost(context) {
       }
     }
 
+    // 2.6 Duplicate-subscription guard.
+    //
+    // If the user already has an active subscription on their Stripe customer,
+    // don't let them create a second one — they'd get billed twice. Refuse
+    // checkout and direct them to the customer portal instead (to update card,
+    // switch interval, or cancel).
+    //
+    // Blocked statuses: active, trialing, past_due — all are billable / consume
+    // a subscription slot. NOT blocked: canceled, incomplete, unpaid, paused —
+    // those genuinely need a new subscription to resume.
+    //
+    // Fail-open: if the Stripe call fails (network, etc.), we proceed with
+    // checkout. Better to risk a rare duplicate than block legitimate signups.
+    if (existingCustomerId) {
+      try {
+        const subsResp = await fetch(
+          `https://api.stripe.com/v1/subscriptions?customer=${encodeURIComponent(existingCustomerId)}&status=all&limit=10`,
+          { headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
+        );
+        if (subsResp.ok) {
+          const subsData = await subsResp.json();
+          const blocked = new Set(['active', 'trialing', 'past_due']);
+          const hasActive = (subsData.data || []).some(s => blocked.has(s.status));
+          if (hasActive) {
+            return json({
+              error: 'already_subscribed',
+              message: "You're already subscribed. Open the Customer Portal to switch plan, update your card, or cancel.",
+            }, 409, cors);
+          }
+        }
+      } catch (e) {
+        // Fail-open intentionally — see comment above.
+        console.warn('Subscription check failed, proceeding with checkout:', e.message);
+      }
+    }
+
     // 3. Parse body
     let body = {};
     try { body = await request.json(); } catch {}
