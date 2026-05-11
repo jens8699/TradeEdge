@@ -2,14 +2,15 @@
  * Cloudflare Pages Function — Stripe Checkout Session creator.
  * POST /api/stripe-checkout
  *
- * Body: { addBacktesting?: boolean }
+ * Body: { interval?: 'monthly' | 'annual', addBacktesting?: boolean }
  * Headers: Authorization: Bearer <supabase_access_token>
  *
  * Returns: { url: 'https://checkout.stripe.com/...' }
  *
  * Required env vars (Cloudflare Pages → Settings → Env vars):
  *   STRIPE_SECRET_KEY            sk_test_... (or sk_live_...)
- *   STRIPE_PRICE_PRO             price_... for the $19/mo Pro plan
+ *   STRIPE_PRICE_PRO             price_... for the $19/mo Pro plan (monthly)
+ *   STRIPE_PRICE_PRO_ANNUAL      price_... for the $190/yr Pro plan (annual)
  *   STRIPE_PRICE_BACKTEST        price_... for the +$10/mo Backtesting add-on
  *   SUPABASE_URL                 the project URL (used to verify the auth token)
  *   SUPABASE_ANON_KEY            anon public key (for the JWT verify call)
@@ -116,6 +117,26 @@ export async function onRequestPost(context) {
     try { body = await request.json(); } catch {}
     const addBacktesting = !!body.addBacktesting;
 
+    // 3.5 Resolve billing interval → price id
+    //
+    // Validate strictly: only 'monthly' or 'annual' are allowed. Any other
+    // value (or missing) defaults to monthly. This prevents a malformed
+    // request from accidentally selecting an unconfigured/wrong price.
+    const interval = body.interval === 'annual' ? 'annual' : 'monthly';
+    const priceId  = interval === 'annual'
+      ? env.STRIPE_PRICE_PRO_ANNUAL
+      : env.STRIPE_PRICE_PRO;
+    if (!priceId) {
+      // Branch the error message based on which interval was missing, so if
+      // anyone refactors the early monthly-validation block away, this still
+      // surfaces a sensible message.
+      return json({
+        error: interval === 'annual'
+          ? 'Annual pricing not configured yet — please use monthly for now.'
+          : 'Server not configured: missing price.',
+      }, 503, cors);
+    }
+
     // 4. Build line items
     //
     // Backtesting is currently "Coming soon" — even if the request body asks
@@ -123,7 +144,7 @@ export async function onRequestPost(context) {
     // from being charged for a feature that doesn't exist yet, even if the
     // frontend regresses or someone POSTs to this endpoint directly.
     // When backtesting ships, restore the original `if (addBacktesting...)` block.
-    const lineItems = [{ price: env.STRIPE_PRICE_PRO, quantity: 1 }];
+    const lineItems = [{ price: priceId, quantity: 1 }];
     void addBacktesting; // intentionally ignored until feature ships
 
     // 5. Resolve return URLs from the Origin header (works in any environment)

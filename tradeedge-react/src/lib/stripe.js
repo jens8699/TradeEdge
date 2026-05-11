@@ -13,9 +13,10 @@ async function getToken() {
  * Throws on failure with a user-friendly message.
  *
  * @param {object} opts
+ * @param {'monthly'|'annual'} [opts.interval] billing interval, default monthly
  * @param {boolean} [opts.addBacktesting] include the +$10/mo Backtesting add-on
  */
-export async function startCheckout({ addBacktesting = false } = {}) {
+export async function startCheckout({ interval = 'monthly', addBacktesting = false } = {}) {
   const token = await getToken();
   if (!token) throw new Error('You need to be signed in to subscribe.');
 
@@ -25,7 +26,7 @@ export async function startCheckout({ addBacktesting = false } = {}) {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ addBacktesting }),
+    body: JSON.stringify({ interval, addBacktesting }),
   });
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok) {
