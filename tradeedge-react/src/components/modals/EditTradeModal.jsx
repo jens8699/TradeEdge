@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
+import { sb, fetchSignedUrlForPath } from '../../lib/supabase';
+import { dataUrlToBlob } from '../../lib/utils';
 
 const SETUPS = ['', 'Breakout', 'Pullback', 'Reversal', 'Range', 'Trend continuation', 'News play', 'Gap fill', 'VWAP', 'Support/Resistance', 'Other'];
 const SESSION_LIST = ['', 'Sydney', 'Tokyo', 'London', 'New York', 'Premarket', 'After Hours'];
@@ -68,12 +70,75 @@ export default function EditTradeModal({ trade, onClose, showToast }) {
   const [saving, setSaving] = useState(false);
   const [err,    setErr]    = useState('');
 
+  // Screenshot state — pendingImage is a freshly uploaded data URL (gets
+  // uploaded to storage on Save); previewSrc is what's actually shown
+  // (could be the existing trade's signed URL, or the pending data URL).
+  const [pendingImage, setPendingImage] = useState(null);
+  const [previewSrc,   setPreviewSrc]   = useState(null);
+  const [isDragOver,   setIsDragOver]   = useState(false);
+  const fileRef = useRef(null);
+
   // Escape to close
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
+
+  // Load the existing screenshot for this trade (if any) on mount.
+  // History view uses the same fetchSignedUrlForPath pattern.
+  useEffect(() => {
+    if (!trade.image || trade.image.startsWith('data:')) return;
+    if (trade.imageUrl) { setPreviewSrc(trade.imageUrl); return; }
+    fetchSignedUrlForPath(trade.image).then(url => {
+      if (url) setPreviewSrc(url);
+    });
+  }, [trade.image, trade.imageUrl]);
+
+  // Resize + compress the dropped/pasted/picked file → data URL,
+  // matching the Create-flow pattern (1200px wide, JPEG 75%).
+  const handleFile = useCallback((file) => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 1200;
+        const scale = Math.min(1, maxW / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * scale; canvas.height = img.height * scale;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+        setPendingImage(dataUrl); setPreviewSrc(dataUrl);
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  // Paste-from-clipboard support — ⌘V / Ctrl-V drops an image into the modal.
+  // Skips paste handling when user is typing into Notes (so text-paste works).
+  useEffect(() => {
+    function onPaste(e) {
+      const target = e.target;
+      const tag = target?.tagName;
+      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          if (!isEditable || !e.clipboardData.getData('text')) {
+            e.preventDefault();
+          }
+          const file = item.getAsFile();
+          if (file) handleFile(file);
+          return;
+        }
+      }
+    }
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [handleFile]);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const handleOutcomeChange = (v) => { set('outcome', v); set('pnl', ''); };
@@ -95,6 +160,33 @@ export default function EditTradeModal({ trade, onClose, showToast }) {
       else if (form.outcome === 'loss') pnl = -riskPer   * accounts;
       else                              pnl = 0;
     }
+    setSaving(true);
+
+    // Upload new screenshot if user added one. Non-blocking: if upload fails,
+    // save still proceeds with whatever image was already on the trade.
+    // Reuses trade.id as filename so we don't proliferate files in storage
+    // — upsert:true overwrites any existing screenshot for this trade.
+    let imagePath = trade.image || null;
+    let imageUrl  = trade.imageUrl || null;
+    if (pendingImage) {
+      try {
+        const { data: { user } } = await sb.auth.getUser();
+        if (user?.id) {
+          const blob = dataUrlToBlob(pendingImage);
+          const filePath = `${user.id}/${trade.id}.jpg`;
+          const { error: upErr } = await sb.storage.from('trade-screenshots').upload(filePath, blob, { contentType: 'image/jpeg', upsert: true });
+          if (!upErr) {
+            imagePath = filePath;
+            const { data: signed } = await sb.storage.from('trade-screenshots').createSignedUrl(filePath, 3600);
+            if (signed) imageUrl = signed.signedUrl;
+          }
+        }
+      } catch(e) {
+        console.warn('Screenshot upload error:', e);
+        // Non-blocking — save continues with whatever image was already on the trade.
+      }
+    }
+
     const updated = {
       ...trade,
       date: form.date, symbol: form.symbol.toUpperCase().trim(), direction: form.direction,
@@ -109,8 +201,9 @@ export default function EditTradeModal({ trade, onClose, showToast }) {
       session: form.session || null,
       rating:  form.rating  || null,
       emotion: form.emotion || null,
+      image:   imagePath,
+      imageUrl,
     };
-    setSaving(true);
     const result = await updateTrade(updated);
     setSaving(false);
     if (result && !result.ok) { setErr(result.error); return; }
@@ -285,7 +378,7 @@ export default function EditTradeModal({ trade, onClose, showToast }) {
         </div>
 
         {/* ── Notes ── */}
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 12 }}>
           <FieldLabel>Notes</FieldLabel>
           <textarea
             style={{ ...inputStyle, resize: 'vertical', minHeight: 72, lineHeight: 1.6 }}
@@ -293,6 +386,36 @@ export default function EditTradeModal({ trade, onClose, showToast }) {
             value={form.notes}
             onChange={e => set('notes', e.target.value)}
           />
+        </div>
+
+        {/* ── Screenshot ── */}
+        <div style={{ marginBottom: 16 }}>
+          <FieldLabel>Chart screenshot (optional)</FieldLabel>
+          <div
+            onClick={() => fileRef.current?.click()}
+            onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={e => { e.preventDefault(); setIsDragOver(false); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); }}
+            style={{
+              border: `1.5px dashed ${isDragOver ? 'var(--c-accent)' : 'var(--c-border)'}`,
+              borderRadius: 12, padding: previewSrc ? 10 : '20px 16px',
+              textAlign: 'center', cursor: 'pointer',
+              background: isDragOver ? 'rgba(224,122,59,0.04)' : 'transparent',
+              transition: 'border-color 0.15s, background 0.15s',
+              marginTop: 6,
+            }}
+          >
+            {previewSrc ? (
+              <img src={previewSrc} alt="screenshot" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, display: 'block', margin: '0 auto' }} />
+            ) : (
+              <div style={{ fontSize: 12, color: 'var(--c-text-2)', lineHeight: 1.6 }}>
+                Drop a chart screenshot, click to browse, or paste with ⌘V<br />
+                <span style={{ fontSize: 10, opacity: 0.6 }}>Replaces any existing screenshot on this trade</span>
+              </div>
+            )}
+          </div>
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
+            onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]); }} />
         </div>
 
         {err && (
