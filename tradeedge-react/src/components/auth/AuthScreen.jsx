@@ -63,6 +63,9 @@ function RegisterPanel({ onSwitch }) {
   const [pass,  setPass]  = useState('');
   // Default to free — never silently push a card-collecting flow on the user.
   const [plan,  setPlan]  = useState('free');
+  // Billing interval — only relevant if user picks Pro. Default monthly.
+  const [billingInterval, setBillingInterval] = useState('monthly');
+  const isAnnual = billingInterval === 'annual';
   const [msg,   setMsg]   = useState({ text: '', ok: false });
   const [busy,  setBusy]  = useState(false);
 
@@ -111,7 +114,7 @@ function RegisterPanel({ onSwitch }) {
     // startCheckout calls window.location.assign on success — we never return.
     if (plan === 'pro') {
       try {
-        await startCheckout();
+        await startCheckout({ interval: billingInterval });
       } catch (err) {
         setBusy(false);
         setMsg({ text: `Account created, but couldn't reach Stripe: ${err.message}. You can start your trial from Settings → Billing.`, ok: false });
@@ -155,14 +158,85 @@ function RegisterPanel({ onSwitch }) {
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPlan('pro'); } }}
         >
           <div className="tp-plan-label">Pro</div>
-          <div className="tp-plan-price">$19 <span>/ mo</span></div>
-          <div className="tp-plan-note">7-day free trial · Cancel anytime</div>
+          <div className="tp-plan-price">
+            ${isAnnual ? '190' : '19'} <span>{isAnnual ? '/ yr' : '/ mo'}</span>
+          </div>
+          <div className="tp-plan-note">
+            {isAnnual ? '7-day free trial · ~$15.83/mo · Save 17%' : '7-day free trial · Cancel anytime'}
+          </div>
         </div>
       </div>
+
+      {/* Monthly | Annual interval toggle — only shown when Pro is selected. */}
+      {plan === 'pro' && (
+        <div style={{
+          display: 'flex',
+          background: 'rgba(0,0,0,0.04)',
+          border: '1px solid var(--c-border)',
+          borderRadius: 100,
+          padding: 3,
+          marginTop: 14,
+        }}>
+          <button
+            type="button"
+            role="switch"
+            aria-pressed={!isAnnual}
+            aria-label="Monthly billing"
+            onClick={() => setBillingInterval('monthly')}
+            style={{
+              flex: 1, padding: '8px 14px',
+              background: !isAnnual ? 'var(--c-surface)' : 'transparent',
+              border: 'none', borderRadius: 100,
+              fontSize: 13, fontWeight: 600,
+              color: !isAnnual ? 'var(--c-text)' : 'var(--c-text-2)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              boxShadow: !isAnnual ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+              fontFamily: 'inherit',
+            }}
+          >
+            Monthly
+          </button>
+          <button
+            type="button"
+            role="switch"
+            aria-pressed={isAnnual}
+            aria-label="Annual billing, save 17 percent"
+            onClick={() => setBillingInterval('annual')}
+            style={{
+              flex: 1, padding: '8px 14px',
+              background: isAnnual ? 'var(--c-surface)' : 'transparent',
+              border: 'none', borderRadius: 100,
+              fontSize: 13, fontWeight: 600,
+              color: isAnnual ? 'var(--c-text)' : 'var(--c-text-2)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              boxShadow: isAnnual ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+              fontFamily: 'inherit',
+            }}
+          >
+            Annual
+            <span aria-hidden="true" style={{
+              fontSize: 9, fontWeight: 800,
+              color: '#E07A3B',
+              background: 'rgba(224,122,59,0.12)',
+              padding: '2px 6px',
+              borderRadius: 100,
+              letterSpacing: '0.04em',
+            }}>
+              SAVE 17%
+            </span>
+          </button>
+        </div>
+      )}
+
       <button className="tp-auth-btn" disabled={busy} onClick={submit} style={{ marginTop: '16px' }}>
         {busy
           ? (plan === 'pro' ? 'Redirecting to Stripe…' : 'Creating account…')
-          : (plan === 'pro' ? 'Start 7-day free trial' : 'Create free account')}
+          : (plan === 'pro'
+              ? (isAnnual ? 'Start 7-day free trial — then $190 / yr' : 'Start 7-day free trial — then $19 / mo')
+              : 'Create free account')}
       </button>
       <p className="tp-auth-err" style={msg.ok ? { color: '#E07A3B' } : {}}>{msg.text}</p>
       <div className="tp-auth-switch" style={{ marginTop:'16px' }}>
