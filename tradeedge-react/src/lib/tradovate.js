@@ -152,10 +152,13 @@ export async function tradovateSyncTrades({
     // Closing Sell = was Long; closing Buy = was Short
     const direction = e.action === 'Sell' ? 'Long' : 'Short';
 
+    const pnl = parseFloat((e.netPnl || 0).toFixed(2));
     return {
       symbol,
       direction,
-      pnl: parseFloat((e.netPnl || 0).toFixed(2)),
+      pnl,
+      // Derive outcome from P&L sign — user can override in EditModal.
+      outcome: pnl > 0 ? 'win' : pnl < 0 ? 'loss' : 'breakeven',
       date,
       entry: e.openingPrice ?? null,
       exit: e.price ?? null,

@@ -651,10 +651,14 @@ function parseTradovateCSV(text) {
       ? `tv_csv_${buyFill}_${sellFill}`
       : `tv_csv_${i}_${date}_${symbol}`;
 
+    const pnl = parseFloat(pnlRaw.toFixed(2));
     trades.push({
       symbol,
       direction,
-      pnl: parseFloat(pnlRaw.toFixed(2)),
+      pnl,
+      // Derive outcome from P&L sign — user can override in EditModal.
+      // Without this, the DB default kicks in (win) and losses look like wins.
+      outcome: pnl > 0 ? 'win' : pnl < 0 ? 'loss' : 'breakeven',
       date,
       entry,
       exit,

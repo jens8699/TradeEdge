@@ -126,6 +126,7 @@ export function pairFillsIntoTrades(fills, sourceLabel = 'CSV') {
         const pnl = direction === 'Long'
           ? (exit - entry) * closedQty
           : (entry - exit) * closedQty;
+        const pnlRounded = parseFloat(pnl.toFixed(2));
         const date = new Date(open.time).toISOString().slice(0, 10);
         trades.push({
           symbol,
@@ -133,7 +134,9 @@ export function pairFillsIntoTrades(fills, sourceLabel = 'CSV') {
           entry,
           exit,
           qty: closedQty,
-          pnl: parseFloat(pnl.toFixed(2)),
+          pnl: pnlRounded,
+          // Derive outcome from P&L sign — user can override in EditModal.
+          outcome: pnlRounded > 0 ? 'win' : pnlRounded < 0 ? 'loss' : 'breakeven',
           date,
           notes: `Imported from ${sourceLabel} (${symbol})`,
           source: sourceLabel.toLowerCase().includes('das') ? 'das_csv' : sourceLabel.toLowerCase().includes('thinkorswim') ? 'tos_csv' : 'csv',
@@ -468,13 +471,16 @@ function parseNinjaTraderRoundTrip(headers, rows) {
     const date = isNaN(+entryDate) ? new Date().toISOString().slice(0, 10) : entryDate.toISOString().slice(0, 10);
 
     const symbol = cleanSymbol(symRaw);
+    const pnlRounded = parseFloat(pnl.toFixed(2));
     trades.push({
       symbol,
       direction,
       entry,
       exit,
       qty,
-      pnl: parseFloat(pnl.toFixed(2)),
+      pnl: pnlRounded,
+      // Derive outcome from P&L sign — user can override in EditModal.
+      outcome: pnlRounded > 0 ? 'win' : pnlRounded < 0 ? 'loss' : 'breakeven',
       date,
       notes: `Imported from NinjaTrader (${symRaw})`,
       source: 'ninjatrader_csv',
