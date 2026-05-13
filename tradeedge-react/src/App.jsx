@@ -66,6 +66,52 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
+  // First-touch attribution capture.
+  //
+  // On first landing, read UTM params + referrer and persist to localStorage.
+  // RegisterPanel reads this at signUp time to write to profiles.utm_*, giving
+  // us per-ad / per-platform attribution during the May 18 launch.
+  //
+  // Persistence rule: first UTM-tagged visit wins (don't overwrite a real
+  // UTM with a later direct visit). But a UTM visit DOES upgrade a prior
+  // referrer-only or empty capture — so if someone hit the homepage from
+  // Twitter without UTM, then later clicked a UTM'd ad, the ad gets credit.
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const incoming = {
+        utm_source:   params.get('utm_source'),
+        utm_medium:   params.get('utm_medium'),
+        utm_campaign: params.get('utm_campaign'),
+        utm_content:  params.get('utm_content'),
+        utm_term:     params.get('utm_term'),
+      };
+      const incomingHasUtm = Object.values(incoming).some(Boolean);
+
+      let existing = null;
+      try { existing = JSON.parse(localStorage.getItem('te_attribution') || 'null'); } catch (_) {}
+      const existingHasUtm = !!(existing && (existing.utm_source || existing.utm_campaign));
+
+      // First UTM-tagged click wins — never overwrite.
+      if (existingHasUtm) return;
+
+      // Nothing new to capture (no UTM, no referrer, no existing entry).
+      if (!incomingHasUtm && !document.referrer && !existing) return;
+
+      // Either a UTM upgrade over a referrer-only entry, OR a first capture
+      // (UTM or referrer). Write through.
+      const next = {
+        ...incoming,
+        referrer:     document.referrer || null,
+        landing_path: window.location.pathname + window.location.search,
+        captured_at:  new Date().toISOString(),
+      };
+      localStorage.setItem('te_attribution', JSON.stringify(next));
+    } catch (_) {
+      // Non-blocking — attribution is a "nice to have," never break signup.
+    }
+  }, []);
+
   // Handle return from Stripe Checkout / Portal
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

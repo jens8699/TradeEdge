@@ -72,8 +72,38 @@ function RegisterPanel({ onSwitch }) {
     if (!email.includes('@'))      { setMsg({ text: 'Enter a valid email address.', ok: false }); return; }
     if (pass.length < 8)           { setMsg({ text: 'Password must be at least 8 characters.', ok: false }); return; }
     setBusy(true);
-    const { error } = await sb.auth.signUp({ email: email.trim().toLowerCase(), password: pass, options: { data: { name } } });
+
+    // Read first-touch attribution captured by App.jsx on landing.
+    // Passed through signUp metadata AND written directly to profiles.utm_*
+    // after auth succeeds. Both paths so we don't lose attribution if the
+    // post-signup update fails (network blip, RLS edge case).
+    let attribution = null;
+    try { attribution = JSON.parse(localStorage.getItem('te_attribution') || 'null'); } catch (_) {}
+
+    const { data: authData, error } = await sb.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password: pass,
+      options: { data: { name, ...(attribution || {}) } },
+    });
     if (error) { setBusy(false); setMsg({ text: error.message, ok: false }); return; }
+
+    // Write attribution to profiles columns. Best-effort: failure here doesn't
+    // block signup since the data also lives in user_metadata (above) and
+    // OnboardingModal could be wired as a fallback later if needed.
+    if (attribution && authData?.user?.id) {
+      try {
+        await sb.from('profiles').update({
+          utm_source:   attribution.utm_source   ?? null,
+          utm_medium:   attribution.utm_medium   ?? null,
+          utm_campaign: attribution.utm_campaign ?? null,
+          utm_content:  attribution.utm_content  ?? null,
+          utm_term:     attribution.utm_term     ?? null,
+          referrer:     attribution.referrer     ?? null,
+          landing_path: attribution.landing_path ?? null,
+          attribution_captured_at: attribution.captured_at || new Date().toISOString(),
+        }).eq('id', authData.user.id);
+      } catch (_) { /* non-blocking */ }
+    }
 
     // Pro: hand off to Stripe Checkout for the 7-day trial. With Supabase
     // "Confirm email" disabled, signUp returns an active session immediately,
