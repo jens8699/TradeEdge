@@ -20,12 +20,29 @@ export default function App() {
       setAuthState(prev => prev.status === 'loading' ? { status: 'guest', user: null, profile: null } : prev);
     }, 6000);
 
+    // Helper: try to load the profile; if anything fails OR the row doesn't
+    // exist (deleted user, RLS, etc), nuke the stale session and drop to guest.
+    // Returns the profile if good, or null if we already handled the bad case.
+    const loadOrEvictSession = async (user) => {
+      let prof = null;
+      try { prof = await getProfile(user.id); } catch (_) {}
+      if (!prof) {
+        // Stale auth: cached JWT is still valid but the underlying user/profile
+        // is gone. Sign out cleanly so the user can re-auth from a clean slate.
+        try { await sb.auth.signOut(); } catch (_) {}
+        setAuthState({ status: 'guest', user: null, profile: null });
+        setShowLanding(true);
+        return null;
+      }
+      return prof;
+    };
+
     // Initial session check
     sb.auth.getSession().then(async ({ data: { session } }) => {
       clearTimeout(timeout);
       if (session?.user) {
-        const prof = await getProfile(session.user.id);
-        setAuthState({ status: 'authed', user: session.user, profile: prof });
+        const prof = await loadOrEvictSession(session.user);
+        if (prof) setAuthState({ status: 'authed', user: session.user, profile: prof });
       } else {
         setAuthState({ status: 'guest', user: null, profile: null });
         setShowLanding(true);
@@ -38,18 +55,25 @@ export default function App() {
 
     // Auth state changes (login, logout, password recovery)
     const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setAuthPanel('newpass');
-        setAuthState({ status: 'guest', user: null, profile: null });
-        return;
-      }
-      if (session?.user) {
-        const prof = await getProfile(session.user.id);
-        setAuthState({ status: 'authed', user: session.user, profile: prof });
-      } else {
+      try {
+        if (event === 'PASSWORD_RECOVERY') {
+          setAuthPanel('newpass');
+          setAuthState({ status: 'guest', user: null, profile: null });
+          return;
+        }
+        if (session?.user) {
+          const prof = await loadOrEvictSession(session.user);
+          if (prof) setAuthState({ status: 'authed', user: session.user, profile: prof });
+        } else {
+          setAuthState({ status: 'guest', user: null, profile: null });
+          setShowLanding(true);
+          setAuthPanel('login');
+        }
+      } catch (_) {
+        // Last-resort safety: never leave the app in a half-rendered state on
+        // auth-listener errors. Drop to guest so the user can re-auth.
         setAuthState({ status: 'guest', user: null, profile: null });
         setShowLanding(true);
-        setAuthPanel('login');
       }
     });
 

@@ -208,7 +208,11 @@ export default function WeeklyDigest() {
               <BigStat label="Win rate"      value={`${stats.winRate.toFixed(0)}%`} size={24} />
               <BigStat
                 label="Profit factor"
-                value={isFinite(stats.pf) ? stats.pf.toFixed(2) : '∞'}
+                // Profit factor is undefined when there are zero losses.
+                // "∞" is mathematically correct but visually loud and confusing
+                // for traders not used to the symbol. Show a softer "—" instead.
+                value={isFinite(stats.pf) && stats.count > 0 ? stats.pf.toFixed(2) : '—'}
+                sub={!isFinite(stats.pf) && stats.count > 0 ? 'no losses this period' : undefined}
                 size={24}
               />
             </div>
