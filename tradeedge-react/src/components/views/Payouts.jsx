@@ -154,8 +154,8 @@ export default function Payouts({ showToast }) {
 
       {challenges.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--c-text-2)', fontSize: 13, lineHeight: 1.8, marginBottom: 8 }}>
-          No challenges yet.<br />
-          <span style={{ opacity: 0.6 }}>Add your first prop firm challenge above.</span>
+          No active evaluations.<br />
+          <span style={{ opacity: 0.6 }}>Add a challenge above when you start a new eval. Your funded accounts live in <em>Prop Firms</em>.</span>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 4 }}>

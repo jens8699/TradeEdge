@@ -98,7 +98,7 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
 
   const savePass = async () => {
     setPassMsg('');
-    if (pass.length < 6)        { setPassMsg('Min. 6 characters.'); return; }
+    if (pass.length < 8)        { setPassMsg('Min. 8 characters.'); return; }
     if (pass !== passConfirm)   { setPassMsg('Passwords do not match.'); return; }
     const { error } = await sb.auth.updateUser({ password: pass });
     if (error) { setPassMsg(error.message); return; }
@@ -213,7 +213,7 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
       {/* ── Password ── */}
       <SectionLabel>Change password</SectionLabel>
       <Field label="New password">
-        <input type="password" style={inputStyle} placeholder="Min. 6 characters" value={pass} onChange={e => setPass(e.target.value)} />
+        <input type="password" style={inputStyle} placeholder="Min. 8 characters" value={pass} onChange={e => setPass(e.target.value)} />
       </Field>
       <Field label="Confirm password">
         <input type="password" style={inputStyle} placeholder="Repeat password" value={passConfirm} onChange={e => setPassConfirm(e.target.value)} />

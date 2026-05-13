@@ -708,6 +708,23 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
 
           {/* ── Breakdowns ── */}
           <SectionLabel>Breakdowns</SectionLabel>
+          {list.length > 0 && list.length < 30 && (
+            <div style={{
+              background: 'rgba(224,122,59,0.08)',
+              border: '1px solid rgba(224,122,59,0.2)',
+              borderRadius: 10,
+              padding: '12px 16px',
+              marginBottom: 16,
+              fontSize: 12,
+              color: 'var(--c-text-2)',
+              lineHeight: 1.5,
+            }}>
+              <strong style={{ color: 'var(--c-text)' }}>Small dataset — read with care.</strong>{' '}
+              You have <strong>{list.length} {list.length === 1 ? 'trade' : 'trades'}</strong> in this window.
+              Slices like "P&amp;L by Day" or "P&amp;L by Session" become reliable signals after ~30 trades. Take early
+              patterns as hypotheses to test, not conclusions.
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 28 }}>
 
             {bySym.length > 0 && (

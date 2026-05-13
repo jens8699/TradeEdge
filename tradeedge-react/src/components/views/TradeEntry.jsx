@@ -121,7 +121,11 @@ export default function TradeEntry({ showToast }) {
 
   const [form, setForm] = useState({
     date: today(), symbol: '', direction: 'long', accounts: 1,
-    riskPer: '', rewardPer: '', outcome: 'win', pnl: '', setup: '', notes: '',
+    // outcome starts empty so users consciously pick win/loss/breakeven OR
+    // it gets auto-derived from screenshot-extracted P&L. Defaulting to 'win'
+    // both biased the data AND silently blocked the screenshot-extract outcome
+    // inference (which only fills outcome when the field is empty).
+    riskPer: '', rewardPer: '', outcome: '', pnl: '', setup: '', notes: '',
     entry: '', exit: '', qty: '', session: '', rating: '',
     accountId: '', // PropFirmTracker account this trade was placed on (optional)
   });
@@ -341,15 +345,28 @@ export default function TradeEntry({ showToast }) {
     }
 
     // Resolve final P&L: manual > auto-calc > risk-derived.
+    // Also derive outcome from P&L when the user didn't explicitly pick one
+    // (outcome defaults to '' now — see useState default — so it's only set
+    // when (a) user clicked Win/Loss/Breakeven, (b) screenshot extract inferred
+    // from P&L, or (c) we derive it here on save).
     let pnl;
+    let finalOutcome = outcome;
     if (hasManualPnl) {
       pnl = manualPnlNum;
+      if (!finalOutcome) finalOutcome = pnl > 0 ? 'win' : pnl < 0 ? 'loss' : 'breakeven';
     } else if (autoCalcPnl != null) {
       pnl = autoCalcPnl;
+      if (!finalOutcome) finalOutcome = pnl > 0 ? 'win' : pnl < 0 ? 'loss' : 'breakeven';
     } else {
-      if (outcome === 'win')       pnl = totalReward;
-      else if (outcome === 'loss') pnl = -totalRisk;
-      else                         pnl = 0;
+      // R:R fallback path — outcome MUST be explicit here since pnl depends on it.
+      if (!finalOutcome) {
+        setSaveMsg('Pick an outcome (Win / Loss / Breakeven) — or enter P&L / entry+exit prices.');
+        setTimeout(() => setSaveMsg(''), 4000);
+        return;
+      }
+      if (finalOutcome === 'win')       pnl = totalReward;
+      else if (finalOutcome === 'loss') pnl = -totalRisk;
+      else                              pnl = 0;
     }
     setSaving(true); setSaveMsg('Saving…');
 
@@ -380,7 +397,7 @@ export default function TradeEntry({ showToast }) {
     const trade = {
       id: tradeId, date, symbol: symbol.trim().toUpperCase(), direction, accounts: accounts_,
       riskPer: riskPer_, rewardPer: rewardPer_, risk: totalRisk, reward: totalReward,
-      outcome, pnl, setup, notes: notes.trim(), image: imagePath, imageUrl,
+      outcome: finalOutcome, pnl, setup, notes: notes.trim(), image: imagePath, imageUrl,
       _pendingImage: pendingImage && !imagePath ? pendingImage : null,
       entry:   form.entry   ? parseFloat(form.entry)  : null,
       exit:    form.exit    ? parseFloat(form.exit)   : null,
@@ -416,7 +433,7 @@ export default function TradeEntry({ showToast }) {
     showToast(imagePath ? 'Trade saved with screenshot' : result.offline ? 'Saved offline — syncs when back online' : 'Trade saved', result.offline ? 'warn' : 'success', result.offline ? 4000 : 3000);
     setSaveMsg('');
     // Reset form — also reset outcome so it never carries over to the next trade
-    setForm(f => ({ ...f, riskPer: '', rewardPer: '', pnl: '', notes: '', setup: '', outcome: 'win', entry: '', exit: '', qty: '', session: '', rating: '' }));
+    setForm(f => ({ ...f, riskPer: '', rewardPer: '', pnl: '', notes: '', setup: '', outcome: '', entry: '', exit: '', qty: '', session: '', rating: '' }));
     setPendingImage(null); setPreviewSrc(null);
     localStorage.removeItem(DRAFT_KEY);
     setShowDraftBanner(false);
@@ -424,7 +441,7 @@ export default function TradeEntry({ showToast }) {
 
   const clearDraft = () => {
     localStorage.removeItem(DRAFT_KEY);
-    setForm({ date: today(), symbol: '', direction: 'long', accounts: 1, riskPer: '', rewardPer: '', outcome: 'win', pnl: '', setup: '', notes: '', entry: '', exit: '', qty: '', session: '', rating: '', accountId: '' });
+    setForm({ date: today(), symbol: '', direction: 'long', accounts: 1, riskPer: '', rewardPer: '', outcome: '', pnl: '', setup: '', notes: '', entry: '', exit: '', qty: '', session: '', rating: '', accountId: '' });
     setShowDraftBanner(false);
     setPendingImage(null); setPreviewSrc(null);
   };
@@ -776,9 +793,16 @@ export default function TradeEntry({ showToast }) {
         />
       </div>
 
-      {/* ── Screenshot ── */}
+      {/* ── Screenshot · doubles as AI auto-fill from broker confirmations ── */}
       <div style={{ marginBottom: 32 }}>
-        <div style={label}>Chart screenshot (optional)</div>
+        <div style={{ ...label, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span>Screenshot — drop a broker confirmation to auto-fill</span>
+          <span style={{
+            fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
+            color: '#E07A3B', background: 'rgba(224,122,59,0.12)',
+            padding: '2px 6px', borderRadius: 100,
+          }}>✨ AI EXTRACT</span>
+        </div>
         <div
           onClick={() => fileRef.current?.click()}
           onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
@@ -795,8 +819,8 @@ export default function TradeEntry({ showToast }) {
             <img src={previewSrc} alt="preview" style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 8 }} />
           ) : (
             <div style={{ fontSize: 13, color: 'var(--c-text-2)', lineHeight: 1.6 }}>
-              Drop your chart screenshot here<br />
-              <span style={{ fontSize: 11, opacity: 0.6 }}>or click to browse · or paste with ⌘V / Ctrl-V</span>
+              Drop a screenshot — Claude reads symbol, prices, qty, P&amp;L<br />
+              <span style={{ fontSize: 11, opacity: 0.6 }}>or click to browse · or paste with ⌘V / Ctrl-V · also works as chart attachment</span>
             </div>
           )}
         </div>
