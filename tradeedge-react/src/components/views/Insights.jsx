@@ -459,11 +459,35 @@ function InsightsPaywall({ onUpgrade }) {
         flexWrap: 'wrap', gap: 14,
       }}>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-accent)', marginBottom: 4 }}>
-            TradeEdge Pro · $19/mo
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-accent)' }}>
+              TradeEdge Pro · $190/yr <span style={{ color: 'var(--c-text-2)', fontWeight: 500 }}>or $19/mo</span>
+            </div>
+            <span
+              aria-hidden="true"
+              style={{
+                fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
+                color: '#17150F', background: '#E07A3B',
+                padding: '3px 8px', borderRadius: 100,
+              }}
+            >
+              ANNUAL SAVES $38
+            </span>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--c-text-2)' }}>
+          <div style={{ fontSize: 12, color: 'var(--c-text-2)', marginBottom: 6 }}>
             7-day free trial · cancel anytime · all features unlocked
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--c-text-2)' }}>
+            <span style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: 700,
+              color: 'var(--c-accent)',
+              background: 'rgba(224,122,59,0.12)',
+              padding: '2px 6px',
+              borderRadius: 4,
+              letterSpacing: '0.04em',
+            }}>LAUNCH24</span>
+            {' '}— first month free at checkout (launch promo, while it lasts)
           </div>
         </div>
         <button
@@ -767,7 +791,7 @@ Format with HTML tags. Be direct, honest, specific. No generic advice.`;
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--c-text)', marginBottom: 4 }}>Claude analyses your data and gives personalised coaching advice.</div>
-                <div style={{ fontSize: 12, color: 'var(--c-text-2)' }}>Requires a Claude API key in Settings.</div>
+                <div style={{ fontSize: 12, color: 'var(--c-text-2)' }}>Included in Pro — uses TradeEdge's Claude. Or paste your own key in Settings to use your Anthropic quota.</div>
               </div>
               <button
                 disabled={aiLoading}

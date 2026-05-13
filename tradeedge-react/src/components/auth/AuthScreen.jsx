@@ -63,8 +63,10 @@ function RegisterPanel({ onSwitch }) {
   const [pass,  setPass]  = useState('');
   // Default to free — never silently push a card-collecting flow on the user.
   const [plan,  setPlan]  = useState('free');
-  // Billing interval — only relevant if user picks Pro. Default monthly.
-  const [billingInterval, setBillingInterval] = useState('monthly');
+  // Billing interval — only relevant if user picks Pro. Default ANNUAL since
+  // most prop traders are long-term tool users + annual captures higher LTV.
+  // Monthly is still one click away in the toggle below the cards.
+  const [billingInterval, setBillingInterval] = useState('annual');
   const isAnnual = billingInterval === 'annual';
   const [msg,   setMsg]   = useState({ text: '', ok: false });
   const [busy,  setBusy]  = useState(false);
@@ -156,13 +158,28 @@ function RegisterPanel({ onSwitch }) {
           tabIndex={0}
           onClick={() => setPlan('pro')}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPlan('pro'); } }}
+          style={{ position: 'relative' }}
         >
+          {isAnnual && (
+            <span
+              aria-hidden="true"
+              style={{
+                position: 'absolute', top: -8, right: 10,
+                fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
+                color: '#17150F', background: '#E07A3B',
+                padding: '3px 8px', borderRadius: 100,
+                boxShadow: '0 2px 6px rgba(224,122,59,0.4)',
+              }}
+            >
+              SAVE $38
+            </span>
+          )}
           <div className="tp-plan-label">Pro</div>
           <div className="tp-plan-price">
             ${isAnnual ? '190' : '19'} <span>{isAnnual ? '/ yr' : '/ mo'}</span>
           </div>
           <div className="tp-plan-note">
-            {isAnnual ? '7-day free trial · ~$15.83/mo · Save 17%' : '7-day free trial · Cancel anytime'}
+            {isAnnual ? '7-day free trial · just ~$15.83/mo' : '7-day free trial · cancel anytime'}
           </div>
         </div>
       </div>
