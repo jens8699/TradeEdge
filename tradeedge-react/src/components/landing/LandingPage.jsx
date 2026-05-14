@@ -109,23 +109,22 @@ const SUPPORT_EMAIL = 'support@tradeedge.today';
 //   drawdown      brief human description
 //   note          one-line callout (best for X traders / quirky rules / etc.)
 //   link          URL to firm's pricing page (for "verify" + future deep-link)
-// Values current as of 2026-05-14. Where firms have an activation fee
-// post-eval that's required before you can trade live, that's bundled into
-// `evalFee` so the comparison reflects actual upfront cost.
-// `profitSplit` uses the base contractual split — many firms have scaling
-// rules (e.g. Apex 100% first $25k lifetime) explained in the `note`.
+// Values current as of 2026-05-14. Activation fees bundled into evalFee where
+// applicable so the comparison reflects actual upfront cost.
+// `drawdownDollars` is the max loss the firm tolerates before you blow the
+// account — used by the feasibility check (your max-consec-loss-budget at
+// your win rate × risk-per-trade must stay under this).
 const FIRMS = [
   {
     name: 'FTMO',
     tag: 'FOREX + FUTURES',
     sizes: [25000, 50000, 100000, 150000],
-    // FTMO prices in EUR; converted to USD at ~1.08. 2-step Challenge fees.
-    // No separate activation — funded account is free after passing.
-    evalFee:    { 25000: 168, 50000: 270, 100000: 583, 150000: 870 }, // 150k extrapolated; FTMO actually offers 200k for $1167
+    evalFee:    { 25000: 168, 50000: 270, 100000: 583, 150000: 870 },
     monthlyFee: 0,
-    profitSplit: 0.80, // base — scales to 90% via Scaling Plan after consistent profits
+    profitSplit: 0.80,
     payoutFreq: 'biweekly',
-    payoutMin:  { 25000: 0, 50000: 0, 100000: 0, 150000: 0 }, // no $ threshold; need 4 min trading days
+    payoutMin:  { 25000: 0, 50000: 0, 100000: 0, 150000: 0 },
+    drawdownDollars: { 25000: 2500, 50000: 5000, 100000: 10000, 150000: 15000 }, // 10% overall
     drawdown:   '10% overall, 5% daily',
     note:       'Forex + futures. 80% base split, scales to 90% with consistency. EUR pricing.',
     link:       'https://ftmo.com/en/pricing/',
@@ -134,14 +133,12 @@ const FIRMS = [
     name: 'Apex Trader Funding',
     tag: 'FUTURES',
     sizes: [25000, 50000, 100000, 150000],
-    // Apex runs 80–90% off promos almost continuously, so the LIST prices
-    // ($167 / $207 / $297 etc.) basically never get paid. Using realistic
-    // post-promo cost + $99 EOD activation fee bundled in (~$119–$139 net).
     evalFee:    { 25000: 119, 50000: 119, 100000: 139, 150000: 139 },
     monthlyFee: 0,
-    profitSplit: 0.90, // 100% on first $25k LIFETIME profit, then 90/10. Effective split is higher for small accounts.
+    profitSplit: 0.90,
     payoutFreq: 'biweekly',
     payoutMin:  { 25000: 1500, 50000: 2600, 100000: 2600, 150000: 4100 },
+    drawdownDollars: { 25000: 1500, 50000: 2500, 100000: 3000, 150000: 5000 }, // trailing — typical sizes
     drawdown:   'Trailing — varies by size',
     note:       '100% on first $25k lifetime profit, then 90/10. Promo prices almost always available.',
     link:       'https://apextraderfunding.com/pricing/',
@@ -150,14 +147,12 @@ const FIRMS = [
     name: 'TopStep',
     tag: 'FUTURES',
     sizes: [50000, 100000, 150000],
-    // Eval is a MONTHLY subscription during the Trading Combine. Modeled
-    // as 1 month to pass — typical "pass in 1 month" trader experience.
-    // Funded Express accounts have no recurring fee after that.
     evalFee:    { 50000: 95, 100000: 149, 150000: 229 },
     monthlyFee: 0,
     profitSplit: 0.90,
     payoutFreq: 'weekly',
-    payoutMin:  { 50000: 0, 100000: 0, 150000: 0 }, // need 5 winning days to qualify for first payout
+    payoutMin:  { 50000: 0, 100000: 0, 150000: 0 },
+    drawdownDollars: { 50000: 2000, 100000: 3000, 150000: 4500 }, // trailing
     drawdown:   'Trailing — $2k / $3k / $4.5k',
     note:       'Weekly payouts after 5 winning days. 90% split. Eval is a monthly subscription.',
     link:       'https://www.topstep.com/topstep-prop/',
@@ -166,13 +161,12 @@ const FIRMS = [
     name: 'MyFundedFutures',
     tag: 'FUTURES',
     sizes: [50000, 100000, 150000],
-    // Pro plan modeled (matches Jens's Builder-account experience for $50k;
-    // Pro extends to bigger sizes). 80/20 split, EOD drawdown.
     evalFee:    { 50000: 80, 100000: 150, 150000: 270 },
     monthlyFee: 0,
-    profitSplit: 0.80, // Pro/Core/Builder are 80/20; Rapid is 90/10 if you want intraday-trail trade-off
+    profitSplit: 0.80,
     payoutFreq: 'biweekly',
     payoutMin:  { 50000: 0, 100000: 0, 150000: 0 },
+    drawdownDollars: { 50000: 1500, 100000: 3000, 150000: 4500 }, // 3% EOD
     drawdown:   '3% EOD trailing',
     note:       'Jens trades 5 Builder accounts here. Friendly EOD drawdown, no consistency rule.',
     link:       'https://myfundedfutures.com/challenge',
@@ -181,14 +175,12 @@ const FIRMS = [
     name: 'Tradeify',
     tag: 'FUTURES',
     sizes: [25000, 50000, 100000, 150000],
-    // GROWTH plan — cheap eval ($111 for 50k) BUT $1,500 activation fee
-    // post-pass before you can trade live. Bundled into evalFee for honesty.
-    // 25k extrapolated; Tradeify's listed sizes are 50k/100k/150k.
     evalFee:    { 25000: 1611, 50000: 1611, 100000: 1681, 150000: 1751 },
     monthlyFee: 0,
     profitSplit: 0.90,
     payoutFreq: 'daily',
     payoutMin:  { 25000: 0, 50000: 0, 100000: 0, 150000: 0 },
+    drawdownDollars: { 25000: 1500, 50000: 2500, 100000: 2500, 150000: 3000 }, // EOD
     drawdown:   '$2.5k–$3k EOD trailing',
     note:       'Daily payouts, 90% split. But $1,500 activation fee post-eval (bundled into "eval cost" shown).',
     link:       'https://tradeify.co/#pricing-section',
@@ -197,13 +189,12 @@ const FIRMS = [
     name: 'Alpha Futures',
     tag: 'FUTURES',
     sizes: [25000, 50000, 100000, 150000],
-    // Standard plan: monthly subscription ($79/mo for 50k) + $149 activation
-    // post-pass. Modeled as 1 month to pass + activation bundled.
     evalFee:    { 25000: 169, 50000: 228, 100000: 318, 150000: 418 },
     monthlyFee: 0,
-    profitSplit: 0.80, // Standard scales 70% → 80% → 90% across first 5 payouts; using 80% as effective avg
+    profitSplit: 0.80,
     payoutFreq: 'biweekly',
     payoutMin:  { 25000: 1000, 50000: 2000, 100000: 3000, 150000: 4500 },
+    drawdownDollars: { 25000: 1000, 50000: 2000, 100000: 4000, 150000: 6000 }, // 4% EOD
     drawdown:   '4% EOD trailing',
     note:       'Profit split scales 70% → 90% across first 5 payouts. EOD drawdown.',
     link:       'https://alpha-futures.com/',
@@ -211,7 +202,23 @@ const FIRMS = [
 ];
 
 const ACCOUNT_SIZE_OPTIONS = [25000, 50000, 100000, 150000];
-const MONTHLY_PROFIT_OPTIONS = [1000, 3000, 5000, 10000];
+const WIN_RATE_OPTIONS = [45, 50, 55, 60, 65];        // %
+const RR_OPTIONS = [1.0, 1.5, 2.0, 2.5, 3.0];         // avg reward-to-risk
+const TRADES_PER_MONTH_OPTIONS = [10, 25, 50, 100];   // monthly trade count
+const RISK_PER_TRADE_PCT = 0.01;                       // 1% of account, fixed for v2
+
+// Probability-based feasibility check.
+// At win rate p, the expected worst losing streak (95% confidence over ~100
+// trades) is ceil(log(0.05) / log(1 − p)). If that streak × risk-per-trade
+// blows the firm's drawdown, this firm/strategy combo is infeasible —
+// you'll bust the account before you ever reach a payout. This is the check
+// nobody else surfaces in prop firm calculators.
+function expectedMaxConsecLosses(winRatePct) {
+  const p = winRatePct / 100;
+  if (p >= 1) return 0;
+  if (p <= 0) return 99;
+  return Math.ceil(Math.log(0.05) / Math.log(1 - p));
+}
 
 function fmtCurrency(n) {
   if (!Number.isFinite(n)) return '—';
@@ -223,14 +230,31 @@ function fmtCurrency(n) {
 
 function FirmRoiCalculator() {
   const [accountSize, setAccountSize] = useState(50000);
-  const [monthlyProfit, setMonthlyProfit] = useState(3000);
+  const [winRate, setWinRate] = useState(55);       // %
+  const [rr, setRr] = useState(1.5);                // avg R per winner
+  const [trades, setTrades] = useState(50);         // trades / month
+
+  // ── Derived: trader's expected monthly P&L from win rate × R:R × trades.
+  // Risk per trade is fixed at 1% of account size for v2 simplicity.
+  const riskPerTrade$ = accountSize * RISK_PER_TRADE_PCT;
+  const winProbability = winRate / 100;
+  const avgWin$ = riskPerTrade$ * rr;
+  const avgLoss$ = riskPerTrade$;
+  const monthlyProfit =
+    trades * (winProbability * avgWin$ - (1 - winProbability) * avgLoss$);
+
+  // Expectancy per trade (in $) — what each trade is worth on average.
+  const expectancyPerTrade$ = winProbability * avgWin$ - (1 - winProbability) * avgLoss$;
+
+  // Probability-based drawdown check
+  const stressConsec = expectedMaxConsecLosses(winRate);
+  const stressTestLoss$ = stressConsec * riskPerTrade$;
+
+  // Negative expectancy = strategy itself is a loser. No firm fixes that.
+  const strategyIsLosing = expectancyPerTrade$ <= 0;
 
   // For each firm, compute the bottom-line economics for this profile.
-  // Some firms don't offer the chosen account size — those get filtered or
-  // mapped to the nearest available size (with a note).
   const rows = FIRMS.map(firm => {
-    // Pick the closest available size at-or-below the user's choice; if the
-    // firm doesn't offer anything that small, use their smallest size.
     const sortedSizes = [...firm.sizes].sort((a, b) => a - b);
     const matchedSize = [...sortedSizes].reverse().find(s => s <= accountSize) ?? sortedSizes[0];
     const sizeMatches = matchedSize === accountSize;
@@ -238,16 +262,28 @@ function FirmRoiCalculator() {
     const evalFee = firm.evalFee[matchedSize] ?? null;
     const monthlyFee = firm.monthlyFee ?? 0;
     const minPayout = firm.payoutMin[matchedSize] ?? 0;
+    const drawdown$ = firm.drawdownDollars?.[matchedSize] ?? null;
+
+    // ── Feasibility check: at this strategy's stress-test consec-loss budget,
+    // does the firm have enough drawdown room? If not, this firm/strategy
+    // combo is doomed — you'll bust before you ever reach a payout.
+    let feasibility = 'safe';
+    if (drawdown$ != null) {
+      if (stressTestLoss$ >= drawdown$) feasibility = 'infeasible';
+      else if (stressTestLoss$ >= drawdown$ * 0.75) feasibility = 'tight';
+    }
 
     // Trader's monthly take-home: (profit × split) − recurring fee.
-    // If the user's monthly profit doesn't clear the firm's min-payout
-    // threshold, they get $0 that month (it accumulates but isn't paid).
+    // If monthly profit < firm's min payout threshold OR strategy is losing
+    // OR feasibility is infeasible, monthlyTake = 0.
     const grossSplit = monthlyProfit * firm.profitSplit;
-    const monthlyTake = monthlyProfit < minPayout ? 0 : grossSplit - monthlyFee;
+    const monthlyTake = (
+      strategyIsLosing || feasibility === 'infeasible' || monthlyProfit < minPayout
+    ) ? 0 : grossSplit - monthlyFee;
+
     const breakEvenMonths = monthlyTake > 0 && evalFee != null
       ? evalFee / monthlyTake
       : null;
-    // monthlyTake already nets out monthlyFee, so don't subtract it again here.
     const yearNet = monthlyTake > 0 && evalFee != null
       ? (monthlyTake * 12) - evalFee
       : null;
@@ -259,6 +295,8 @@ function FirmRoiCalculator() {
       evalFee,
       monthlyFee,
       minPayout,
+      drawdown$,
+      feasibility,
       monthlyTake,
       breakEvenMonths,
       yearNet,
@@ -267,6 +305,10 @@ function FirmRoiCalculator() {
 
   // Rank by 12-month net (higher = better). null values sink to bottom.
   const ranked = [...rows].sort((a, b) => {
+    if (a.yearNet == null && b.yearNet == null) {
+      // both infeasible — sort by drawdown room (more = better)
+      return (b.drawdown$ ?? 0) - (a.drawdown$ ?? 0);
+    }
     if (a.yearNet == null) return 1;
     if (b.yearNet == null) return -1;
     return b.yearNet - a.yearNet;
@@ -283,79 +325,127 @@ function FirmRoiCalculator() {
           The <em>math</em> is different for every firm.
         </h2>
         <p className="lp-section-sub">
-          Plug in your account size + monthly profit target. See what hits your bank — and which firm wins.
+          Drop your win rate + R:R. We compute your real monthly P&amp;L, then run it through each firm's fees and drawdown rules. Some firms will fit your strategy. Most won't.
         </p>
 
-        {/* Inputs */}
+        {/* ── Inputs: account size · win rate · R:R · trades/month ─────────
+          * Risk per trade is fixed at 1% (sane default — see note under). */}
+        {(() => {
+          const inputGroupStyle = { marginBottom: 0 };
+          const labelStyle = { display: 'block', fontSize: 11, color: '#A89687', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 };
+          const buttonRow = { display: 'flex', gap: 6, flexWrap: 'wrap' };
+          const pillStyle = (active) => ({
+            padding: '8px 14px',
+            fontSize: 13,
+            fontWeight: 600,
+            borderRadius: 100,
+            background: active ? '#E07A3B' : 'rgba(0,0,0,0.04)',
+            color: active ? '#FFFCF5' : '#1C1613',
+            border: active ? '1px solid #E07A3B' : '1px solid #D9CDB5',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            fontFamily: "'Inter', sans-serif",
+            fontVariantNumeric: 'tabular-nums',
+          });
+          return (
+            <div style={{
+              display: 'grid', gap: 22, marginTop: 32, marginBottom: 22,
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            }}>
+              <div style={inputGroupStyle}>
+                <label style={labelStyle}>Account size</label>
+                <div style={buttonRow}>
+                  {ACCOUNT_SIZE_OPTIONS.map(s => (
+                    <button key={s} type="button" onClick={() => setAccountSize(s)} style={pillStyle(accountSize === s)}>
+                      ${(s / 1000).toFixed(0)}k
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={inputGroupStyle}>
+                <label style={labelStyle}>Win rate</label>
+                <div style={buttonRow}>
+                  {WIN_RATE_OPTIONS.map(w => (
+                    <button key={w} type="button" onClick={() => setWinRate(w)} style={pillStyle(winRate === w)}>
+                      {w}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={inputGroupStyle}>
+                <label style={labelStyle}>Avg R:R per winner</label>
+                <div style={buttonRow}>
+                  {RR_OPTIONS.map(r => (
+                    <button key={r} type="button" onClick={() => setRr(r)} style={pillStyle(rr === r)}>
+                      {r === Math.round(r) ? `1:${r.toFixed(0)}` : `1:${r}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={inputGroupStyle}>
+                <label style={labelStyle}>Trades per month</label>
+                <div style={buttonRow}>
+                  {TRADES_PER_MONTH_OPTIONS.map(t => (
+                    <button key={t} type="button" onClick={() => setTrades(t)} style={pillStyle(trades === t)}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Derived summary row: shows what the strategy is producing ─── */}
         <div style={{
-          display: 'grid', gap: 18, marginTop: 32, marginBottom: 28,
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'baseline',
+          padding: '16px 20px', borderRadius: 12,
+          background: strategyIsLosing ? 'rgba(198,90,69,0.08)' : 'rgba(255,255,255,0.5)',
+          border: `1px solid ${strategyIsLosing ? 'rgba(198,90,69,0.3)' : '#D9CDB5'}`,
+          marginBottom: 28,
         }}>
           <div>
-            <label style={{ display: 'block', fontSize: 11, color: '#A89687', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
-              Account size
-            </label>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {ACCOUNT_SIZE_OPTIONS.map(size => {
-                const active = accountSize === size;
-                return (
-                  <button
-                    key={size}
-                    type="button"
-                    onClick={() => setAccountSize(size)}
-                    style={{
-                      padding: '8px 14px',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      borderRadius: 100,
-                      background: active ? '#E07A3B' : 'rgba(0,0,0,0.04)',
-                      color: active ? '#FFFCF5' : '#1C1613',
-                      border: active ? '1px solid #E07A3B' : '1px solid #D9CDB5',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      fontFamily: "'Inter', sans-serif",
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                  >
-                    ${(size / 1000).toFixed(0)}k
-                  </button>
-                );
-              })}
+            <div style={{ fontSize: 9, color: '#A89687', fontWeight: 700, letterSpacing: '0.08em', marginBottom: 2 }}>
+              YOUR STRATEGY PRODUCES
+            </div>
+            <div style={{
+              fontFamily: "'Fraunces', Georgia, serif",
+              fontSize: 26, letterSpacing: '-0.02em',
+              color: strategyIsLosing ? '#C65A45' : '#E07A3B',
+              fontVariantNumeric: 'tabular-nums', lineHeight: 1.1,
+            }}>
+              {fmtCurrency(monthlyProfit)}/mo
             </div>
           </div>
-          <div>
-            <label style={{ display: 'block', fontSize: 11, color: '#A89687', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
-              Monthly profit you hit
-            </label>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {MONTHLY_PROFIT_OPTIONS.map(p => {
-                const active = monthlyProfit === p;
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setMonthlyProfit(p)}
-                    style={{
-                      padding: '8px 14px',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      borderRadius: 100,
-                      background: active ? '#E07A3B' : 'rgba(0,0,0,0.04)',
-                      color: active ? '#FFFCF5' : '#1C1613',
-                      border: active ? '1px solid #E07A3B' : '1px solid #D9CDB5',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      fontFamily: "'Inter', sans-serif",
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                  >
-                    ${(p / 1000).toFixed(p >= 1000 && p % 1000 === 0 ? 0 : 1)}k/mo
-                  </button>
-                );
-              })}
+          <div style={{ fontSize: 12, color: '#1C1613', lineHeight: 1.6 }}>
+            <div>
+              <span style={{ color: '#A89687' }}>Per-trade expectancy:</span>{' '}
+              <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtCurrency(expectancyPerTrade$)}</strong>
+            </div>
+            <div>
+              <span style={{ color: '#A89687' }}>Risk per trade:</span>{' '}
+              <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtCurrency(riskPerTrade$)}</strong> <span style={{ color: '#A89687' }}>(1% of account)</span>
+            </div>
+            <div>
+              <span style={{ color: '#A89687' }}>Worst expected losing streak (95% CI):</span>{' '}
+              <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{stressConsec} losses = {fmtCurrency(stressTestLoss$)}</strong>
             </div>
           </div>
         </div>
+
+        {/* ── Negative-expectancy guard ────────────────────────────────── */}
+        {strategyIsLosing && (
+          <div style={{
+            padding: '14px 18px', borderRadius: 12,
+            background: 'rgba(198,90,69,0.06)',
+            border: '1px solid rgba(198,90,69,0.3)',
+            marginBottom: 18,
+            fontSize: 13, color: '#1C1613', lineHeight: 1.55,
+          }}>
+            <strong style={{ color: '#C65A45' }}>Strategy has negative expectancy.</strong>{' '}
+            With a {winRate}% win rate and 1:{rr} R:R, you lose money on average. No prop firm fixes this — improve your win rate or risk-reward first.
+          </div>
+        )}
 
         {/* Output grid */}
         <div style={{
@@ -364,17 +454,25 @@ function FirmRoiCalculator() {
         }}>
           {ranked.map((r, i) => {
             const isWinner = i === 0 && r.yearNet != null && r.yearNet > 0;
+            const isInfeasible = r.feasibility === 'infeasible';
+            const isTight = r.feasibility === 'tight';
+            const borderColor = isWinner ? '#E07A3B'
+              : isInfeasible ? 'rgba(198,90,69,0.4)'
+              : isTight ? 'rgba(239,201,122,0.5)'
+              : '#D9CDB5';
+
             return (
               <div
                 key={r.firm.name}
                 style={{
-                  background: '#FFFCF5',
-                  border: `1.5px solid ${isWinner ? '#E07A3B' : '#D9CDB5'}`,
+                  background: isInfeasible ? '#FCF7EE' : '#FFFCF5',
+                  border: `1.5px solid ${borderColor}`,
                   borderRadius: 14,
                   padding: '22px 22px 20px',
                   position: 'relative',
                   boxShadow: isWinner ? '0 6px 24px rgba(224,122,59,0.18)' : '0 1px 2px rgba(0,0,0,0.04)',
                   transition: 'transform 0.15s, box-shadow 0.15s',
+                  opacity: isInfeasible ? 0.72 : 1,
                 }}
               >
                 {isWinner && (
@@ -385,6 +483,26 @@ function FirmRoiCalculator() {
                     padding: '4px 10px', borderRadius: 100,
                   }}>
                     BEST FOR THIS PROFILE
+                  </div>
+                )}
+                {isInfeasible && (
+                  <div style={{
+                    position: 'absolute', top: -10, left: 16,
+                    fontSize: 9, fontWeight: 800, letterSpacing: '0.08em',
+                    color: '#FFFCF5', background: '#C65A45',
+                    padding: '4px 10px', borderRadius: 100,
+                  }}>
+                    🚫 TOO RISKY
+                  </div>
+                )}
+                {isTight && (
+                  <div style={{
+                    position: 'absolute', top: -10, left: 16,
+                    fontSize: 9, fontWeight: 800, letterSpacing: '0.08em',
+                    color: '#1C1613', background: '#EFC97A',
+                    padding: '4px 10px', borderRadius: 100,
+                  }}>
+                    ⚠️ TIGHT MARGIN
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
@@ -414,49 +532,63 @@ function FirmRoiCalculator() {
                   )}
                 </div>
 
-                {/* Big number — year net */}
+                {/* Big number — year net OR infeasibility message */}
                 <div style={{ marginTop: 16, marginBottom: 6 }}>
                   <div style={{ fontSize: 9, color: '#A89687', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 4 }}>
-                    YEAR 1 NET (AFTER FEES)
+                    {isInfeasible ? 'WHY' : 'YEAR 1 NET (AFTER FEES)'}
                   </div>
-                  <div style={{
-                    fontFamily: "'Fraunces', Georgia, serif",
-                    fontSize: 32, letterSpacing: '-0.025em',
-                    color: r.yearNet != null && r.yearNet > 0 ? '#E07A3B' : '#A89687',
-                    lineHeight: 1.1,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}>
-                    {r.yearNet != null ? fmtCurrency(r.yearNet) : '—'}
-                  </div>
+                  {isInfeasible ? (
+                    <div style={{ fontSize: 12, color: '#1C1613', lineHeight: 1.55 }}>
+                      Your stress-test loss of <strong>{fmtCurrency(stressTestLoss$)}</strong> exceeds this firm's drawdown of <strong>{fmtCurrency(r.drawdown$)}</strong>. You'd likely bust before reaching a payout.
+                    </div>
+                  ) : (
+                    <div style={{
+                      fontFamily: "'Fraunces', Georgia, serif",
+                      fontSize: 32, letterSpacing: '-0.025em',
+                      color: r.yearNet != null && r.yearNet > 0 ? '#E07A3B' : '#A89687',
+                      lineHeight: 1.1,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}>
+                      {r.yearNet != null ? fmtCurrency(r.yearNet) : '—'}
+                    </div>
+                  )}
                 </div>
 
                 {/* Breakdown */}
-                <div style={{ marginTop: 14, fontSize: 12, color: '#1C1613', lineHeight: 1.7 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#A89687' }}>Per month</span>
-                    <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
-                      {fmtCurrency(r.monthlyTake)}
-                    </span>
+                {!isInfeasible && (
+                  <div style={{ marginTop: 14, fontSize: 12, color: '#1C1613', lineHeight: 1.7 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#A89687' }}>Per month</span>
+                      <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                        {fmtCurrency(r.monthlyTake)}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#A89687' }}>Profit split</span>
+                      <span style={{ fontVariantNumeric: 'tabular-nums' }}>{Math.round(r.firm.profitSplit * 100)}%</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#A89687' }}>Eval cost</span>
+                      <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                        {r.evalFee != null ? fmtCurrency(r.evalFee) : '—'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#A89687' }}>Drawdown room</span>
+                      <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                        {r.drawdown$ != null ? fmtCurrency(r.drawdown$) : '—'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#A89687' }}>Break even after</span>
+                      <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                        {r.breakEvenMonths != null
+                          ? `${r.breakEvenMonths.toFixed(1)} mo`
+                          : '—'}
+                      </span>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#A89687' }}>Profit split</span>
-                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{Math.round(r.firm.profitSplit * 100)}%</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#A89687' }}>Eval cost</span>
-                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {r.evalFee != null ? fmtCurrency(r.evalFee) : '—'}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#A89687' }}>Break even after</span>
-                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {r.breakEvenMonths != null
-                        ? `${r.breakEvenMonths.toFixed(1)} mo`
-                        : '—'}
-                    </span>
-                  </div>
-                </div>
+                )}
 
                 <div style={{
                   marginTop: 14, paddingTop: 12, borderTop: '1px solid #D9CDB5',
@@ -502,11 +634,11 @@ function FirmRoiCalculator() {
         {/* Disclaimer */}
         <div style={{
           marginTop: 16, fontSize: 10.5, color: '#A89687',
-          textAlign: 'center', maxWidth: 720, marginLeft: 'auto', marginRight: 'auto',
+          textAlign: 'center', maxWidth: 760, marginLeft: 'auto', marginRight: 'auto',
           lineHeight: 1.55,
         }}>
-          Numbers are simplified estimates based on each firm's published pricing — actual results depend on consistency rules,
-          scaling plans, and your trading style. Always verify on the firm's pricing page before paying.
+          Model assumes 1% risk per trade, fixed R:R per winner, no variance month-to-month, and that you pass the eval first try.
+          Reality is messier — but this captures the headline economics. Always verify rules on each firm's pricing page before paying.
         </div>
       </div>
     </section>
