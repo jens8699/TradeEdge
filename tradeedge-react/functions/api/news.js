@@ -39,20 +39,58 @@ export async function onRequestGet(context) {
   const cached = await caches.default.match(cacheKey);
   if (cached) return cached;
 
+  // Try Marketaux first; fall back to NewsAPI when:
+  //   (a) Marketaux errors out (quota / outage / network)
+  //   (b) Marketaux returns zero articles
+  //   (c) Marketaux's newest article is > 24h old (stale cache / quota burn)
+  // This is the fix for the "14d ago headlines" issue from the May 13 QA pass.
+  // Marketaux's free tier (100 reqs/day) can return stale cached data when
+  // exhausted; NewsAPI's free tier (100 reqs/day) is independent so failing
+  // over keeps the feature alive.
   let articles = [];
   let provider = '';
-  try {
-    if (env.MARKETAUX_TOKEN) {
+  const STALE_AGE_MS = 24 * 60 * 60 * 1000;
+  const isStale = (arts) => {
+    if (!arts.length) return true;
+    const newest = Math.max(
+      ...arts.map(a => a.publishedAt ? new Date(a.publishedAt).getTime() : 0)
+    );
+    return !Number.isFinite(newest) || newest <= 0 || (Date.now() - newest) > STALE_AGE_MS;
+  };
+
+  if (env.MARKETAUX_TOKEN) {
+    try {
       articles = await fetchMarketaux(env.MARKETAUX_TOKEN, q);
       provider = 'marketaux';
-    } else if (env.NEWSAPI_KEY) {
-      articles = await fetchNewsAPI(env.NEWSAPI_KEY, q);
-      provider = 'newsapi';
-    } else {
-      return json({ error: 'No news provider configured. Set MARKETAUX_TOKEN or NEWSAPI_KEY.' }, 503);
+    } catch (e) {
+      // Swallow — try the fallback below
+      articles = [];
     }
-  } catch (e) {
-    return json({ error: e.message || 'News fetch failed' }, 502);
+  }
+
+  // Fall back to NewsAPI if Marketaux gave us nothing useful
+  if (env.NEWSAPI_KEY && isStale(articles)) {
+    try {
+      const fallback = await fetchNewsAPI(env.NEWSAPI_KEY, q);
+      if (fallback.length > 0 && !isStale(fallback)) {
+        articles = fallback;
+        provider = 'newsapi';
+      }
+    } catch (e) {
+      // Last-resort: return whatever Marketaux gave us, even if stale.
+      // Better stale news than no news for the user.
+    }
+  }
+
+  if (!provider) {
+    // No providers configured at all
+    return json({ error: 'No news provider configured. Set MARKETAUX_TOKEN or NEWSAPI_KEY.' }, 503);
+  }
+
+  if (articles.length === 0) {
+    // Both providers returned empty — surface as a 502 so the client knows
+    // to show "couldn't load news" rather than silently render zero items.
+    return json({ error: 'No fresh market news available right now. Try again in a few minutes.' }, 502);
   }
 
   const body = JSON.stringify({

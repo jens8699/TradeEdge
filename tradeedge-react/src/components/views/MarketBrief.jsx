@@ -181,7 +181,7 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
       rawBriefText.current = text.replace(/<[^>]+>/g, '');
       setBriefHtml(prev => prev + `<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--c-border)"><h3 style="font-size:13px;color:var(--c-text-2);margin:0 0 8px;">❓ ${customQuestion}</h3>${text}</div>`);
       setCustomQuestion('');
-    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+    } catch(e) { showToast(e.message || 'Couldn\'t reach Claude — try again in a moment.', 'error'); }
     setGenerating(false);
   };
 
@@ -297,6 +297,33 @@ Be specific, concise, and actionable. Format with HTML — use <h3> for section 
         Today's headlines
       </SectionLabel>
 
+      {/* Stale-news warning — show when the freshest headline is > 24h old.
+        * Marketaux's free tier (100 reqs/day) can return cached stale articles
+        * when exhausted, which made the panel look broken on May 13 QA. The
+        * server-side fallback to NewsAPI now handles most cases, but this
+        * banner is a defensive UX backstop in case both providers are stale. */}
+      {!newsLoading && !newsError && news.length > 0 && (() => {
+        const newest = Math.max(...news.map(a => a.publishedAt ? new Date(a.publishedAt).getTime() : 0));
+        const ageMs = Number.isFinite(newest) && newest > 0 ? (Date.now() - newest) : 0;
+        if (ageMs > 24 * 60 * 60 * 1000) {
+          return (
+            <div style={{
+              marginBottom: 12,
+              padding: '10px 14px',
+              borderRadius: 10,
+              background: 'rgba(239,201,122,0.08)',
+              border: '1px solid rgba(239,201,122,0.35)',
+              fontSize: 12,
+              color: 'var(--c-text-2)',
+              lineHeight: 1.5,
+            }}>
+              <strong style={{ color: 'var(--c-text)' }}>News looks stale.</strong>{' '}
+              Newest headline is over a day old — likely our news provider's daily quota burned. Tap ↻ Refresh in a few minutes.
+            </div>
+          );
+        }
+        return null;
+      })()}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10, marginBottom: 24 }}>
         {newsLoading && (
           <div style={{ gridColumn: '1/-1', fontSize: 13, color: 'var(--c-text-2)', display: 'flex', alignItems: 'center', gap: 8 }}>
