@@ -109,84 +109,104 @@ const SUPPORT_EMAIL = 'support@tradeedge.today';
 //   drawdown      brief human description
 //   note          one-line callout (best for X traders / quirky rules / etc.)
 //   link          URL to firm's pricing page (for "verify" + future deep-link)
+// Values current as of 2026-05-14. Where firms have an activation fee
+// post-eval that's required before you can trade live, that's bundled into
+// `evalFee` so the comparison reflects actual upfront cost.
+// `profitSplit` uses the base contractual split — many firms have scaling
+// rules (e.g. Apex 100% first $25k lifetime) explained in the `note`.
 const FIRMS = [
   {
     name: 'FTMO',
     tag: 'FOREX + FUTURES',
-    sizes: [10000, 25000, 50000, 100000, 200000],
-    evalFee:    { 10000: 89,  25000: 155, 50000: 250, 100000: 540, 200000: 1080 }, // TODO:VERIFY
+    sizes: [25000, 50000, 100000, 150000],
+    // FTMO prices in EUR; converted to USD at ~1.08. 2-step Challenge fees.
+    // No separate activation — funded account is free after passing.
+    evalFee:    { 25000: 168, 50000: 270, 100000: 583, 150000: 870 }, // 150k extrapolated; FTMO actually offers 200k for $1167
     monthlyFee: 0,
-    profitSplit: 0.80, // rises to 90% after consistent profits — using base for v1 // TODO:VERIFY
+    profitSplit: 0.80, // base — scales to 90% via Scaling Plan after consistent profits
     payoutFreq: 'biweekly',
-    payoutMin:  { 10000: 0, 25000: 0, 50000: 0, 100000: 0, 200000: 0 }, // FTMO has no minimum, just trading days // TODO:VERIFY
-    drawdown:   '10% max overall, 5% daily loss',
-    note:       'No monthly fees. Profit split scales to 90% with consistency.',
+    payoutMin:  { 25000: 0, 50000: 0, 100000: 0, 150000: 0 }, // no $ threshold; need 4 min trading days
+    drawdown:   '10% overall, 5% daily',
+    note:       'Forex + futures. 80% base split, scales to 90% with consistency. EUR pricing.',
     link:       'https://ftmo.com/en/pricing/',
   },
   {
     name: 'Apex Trader Funding',
     tag: 'FUTURES',
-    sizes: [25000, 50000, 100000, 150000, 250000, 300000],
-    evalFee:    { 25000: 167, 50000: 167, 100000: 207, 150000: 297, 250000: 517, 300000: 657 }, // TODO:VERIFY — Apex runs heavy promos, often 80% off
-    monthlyFee: 0, // one-time eval + activation fee per account // TODO:VERIFY
-    profitSplit: 1.00, // 100% on first $25k profit, then 90/10 — simplified // TODO:VERIFY
+    sizes: [25000, 50000, 100000, 150000],
+    // Apex runs 80–90% off promos almost continuously, so the LIST prices
+    // ($167 / $207 / $297 etc.) basically never get paid. Using realistic
+    // post-promo cost + $99 EOD activation fee bundled in (~$119–$139 net).
+    evalFee:    { 25000: 119, 50000: 119, 100000: 139, 150000: 139 },
+    monthlyFee: 0,
+    profitSplit: 0.90, // 100% on first $25k LIFETIME profit, then 90/10. Effective split is higher for small accounts.
     payoutFreq: 'biweekly',
-    payoutMin:  { 25000: 1500, 50000: 2600, 100000: 2600, 150000: 4100, 250000: 4600, 300000: 7500 }, // TODO:VERIFY
-    drawdown:   'Trailing — $X off highest balance',
-    note:       'Most-used futures firm. Promo prices often available.',
+    payoutMin:  { 25000: 1500, 50000: 2600, 100000: 2600, 150000: 4100 },
+    drawdown:   'Trailing — varies by size',
+    note:       '100% on first $25k lifetime profit, then 90/10. Promo prices almost always available.',
     link:       'https://apextraderfunding.com/pricing/',
   },
   {
     name: 'TopStep',
     tag: 'FUTURES',
     sizes: [50000, 100000, 150000],
-    evalFee:    { 50000: 49, 100000: 99, 150000: 149 }, // monthly subscription during eval // TODO:VERIFY
-    monthlyFee: 0, // post-eval, no monthly on Express Funded accounts // TODO:VERIFY
-    profitSplit: 0.90, // 100% first $5k, then 90/10 — simplified // TODO:VERIFY
+    // Eval is a MONTHLY subscription during the Trading Combine. Modeled
+    // as 1 month to pass — typical "pass in 1 month" trader experience.
+    // Funded Express accounts have no recurring fee after that.
+    evalFee:    { 50000: 95, 100000: 149, 150000: 229 },
+    monthlyFee: 0,
+    profitSplit: 0.90,
     payoutFreq: 'weekly',
-    payoutMin:  { 50000: 0, 100000: 0, 150000: 0 }, // After 5 winning days // TODO:VERIFY
-    drawdown:   'Trailing — $2k/$3k/$4.5k off high',
-    note:       'Famous "5 winning days" rule. Weekly payouts.',
-    link:       'https://www.topsteptrader.com/our-pricing/',
+    payoutMin:  { 50000: 0, 100000: 0, 150000: 0 }, // need 5 winning days to qualify for first payout
+    drawdown:   'Trailing — $2k / $3k / $4.5k',
+    note:       'Weekly payouts after 5 winning days. 90% split. Eval is a monthly subscription.',
+    link:       'https://www.topstep.com/topstep-prop/',
   },
   {
     name: 'MyFundedFutures',
     tag: 'FUTURES',
     sizes: [50000, 100000, 150000],
-    evalFee:    { 50000: 80, 100000: 150, 150000: 270 }, // TODO:VERIFY
-    monthlyFee: 0, // one-time activation post-eval // TODO:VERIFY
-    profitSplit: 1.00, // 100% first $10k, then 90/10 // TODO:VERIFY
+    // Pro plan modeled (matches Jens's Builder-account experience for $50k;
+    // Pro extends to bigger sizes). 80/20 split, EOD drawdown.
+    evalFee:    { 50000: 80, 100000: 150, 150000: 270 },
+    monthlyFee: 0,
+    profitSplit: 0.80, // Pro/Core/Builder are 80/20; Rapid is 90/10 if you want intraday-trail trade-off
     payoutFreq: 'biweekly',
-    payoutMin:  { 50000: 0, 100000: 0, 150000: 0 }, // TODO:VERIFY
-    drawdown:   'EOD-based, $2k/$3k/$4.5k',
-    note:       'EOD drawdown is friendlier than trailing. Jens trades 5 of these.',
-    link:       'https://myfundedfutures.com/pricing/',
+    payoutMin:  { 50000: 0, 100000: 0, 150000: 0 },
+    drawdown:   '3% EOD trailing',
+    note:       'Jens trades 5 Builder accounts here. Friendly EOD drawdown, no consistency rule.',
+    link:       'https://myfundedfutures.com/challenge',
   },
   {
     name: 'Tradeify',
     tag: 'FUTURES',
     sizes: [25000, 50000, 100000, 150000],
-    evalFee:    { 25000: 50, 50000: 80, 100000: 165, 150000: 275 }, // TODO:VERIFY
+    // GROWTH plan — cheap eval ($111 for 50k) BUT $1,500 activation fee
+    // post-pass before you can trade live. Bundled into evalFee for honesty.
+    // 25k extrapolated; Tradeify's listed sizes are 50k/100k/150k.
+    evalFee:    { 25000: 1611, 50000: 1611, 100000: 1681, 150000: 1751 },
     monthlyFee: 0,
-    profitSplit: 0.90, // TODO:VERIFY
-    payoutFreq: 'biweekly',
-    payoutMin:  { 25000: 1500, 50000: 2000, 100000: 3000, 150000: 4500 }, // TODO:VERIFY
-    drawdown:   'EOD or static (Straight model)',
-    note:       'Straight account = no drawdown reset. Newer player.',
-    link:       'https://tradeify.co/',
+    profitSplit: 0.90,
+    payoutFreq: 'daily',
+    payoutMin:  { 25000: 0, 50000: 0, 100000: 0, 150000: 0 },
+    drawdown:   '$2.5k–$3k EOD trailing',
+    note:       'Daily payouts, 90% split. But $1,500 activation fee post-eval (bundled into "eval cost" shown).',
+    link:       'https://tradeify.co/#pricing-section',
   },
   {
-    name: 'AlphaFutures',
+    name: 'Alpha Futures',
     tag: 'FUTURES',
     sizes: [25000, 50000, 100000, 150000],
-    evalFee:    { 25000: 70, 50000: 110, 100000: 195, 150000: 295 }, // TODO:VERIFY
+    // Standard plan: monthly subscription ($79/mo for 50k) + $149 activation
+    // post-pass. Modeled as 1 month to pass + activation bundled.
+    evalFee:    { 25000: 169, 50000: 228, 100000: 318, 150000: 418 },
     monthlyFee: 0,
-    profitSplit: 0.90, // TODO:VERIFY
+    profitSplit: 0.80, // Standard scales 70% → 80% → 90% across first 5 payouts; using 80% as effective avg
     payoutFreq: 'biweekly',
-    payoutMin:  { 25000: 1000, 50000: 2000, 100000: 3000, 150000: 4500 }, // TODO:VERIFY
-    drawdown:   'EOD-based',
-    note:       'Newer firm — competitive eval prices.',
-    link:       'https://alphafutures.com/',
+    payoutMin:  { 25000: 1000, 50000: 2000, 100000: 3000, 150000: 4500 },
+    drawdown:   '4% EOD trailing',
+    note:       'Profit split scales 70% → 90% across first 5 payouts. EOD drawdown.',
+    link:       'https://alpha-futures.com/',
   },
 ];
 
