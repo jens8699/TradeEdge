@@ -207,6 +207,20 @@ const RR_OPTIONS = [1.0, 1.5, 2.0, 2.5, 3.0];         // avg reward-to-risk
 const TRADES_PER_MONTH_OPTIONS = [10, 25, 50, 100];   // monthly trade count
 const RISK_PER_TRADE_PCT = 0.01;                       // 1% of account, fixed for v2
 
+// Archetype presets — calibrated to real 2026 prop-trader stats:
+//   scalper:       65%+ WR, 1:1 R:R, 100+ trades/mo
+//   day trader:    50–60% WR, 1:1.5–2 R:R, 40–60 trades/mo
+//   swing trader:  40–50% WR, 1:2+ R:R, 10–20 trades/mo
+//   trend follower: 35–45% WR, 1:3+ R:R, 5–10 trades/mo
+// Sources: quantvps.com prop firm stats 2026, propfirmapp.com industry data.
+// Users can tweak any input after picking — preset just seeds sane defaults.
+const ARCHETYPE_PRESETS = [
+  { id: 'scalper',  label: 'Scalper',         winRate: 65, rr: 1.0, trades: 100 },
+  { id: 'day',      label: 'Day trader',      winRate: 55, rr: 1.5, trades: 50  },
+  { id: 'swing',    label: 'Swing trader',    winRate: 50, rr: 2.0, trades: 20  },
+  { id: 'trend',    label: 'Trend follower',  winRate: 45, rr: 3.0, trades: 10  },
+];
+
 // Probability-based feasibility check.
 // At win rate p, the expected worst losing streak (95% confidence over ~100
 // trades) is ceil(log(0.05) / log(1 − p)). If that streak × risk-per-trade
@@ -306,13 +320,50 @@ function FirmRoiCalculator() {
   // Rank by 12-month net (higher = better). null values sink to bottom.
   const ranked = [...rows].sort((a, b) => {
     if (a.yearNet == null && b.yearNet == null) {
-      // both infeasible — sort by drawdown room (more = better)
       return (b.drawdown$ ?? 0) - (a.drawdown$ ?? 0);
     }
     if (a.yearNet == null) return 1;
     if (b.yearNet == null) return -1;
     return b.yearNet - a.yearNet;
   });
+
+  // ── Compute "why" reasoning per ranked card.
+  // Find each firm's standout attribute(s) vs the field. The winner gets the
+  // 2-3 strongest reasons; lower-ranked cards get 1-2 contextual notes.
+  const feasibleRows = rows.filter(r => r.feasibility !== 'infeasible' && r.yearNet != null);
+  const cheapestEval = feasibleRows.length
+    ? Math.min(...feasibleRows.map(r => r.evalFee ?? Infinity))
+    : null;
+  const bestSplit = feasibleRows.length
+    ? Math.max(...feasibleRows.map(r => r.firm.profitSplit))
+    : null;
+  const biggestDrawdown = feasibleRows.length
+    ? Math.max(...feasibleRows.map(r => r.drawdown$ ?? 0))
+    : null;
+
+  function reasonsFor(r, rank) {
+    if (r.feasibility === 'infeasible') return [];
+    const out = [];
+    // Winner-only reasons (top of card)
+    if (rank === 0) {
+      if (r.evalFee === cheapestEval) out.push('Cheapest upfront cost');
+      if (r.firm.profitSplit === bestSplit) out.push(`Highest profit split (${Math.round(r.firm.profitSplit * 100)}%)`);
+      if (r.drawdown$ === biggestDrawdown && stressTestLoss$ > 0) {
+        out.push(`Biggest drawdown buffer (${fmtCurrency(r.drawdown$)} vs your ${fmtCurrency(stressTestLoss$)} stress test)`);
+      }
+      if (r.breakEvenMonths != null && r.breakEvenMonths < 1) {
+        out.push(`Break-even in under a month`);
+      }
+    } else {
+      // Contextual notes for non-winners
+      if (r.evalFee === cheapestEval) out.push('Cheapest upfront cost');
+      if (r.firm.profitSplit === bestSplit) out.push(`Highest profit split tier`);
+      if (r.feasibility === 'tight') {
+        out.push(`Stress test eats ${Math.round((stressTestLoss$ / r.drawdown$) * 100)}% of drawdown`);
+      }
+    }
+    return out.slice(0, 3);
+  }
 
   return (
     <section className="lp-roi" id="roi-calculator" style={{
@@ -327,6 +378,41 @@ function FirmRoiCalculator() {
         <p className="lp-section-sub">
           Drop your win rate + R:R. We compute your real monthly P&amp;L, then run it through each firm's fees and drawdown rules. Some firms will fit your strategy. Most won't.
         </p>
+
+        {/* ── Archetype presets — one-click "what kind of trader are you" ── */}
+        <div style={{ marginTop: 28, marginBottom: 4 }}>
+          <div style={{ fontSize: 11, color: '#A89687', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+            Start from a typical trader profile
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {ARCHETYPE_PRESETS.map(p => {
+              const matches = winRate === p.winRate && rr === p.rr && trades === p.trades;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => { setWinRate(p.winRate); setRr(p.rr); setTrades(p.trades); }}
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: 12, fontWeight: 600,
+                    borderRadius: 100,
+                    background: matches ? '#1C1613' : 'rgba(255,255,255,0.7)',
+                    color: matches ? '#F0E6D8' : '#1C1613',
+                    border: `1px solid ${matches ? '#1C1613' : '#D9CDB5'}`,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+            <span style={{ fontSize: 11, color: '#A89687', alignSelf: 'center', marginLeft: 4 }}>
+              or tweak the inputs below ↓
+            </span>
+          </div>
+        </div>
 
         {/* ── Inputs: account size · win rate · R:R · trades/month ─────────
           * Risk per trade is fixed at 1% (sane default — see note under). */}
@@ -456,6 +542,7 @@ function FirmRoiCalculator() {
             const isWinner = i === 0 && r.yearNet != null && r.yearNet > 0;
             const isInfeasible = r.feasibility === 'infeasible';
             const isTight = r.feasibility === 'tight';
+            const reasons = reasonsFor(r, i);
             const borderColor = isWinner ? '#E07A3B'
               : isInfeasible ? 'rgba(198,90,69,0.4)'
               : isTight ? 'rgba(239,201,122,0.5)'
@@ -531,6 +618,25 @@ function FirmRoiCalculator() {
                     </span>
                   )}
                 </div>
+
+                {/* "Why" reasoning bullets — shown for ranked feasible firms */}
+                {reasons.length > 0 && (
+                  <div style={{
+                    marginTop: 10, marginBottom: 4,
+                    display: 'flex', flexDirection: 'column', gap: 4,
+                  }}>
+                    {reasons.map((reason, ri) => (
+                      <div key={ri} style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 6,
+                        fontSize: 11.5, color: isWinner ? '#1C1613' : '#A89687',
+                        lineHeight: 1.45,
+                      }}>
+                        <span style={{ color: '#E07A3B', flexShrink: 0 }}>✓</span>
+                        <span>{reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Big number — year net OR infeasibility message */}
                 <div style={{ marginTop: 16, marginBottom: 6 }}>
