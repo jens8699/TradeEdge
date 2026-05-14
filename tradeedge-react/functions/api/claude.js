@@ -13,6 +13,19 @@
  *   ANTHROPIC_API_KEY2       optional fallback key (used on 401/403 from primary)
  *   SUPABASE_URL             https://<proj>.supabase.co
  *   SUPABASE_ANON_KEY        anon public key (for the JWT verify call)
+ *
+ * TODO — Per-user daily rate limit (deferred 2026-05-14):
+ *   With Deep AI Coaching now Pro-included (no BYOK requirement), one user
+ *   could burn $100+/day of Anthropic spend by spamming "Analyse now".
+ *   Plan: cap at ~10 calls/user/day. Needs Cloudflare KV namespace binding
+ *   (`RATE_LIMIT_KV` or similar) — atomic GET → check count → PUT with
+ *   24h TTL. Pseudocode:
+ *     const key = `claude-rl:${user.id}:${todayISO}`;
+ *     const count = parseInt(await env.RATE_LIMIT_KV.get(key)) || 0;
+ *     if (count >= 10) return 429;
+ *     await env.RATE_LIMIT_KV.put(key, String(count + 1), { expirationTtl: 86400 });
+ *   Provision KV binding in Cloudflare Pages → Settings → Functions → KV
+ *   namespace bindings first. Until then, monitor Anthropic dashboard manually.
  */
 export async function onRequestPost(context) {
   const { env, request } = context;

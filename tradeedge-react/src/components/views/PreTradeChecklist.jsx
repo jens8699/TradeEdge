@@ -183,7 +183,7 @@ export default function PreTradeChecklist({ showToast }) {
         Pre-trade <em style={{ color: 'var(--c-accent)' }}>checklist</em>.
       </div>
       <div style={{ fontSize: 13.5, color: 'var(--c-text-2)', lineHeight: 1.55, maxWidth: 520, marginBottom: 6 }}>
-        Every box must be checked before you enter a trade. No exceptions.
+        Run through this <strong>once per day</strong> before you start trading. No trades until every box is green. Resets at midnight.
       </div>
 
       {/* ── Session badge ── */}
