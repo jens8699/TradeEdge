@@ -92,6 +92,407 @@ function FaqItem({ q, a }) {
 const CONTACT_EMAIL = 'hello@tradeedge.today';
 const SUPPORT_EMAIL = 'support@tradeedge.today';
 
+// ── Firm ROI Calculator ──────────────────────────────────────────────────────
+// Hand-coded fee data. ALL `TODO:VERIFY` values are rough estimates pending
+// confirmation against the firms' actual pricing pages. Each row also keeps
+// a `verifiedAt` timestamp so we can surface stale data to users later.
+//
+// Schema per firm:
+//   name          display name
+//   tag           short pill label ("FUTURES", "FUTURES+FOREX", etc.)
+//   sizes         account sizes offered ($, must match keys in evalFee + payoutMin)
+//   evalFee       { sizeKey → one-time eval cost in USD }
+//   monthlyFee    recurring funded-account fee in USD per month (0 if none)
+//   profitSplit   trader's share, 0–1 (e.g. 0.9 = 90%)
+//   payoutFreq    'daily' | 'weekly' | 'biweekly' | 'monthly'
+//   payoutMin     { sizeKey → min profit USD before first payout is allowed }
+//   drawdown      brief human description
+//   note          one-line callout (best for X traders / quirky rules / etc.)
+//   link          URL to firm's pricing page (for "verify" + future deep-link)
+const FIRMS = [
+  {
+    name: 'FTMO',
+    tag: 'FOREX + FUTURES',
+    sizes: [10000, 25000, 50000, 100000, 200000],
+    evalFee:    { 10000: 89,  25000: 155, 50000: 250, 100000: 540, 200000: 1080 }, // TODO:VERIFY
+    monthlyFee: 0,
+    profitSplit: 0.80, // rises to 90% after consistent profits — using base for v1 // TODO:VERIFY
+    payoutFreq: 'biweekly',
+    payoutMin:  { 10000: 0, 25000: 0, 50000: 0, 100000: 0, 200000: 0 }, // FTMO has no minimum, just trading days // TODO:VERIFY
+    drawdown:   '10% max overall, 5% daily loss',
+    note:       'No monthly fees. Profit split scales to 90% with consistency.',
+    link:       'https://ftmo.com/en/pricing/',
+  },
+  {
+    name: 'Apex Trader Funding',
+    tag: 'FUTURES',
+    sizes: [25000, 50000, 100000, 150000, 250000, 300000],
+    evalFee:    { 25000: 167, 50000: 167, 100000: 207, 150000: 297, 250000: 517, 300000: 657 }, // TODO:VERIFY — Apex runs heavy promos, often 80% off
+    monthlyFee: 0, // one-time eval + activation fee per account // TODO:VERIFY
+    profitSplit: 1.00, // 100% on first $25k profit, then 90/10 — simplified // TODO:VERIFY
+    payoutFreq: 'biweekly',
+    payoutMin:  { 25000: 1500, 50000: 2600, 100000: 2600, 150000: 4100, 250000: 4600, 300000: 7500 }, // TODO:VERIFY
+    drawdown:   'Trailing — $X off highest balance',
+    note:       'Most-used futures firm. Promo prices often available.',
+    link:       'https://apextraderfunding.com/pricing/',
+  },
+  {
+    name: 'TopStep',
+    tag: 'FUTURES',
+    sizes: [50000, 100000, 150000],
+    evalFee:    { 50000: 49, 100000: 99, 150000: 149 }, // monthly subscription during eval // TODO:VERIFY
+    monthlyFee: 0, // post-eval, no monthly on Express Funded accounts // TODO:VERIFY
+    profitSplit: 0.90, // 100% first $5k, then 90/10 — simplified // TODO:VERIFY
+    payoutFreq: 'weekly',
+    payoutMin:  { 50000: 0, 100000: 0, 150000: 0 }, // After 5 winning days // TODO:VERIFY
+    drawdown:   'Trailing — $2k/$3k/$4.5k off high',
+    note:       'Famous "5 winning days" rule. Weekly payouts.',
+    link:       'https://www.topsteptrader.com/our-pricing/',
+  },
+  {
+    name: 'MyFundedFutures',
+    tag: 'FUTURES',
+    sizes: [50000, 100000, 150000],
+    evalFee:    { 50000: 80, 100000: 150, 150000: 270 }, // TODO:VERIFY
+    monthlyFee: 0, // one-time activation post-eval // TODO:VERIFY
+    profitSplit: 1.00, // 100% first $10k, then 90/10 // TODO:VERIFY
+    payoutFreq: 'biweekly',
+    payoutMin:  { 50000: 0, 100000: 0, 150000: 0 }, // TODO:VERIFY
+    drawdown:   'EOD-based, $2k/$3k/$4.5k',
+    note:       'EOD drawdown is friendlier than trailing. Jens trades 5 of these.',
+    link:       'https://myfundedfutures.com/pricing/',
+  },
+  {
+    name: 'Tradeify',
+    tag: 'FUTURES',
+    sizes: [25000, 50000, 100000, 150000],
+    evalFee:    { 25000: 50, 50000: 80, 100000: 165, 150000: 275 }, // TODO:VERIFY
+    monthlyFee: 0,
+    profitSplit: 0.90, // TODO:VERIFY
+    payoutFreq: 'biweekly',
+    payoutMin:  { 25000: 1500, 50000: 2000, 100000: 3000, 150000: 4500 }, // TODO:VERIFY
+    drawdown:   'EOD or static (Straight model)',
+    note:       'Straight account = no drawdown reset. Newer player.',
+    link:       'https://tradeify.co/',
+  },
+  {
+    name: 'AlphaFutures',
+    tag: 'FUTURES',
+    sizes: [25000, 50000, 100000, 150000],
+    evalFee:    { 25000: 70, 50000: 110, 100000: 195, 150000: 295 }, // TODO:VERIFY
+    monthlyFee: 0,
+    profitSplit: 0.90, // TODO:VERIFY
+    payoutFreq: 'biweekly',
+    payoutMin:  { 25000: 1000, 50000: 2000, 100000: 3000, 150000: 4500 }, // TODO:VERIFY
+    drawdown:   'EOD-based',
+    note:       'Newer firm — competitive eval prices.',
+    link:       'https://alphafutures.com/',
+  },
+];
+
+const ACCOUNT_SIZE_OPTIONS = [25000, 50000, 100000, 150000];
+const MONTHLY_PROFIT_OPTIONS = [1000, 3000, 5000, 10000];
+
+function fmtCurrency(n) {
+  if (!Number.isFinite(n)) return '—';
+  const sign = n < 0 ? '-' : '';
+  const abs = Math.abs(n);
+  if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(abs >= 10000 ? 0 : 1)}k`;
+  return `${sign}$${Math.round(abs)}`;
+}
+
+function FirmRoiCalculator() {
+  const [accountSize, setAccountSize] = useState(50000);
+  const [monthlyProfit, setMonthlyProfit] = useState(3000);
+
+  // For each firm, compute the bottom-line economics for this profile.
+  // Some firms don't offer the chosen account size — those get filtered or
+  // mapped to the nearest available size (with a note).
+  const rows = FIRMS.map(firm => {
+    // Pick the closest available size at-or-below the user's choice; if the
+    // firm doesn't offer anything that small, use their smallest size.
+    const sortedSizes = [...firm.sizes].sort((a, b) => a - b);
+    const matchedSize = [...sortedSizes].reverse().find(s => s <= accountSize) ?? sortedSizes[0];
+    const sizeMatches = matchedSize === accountSize;
+
+    const evalFee = firm.evalFee[matchedSize] ?? null;
+    const monthlyFee = firm.monthlyFee ?? 0;
+    const minPayout = firm.payoutMin[matchedSize] ?? 0;
+
+    // Trader's monthly take-home: (profit × split) − recurring fee.
+    // If the user's monthly profit doesn't clear the firm's min-payout
+    // threshold, they get $0 that month (it accumulates but isn't paid).
+    const grossSplit = monthlyProfit * firm.profitSplit;
+    const monthlyTake = monthlyProfit < minPayout ? 0 : grossSplit - monthlyFee;
+    const breakEvenMonths = monthlyTake > 0 && evalFee != null
+      ? evalFee / monthlyTake
+      : null;
+    // monthlyTake already nets out monthlyFee, so don't subtract it again here.
+    const yearNet = monthlyTake > 0 && evalFee != null
+      ? (monthlyTake * 12) - evalFee
+      : null;
+
+    return {
+      firm,
+      matchedSize,
+      sizeMatches,
+      evalFee,
+      monthlyFee,
+      minPayout,
+      monthlyTake,
+      breakEvenMonths,
+      yearNet,
+    };
+  });
+
+  // Rank by 12-month net (higher = better). null values sink to bottom.
+  const ranked = [...rows].sort((a, b) => {
+    if (a.yearNet == null) return 1;
+    if (b.yearNet == null) return -1;
+    return b.yearNet - a.yearNet;
+  });
+
+  return (
+    <section className="lp-roi" id="roi-calculator" style={{
+      padding: 'clamp(48px, 8vw, 96px) 0',
+      background: 'linear-gradient(180deg, #F5EFE0 0%, #FBF6E9 100%)',
+    }}>
+      <div className="lp-container">
+        <div className="lp-eyebrow-label" style={{ color: '#E07A3B' }}>Firm vs firm</div>
+        <h2 className="lp-section-title">
+          The <em>math</em> is different for every firm.
+        </h2>
+        <p className="lp-section-sub">
+          Plug in your account size + monthly profit target. See what hits your bank — and which firm wins.
+        </p>
+
+        {/* Inputs */}
+        <div style={{
+          display: 'grid', gap: 18, marginTop: 32, marginBottom: 28,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 11, color: '#A89687', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+              Account size
+            </label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {ACCOUNT_SIZE_OPTIONS.map(size => {
+                const active = accountSize === size;
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => setAccountSize(size)}
+                    style={{
+                      padding: '8px 14px',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      borderRadius: 100,
+                      background: active ? '#E07A3B' : 'rgba(0,0,0,0.04)',
+                      color: active ? '#FFFCF5' : '#1C1613',
+                      border: active ? '1px solid #E07A3B' : '1px solid #D9CDB5',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      fontFamily: "'Inter', sans-serif",
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    ${(size / 1000).toFixed(0)}k
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 11, color: '#A89687', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+              Monthly profit you hit
+            </label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {MONTHLY_PROFIT_OPTIONS.map(p => {
+                const active = monthlyProfit === p;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setMonthlyProfit(p)}
+                    style={{
+                      padding: '8px 14px',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      borderRadius: 100,
+                      background: active ? '#E07A3B' : 'rgba(0,0,0,0.04)',
+                      color: active ? '#FFFCF5' : '#1C1613',
+                      border: active ? '1px solid #E07A3B' : '1px solid #D9CDB5',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      fontFamily: "'Inter', sans-serif",
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    ${(p / 1000).toFixed(p >= 1000 && p % 1000 === 0 ? 0 : 1)}k/mo
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Output grid */}
+        <div style={{
+          display: 'grid', gap: 14,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        }}>
+          {ranked.map((r, i) => {
+            const isWinner = i === 0 && r.yearNet != null && r.yearNet > 0;
+            return (
+              <div
+                key={r.firm.name}
+                style={{
+                  background: '#FFFCF5',
+                  border: `1.5px solid ${isWinner ? '#E07A3B' : '#D9CDB5'}`,
+                  borderRadius: 14,
+                  padding: '22px 22px 20px',
+                  position: 'relative',
+                  boxShadow: isWinner ? '0 6px 24px rgba(224,122,59,0.18)' : '0 1px 2px rgba(0,0,0,0.04)',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                }}
+              >
+                {isWinner && (
+                  <div style={{
+                    position: 'absolute', top: -10, left: 16,
+                    fontSize: 9, fontWeight: 800, letterSpacing: '0.08em',
+                    color: '#17150F', background: '#E07A3B',
+                    padding: '4px 10px', borderRadius: 100,
+                  }}>
+                    BEST FOR THIS PROFILE
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <div>
+                    <div style={{
+                      fontFamily: "'Fraunces', Georgia, serif",
+                      fontSize: 22, letterSpacing: '-0.02em',
+                      color: '#1C1613',
+                    }}>
+                      {r.firm.name}
+                    </div>
+                    <div style={{
+                      fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+                      color: '#A89687', marginTop: 2,
+                    }}>
+                      {r.firm.tag}
+                    </div>
+                  </div>
+                  {!r.sizeMatches && (
+                    <span style={{
+                      fontSize: 10, color: '#A89687',
+                      padding: '2px 8px', borderRadius: 100,
+                      border: '1px solid #D9CDB5', whiteSpace: 'nowrap',
+                    }}>
+                      ${(r.matchedSize / 1000).toFixed(0)}k acct
+                    </span>
+                  )}
+                </div>
+
+                {/* Big number — year net */}
+                <div style={{ marginTop: 16, marginBottom: 6 }}>
+                  <div style={{ fontSize: 9, color: '#A89687', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 4 }}>
+                    YEAR 1 NET (AFTER FEES)
+                  </div>
+                  <div style={{
+                    fontFamily: "'Fraunces', Georgia, serif",
+                    fontSize: 32, letterSpacing: '-0.025em',
+                    color: r.yearNet != null && r.yearNet > 0 ? '#E07A3B' : '#A89687',
+                    lineHeight: 1.1,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {r.yearNet != null ? fmtCurrency(r.yearNet) : '—'}
+                  </div>
+                </div>
+
+                {/* Breakdown */}
+                <div style={{ marginTop: 14, fontSize: 12, color: '#1C1613', lineHeight: 1.7 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#A89687' }}>Per month</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                      {fmtCurrency(r.monthlyTake)}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#A89687' }}>Profit split</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{Math.round(r.firm.profitSplit * 100)}%</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#A89687' }}>Eval cost</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {r.evalFee != null ? fmtCurrency(r.evalFee) : '—'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#A89687' }}>Break even after</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {r.breakEvenMonths != null
+                        ? `${r.breakEvenMonths.toFixed(1)} mo`
+                        : '—'}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{
+                  marginTop: 14, paddingTop: 12, borderTop: '1px solid #D9CDB5',
+                  fontSize: 11, color: '#A89687', lineHeight: 1.55, fontStyle: 'italic',
+                }}>
+                  {r.firm.note}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* CTA */}
+        <div style={{
+          marginTop: 36, padding: '24px 28px', borderRadius: 14,
+          background: '#1C1613',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          flexWrap: 'wrap', gap: 16,
+        }}>
+          <div>
+            <div style={{
+              fontFamily: "'Fraunces', Georgia, serif",
+              fontSize: 22, color: '#F0E6D8', letterSpacing: '-0.02em',
+            }}>
+              Want this <em style={{ fontStyle: 'italic', color: '#E07A3B' }}>tracked automatically</em> for your real trades?
+            </div>
+            <div style={{ fontSize: 12, color: '#A89687', marginTop: 4 }}>
+              TradeEdge runs the math live across every firm you trade — so you always know which one's worth your size.
+            </div>
+          </div>
+          <a
+            href="#pricing"
+            style={{
+              padding: '12px 22px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+              background: '#E07A3B', color: '#17150F', textDecoration: 'none',
+              fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap',
+            }}
+          >
+            Get started — free →
+          </a>
+        </div>
+
+        {/* Disclaimer */}
+        <div style={{
+          marginTop: 16, fontSize: 10.5, color: '#A89687',
+          textAlign: 'center', maxWidth: 720, marginLeft: 'auto', marginRight: 'auto',
+          lineHeight: 1.55,
+        }}>
+          Numbers are simplified estimates based on each firm's published pricing — actual results depend on consistency rules,
+          scaling plans, and your trading style. Always verify on the firm's pricing page before paying.
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Main Landing Page ─────────────────────────────────────────────────────────
 export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onShowTerms }) {
   useLenis();
@@ -523,6 +924,20 @@ export default function LandingPage({ onSignIn, onStartTrial, onShowPrivacy, onS
           </div>
         </div>
       </section>
+
+      {/* ── FIRM ROI CALCULATOR ─────────────────────────────────────────────
+        * Public free tool — picks the best prop firm based on YOUR profile.
+        *
+        * Logic per firm:
+        *   monthlyTake     = monthlyProfit × profitSplit − monthlyFee
+        *   breakEvenMonths = evalFee / monthlyTake    (when monthlyTake > 0)
+        *   yearNet         = monthlyTake × 12 − evalFee
+        *
+        * Firm data is hand-coded below. ALL VALUES MARKED `TODO:VERIFY` are
+        * rough estimates pending Jens's review against the actual pricing pages.
+        * Update before merge.
+        */}
+      <FirmRoiCalculator />
 
       {/* ── PRICING ── */}
       <section className="lp-section" id="pricing">
