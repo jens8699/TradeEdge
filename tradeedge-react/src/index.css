@@ -116,7 +116,7 @@ h1 em, h2 em, h3 em { font-style: italic; color: var(--c-accent); }
   background:#1C1613; border:0.5px solid #3D2E25; border-radius:24px; padding:32px;
   box-shadow: 0 24px 60px rgba(0,0,0,0.5); animation: scaleIn 0.4s ease both;
 }
-.tp-auth-title { font-size:20px; font-weight:600; color:#F5F3ED; margin:0 0 6px; letter-spacing:-0.3px; }
+.tp-auth-title { font-family:'Fraunces','Lora',Georgia,serif; font-size:26px; font-weight:500; color:#F5F3ED; margin:0 0 8px; letter-spacing:-0.02em; line-height:1.15; }
 .tp-auth-sub   { font-size:13px; color:#6B6862; margin:0 0 26px; line-height:1.5; }
 .tp-auth-field { margin-bottom:14px; }
 .tp-auth-field label { font-size:11px; color:#6B6862; display:block; margin-bottom:6px; font-weight:500; }

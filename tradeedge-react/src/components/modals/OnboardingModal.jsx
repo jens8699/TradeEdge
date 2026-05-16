@@ -13,32 +13,32 @@ export function isOnboardingDone() {
 
 // ── Step definitions ──────────────────────────────────────────────────────────
 const STYLES = [
-  { id: 'futures',  emoji: '⚡', label: 'Futures',   sub: 'ES, NQ, MES, MNQ…' },
-  { id: 'forex',    emoji: '💱', label: 'Forex',      sub: 'EUR/USD, GBP/JPY…' },
-  { id: 'stocks',   emoji: '📈', label: 'Stocks',     sub: 'Equities & options' },
-  { id: 'crypto',   emoji: '₿',  label: 'Crypto',     sub: 'BTC, ETH & alts' },
+  { id: 'futures',  emoji: '⚡', label: 'futures',   sub: 'ES, NQ, MES, MNQ…' },
+  { id: 'forex',    emoji: '💱', label: 'forex',      sub: 'EUR/USD, GBP/JPY…' },
+  { id: 'stocks',   emoji: '📈', label: 'stocks',     sub: 'equities & options' },
+  { id: 'crypto',   emoji: '₿',  label: 'crypto',     sub: 'BTC, ETH & alts' },
 ];
 
 const START_OPTIONS = [
   {
     id: 'csv',
     emoji: '📥',
-    label: 'Import CSV',
-    sub: 'Bring in your existing trades from Tradovate, Rithmic, or NinjaTrader.',
+    label: 'import csv',
+    sub: 'bring in your existing trades from tradovate, rithmic, or ninjatrader.',
     tab: 'connections',
   },
   {
     id: 'manual',
     emoji: '✏️',
-    label: 'Log a trade',
-    sub: 'Log your first trade manually — takes under a minute.',
+    label: 'log a trade',
+    sub: 'log your first trade manually — takes under a minute.',
     tab: 'entry',
   },
   {
     id: 'explore',
     emoji: '🗺️',
-    label: 'Explore first',
-    sub: 'Have a look around the journal before you start.',
+    label: 'explore first',
+    sub: 'have a look around the journal before you start.',
     tab: 'dashboard',
   },
 ];
@@ -200,15 +200,16 @@ function StepWelcome({ name, setName, onNext, totalSteps, step }) {
           📊
         </div>
         <h2 style={{
-          margin: '0 0 8px', fontSize: '22px', fontWeight: 800,
-          color: 'var(--c-text)', lineHeight: 1.2,
+          margin: '0 0 8px', fontFamily: "'Fraunces', Georgia, serif",
+          fontSize: '26px', fontWeight: 500, letterSpacing: '-0.02em',
+          color: 'var(--c-text)', lineHeight: 1.15,
         }}>
-          Welcome to TradeEdge
+          welcome to <em style={{ fontStyle: 'italic', color: '#E07A3B' }}>tradeedge</em>.
         </h2>
         <p style={{
           margin: 0, fontSize: '14px', color: 'var(--c-text-2)', lineHeight: 1.6,
         }}>
-          Your personal trading journal. Let's get you set up in 60 seconds.
+          the journal you'll actually open. 60 seconds to set up.
         </p>
       </div>
 
@@ -218,14 +219,14 @@ function StepWelcome({ name, setName, onNext, totalSteps, step }) {
           color: 'var(--c-text-2)', marginBottom: '8px',
           textTransform: 'uppercase', letterSpacing: '0.5px',
         }}>
-          What should we call you?
+          what do we call you?
         </label>
         <input
           autoFocus
           value={name}
           onChange={e => setName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && name.trim() && onNext()}
-          placeholder="Your name or trading alias"
+          placeholder="your name or trading alias"
           style={{
             width: '100%', background: 'var(--c-bg)',
             border: '1.5px solid var(--c-border)',
@@ -252,7 +253,7 @@ function StepWelcome({ name, setName, onNext, totalSteps, step }) {
           transition: 'all 0.15s',
         }}
       >
-        Let's go →
+        let's go →
       </button>
     </div>
   );
@@ -265,11 +266,11 @@ function StepStyle({ selected, setSelected, onNext, onBack, totalSteps, step }) 
       <Dots total={totalSteps - 1} current={step} />
 
       <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ margin: '0 0 6px', fontSize: '20px', fontWeight: 800, color: 'var(--c-text)' }}>
-          What do you trade?
+        <h2 style={{ margin: '0 0 6px', fontFamily: "'Fraunces', Georgia, serif", fontSize: '22px', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--c-text)', lineHeight: 1.2 }}>
+          what do you trade?
         </h2>
         <p style={{ margin: 0, fontSize: '13px', color: 'var(--c-text-2)' }}>
-          Helps us tailor insights to your market.
+          helps us tailor insights.
         </p>
       </div>
 
@@ -304,7 +305,7 @@ function StepStyle({ selected, setSelected, onNext, onBack, totalSteps, step }) 
           borderRadius: '12px', color: 'var(--c-text-2)',
           fontSize: '13px', cursor: 'pointer',
         }}>
-          ← Back
+          ← back
         </button>
         <button
           onClick={onNext}
@@ -315,7 +316,7 @@ function StepStyle({ selected, setSelected, onNext, onBack, totalSteps, step }) 
             fontSize: '14px', fontWeight: 700, cursor: 'pointer',
           }}
         >
-          {selected ? 'Continue →' : 'Skip for now →'}
+          {selected ? 'continue →' : 'skip for now →'}
         </button>
       </div>
     </div>
@@ -335,11 +336,11 @@ function StepExpectation({ value, setValue, onNext, onBack, totalSteps, step }) 
       <Dots total={totalSteps - 1} current={step} />
 
       <div style={{ marginBottom: '20px' }}>
-        <h2 style={{ margin: '0 0 6px', fontSize: '20px', fontWeight: 800, color: 'var(--c-text)', lineHeight: 1.25 }}>
-          What's the one thing your current journal doesn't do?
+        <h2 style={{ margin: '0 0 6px', fontFamily: "'Fraunces', Georgia, serif", fontSize: '22px', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--c-text)', lineHeight: 1.2 }}>
+          what's the one thing your <em style={{ fontStyle: 'italic', color: '#E07A3B' }}>current journal</em> doesn't do?
         </h2>
         <p style={{ margin: 0, fontSize: '13px', color: 'var(--c-text-2)', lineHeight: 1.55 }}>
-          Spreadsheet, Tradezella, notebook, screenshots — whatever you've used. What's the gap that made you sign up? <em>Optional, but it shapes what gets built next.</em>
+          spreadsheet, tradezella, notebook, screenshots — whatever you've used. what's the gap that made you sign up? <em>optional, but it shapes what gets built next.</em>
         </p>
       </div>
 
@@ -348,7 +349,7 @@ function StepExpectation({ value, setValue, onNext, onBack, totalSteps, step }) 
           autoFocus
           value={value}
           onChange={e => setValue(e.target.value)}
-          placeholder="e.g. tracking net P&L across multiple prop firms after eval fees"
+          placeholder="e.g. tracking net p&l across multiple prop firms after eval fees"
           rows={4}
           style={{
             width: '100%', background: 'var(--c-bg)',
@@ -377,7 +378,7 @@ function StepExpectation({ value, setValue, onNext, onBack, totalSteps, step }) 
           borderRadius: '12px', color: 'var(--c-text-2)',
           fontSize: '13px', cursor: 'pointer',
         }}>
-          ← Back
+          ← back
         </button>
         <button
           onClick={onNext}
@@ -388,7 +389,7 @@ function StepExpectation({ value, setValue, onNext, onBack, totalSteps, step }) 
             fontSize: '14px', fontWeight: 700, cursor: 'pointer',
           }}
         >
-          {value.trim() ? 'Continue →' : 'Skip →'}
+          {value.trim() ? 'continue →' : 'skip →'}
         </button>
       </div>
     </div>
@@ -397,17 +398,17 @@ function StepExpectation({ value, setValue, onNext, onBack, totalSteps, step }) 
 
 // ── Step 3: How to start ──────────────────────────────────────────────────────
 function StepStart({ name, onPick, onBack, saving, totalSteps, step }) {
-  const firstName = name?.split(' ')[0] || 'Trader';
+  const firstName = name?.split(' ')[0] || 'trader';
   return (
     <div style={{ padding: '32px 28px 28px' }}>
       <Dots total={totalSteps - 1} current={step} />
 
       <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ margin: '0 0 6px', fontSize: '20px', fontWeight: 800, color: 'var(--c-text)' }}>
-          How do you want to start, {firstName}?
+        <h2 style={{ margin: '0 0 6px', fontFamily: "'Fraunces', Georgia, serif", fontSize: '22px', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--c-text)', lineHeight: 1.2 }}>
+          how do you want to start, <em style={{ fontStyle: 'italic', color: '#E07A3B' }}>{firstName}</em>?
         </h2>
         <p style={{ margin: 0, fontSize: '13px', color: 'var(--c-text-2)' }}>
-          You can always change this later.
+          you can change this later.
         </p>
       </div>
 
@@ -451,7 +452,7 @@ function StepStart({ name, onPick, onBack, saving, totalSteps, step }) {
         borderRadius: '12px', color: 'var(--c-text-2)',
         fontSize: '13px', cursor: 'pointer',
       }}>
-        ← Back
+        ← back
       </button>
     </div>
   );

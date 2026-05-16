@@ -96,8 +96,8 @@ export function computeStats(list) {
 
 export function getGreeting(name) {
   const h = new Date().getHours();
-  const firstName = (name || 'Trader').split(' ')[0].split('@')[0];
-  const time = h < 5 ? 'Late night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  const firstName = (name || 'trader').split(' ')[0].split('@')[0];
+  const time = h < 5 ? 'late night' : h < 12 ? 'good morning' : h < 18 ? 'good afternoon' : 'good evening';
   return { time, firstName, full: `${time}, ${firstName}` };
 }
 
