@@ -13,12 +13,12 @@ export const SHORTCUTS = [
     { keys: ['g', 's'], label: 'Stats',             tab: 'stats'       },
     { keys: ['g', 'c'], label: 'Calendar',          tab: 'calendar'    },
     { keys: ['g', 'p'], label: 'Prop Firms',        tab: 'tracker'     },
-    { keys: ['g', 'w'], label: 'Weekly digest',     tab: 'digest'      },
+    { keys: ['g', 'n'], label: 'Connections',       tab: 'connections' },
     { keys: ['g', 'i'], label: 'AI Insights',       tab: 'insights'    },
     { keys: ['g', 'm'], label: 'Market brief',      tab: 'brief'       },
-    { keys: ['g', 'n'], label: 'Connections',       tab: 'connections' },
-    { keys: ['g', 'o'], label: 'Social',            tab: 'social'      },
     { keys: ['g', ','], label: 'Settings',          tab: 'settings'    },
+    // 'g w' (digest) + 'g o' (social) removed 2026-05-14 — digest is now
+    // a modal off Calendar; social view was deleted.
   ]},
   { group: 'Actions', items: [
     { keys: ['n'], label: 'New trade',  tab: 'entry'  },

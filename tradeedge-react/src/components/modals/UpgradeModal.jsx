@@ -9,7 +9,6 @@ const FEATURES = [
   { label: 'Connected accounts (1)',       free: true,  pro: false },
   { label: 'Connected accounts (unlimited)', free: false, pro: true },
   { label: 'AI Deep Coaching (Claude)',    free: false, pro: true  },
-  { label: 'Social profile & followers',  free: false, pro: true  },
   { label: 'Weekly performance report',   free: false, pro: true  },
   { label: 'Daily P&L notifications',     free: false, pro: true  },
   { label: 'Export to PDF / Excel',       free: false, pro: true  },

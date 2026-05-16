@@ -49,19 +49,19 @@ export default function MobileNav() {
     { id: 'entry',    icon: '✦', label: 'Log' },
     { id: 'stats',    icon: '◈', label: 'Stats' },
   ];
+  // Simplified 2026-05-14 — removed Community (was never wired) + Weekly
+  // Digest (now a modal off Calendar). Connections grouped near Prop Firms.
   const more = [
     { id: 'tracker',      icon: '◫', label: 'Prop Firms' },
-    { id: 'social',       icon: '◉', label: 'Social' },
     { id: 'connections',  icon: '⊕', label: 'Connections' },
     { id: 'calendar',     icon: '▦', label: 'Calendar' },
     { id: 'history',      icon: '≡', label: 'History' },
     { id: 'payouts',      icon: '$', label: 'Payouts' },
     { id: 'brief',        icon: '◎', label: 'Market Brief' },
     { id: 'insights',     icon: '◇', label: 'AI Insights' },
-    { id: 'digest',       icon: '⤓', label: 'Weekly Digest' },
     { id: 'settings',     icon: '⚙', label: 'Settings' },
   ];
-  const moreActive = ['tracker','brief','insights','digest','settings','history','payouts','calendar','social','connections'].includes(activeTab);
+  const moreActive = ['tracker','brief','insights','digest','settings','history','payouts','calendar','connections'].includes(activeTab);
 
   const go = (tab) => { setActiveTab(tab); setMoreOpen(false); };
 

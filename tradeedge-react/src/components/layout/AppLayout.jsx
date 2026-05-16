@@ -16,9 +16,11 @@ const Calendar       = lazy(() => import('../views/Calendar'));
 const Payouts        = lazy(() => import('../views/Payouts'));
 const MarketBrief    = lazy(() => import('../views/MarketBrief'));
 const Insights       = lazy(() => import('../views/Insights'));
-const Social         = lazy(() => import('../views/Social'));
 const Connections    = lazy(() => import('../views/Connections'));
 const PropFirmTracker = lazy(() => import('../views/PropFirmTracker'));
+// WeeklyDigest is still imported because it renders inside the Calendar
+// view as a modal (the sidebar entry was removed 2026-05-14 per the
+// simplification pass — "fewer features, sharper").
 const WeeklyDigest   = lazy(() => import('../views/WeeklyDigest'));
 import UpgradeModal from '../modals/UpgradeModal';
 import OnboardingModal, { isOnboardingDone } from '../modals/OnboardingModal';
@@ -110,9 +112,11 @@ export default function AppLayout({ user, profile, showToast }) {
             {activeTab === 'payouts'  && <Payouts showToast={showToast} />}
             {activeTab === 'brief'    && <MarketBrief showToast={showToast} />}
             {activeTab === 'insights' && <Insights showToast={showToast} profile={profile} onUpgrade={() => setShowUpgrade(true)} />}
-            {activeTab === 'digest'   && <WeeklyDigest />}
+            {/* `digest` is still routable for backwards-compat (keyboard
+              * shortcut, deep links). Sidebar entry removed 2026-05-14 — it's
+              * now triggered from the Calendar view via a modal. */}
+            {activeTab === 'digest'    && <WeeklyDigest />}
             {activeTab === 'calendar'  && <Calendar />}
-            {activeTab === 'social'       && <Social user={user} profile={profile} showToast={showToast} />}
             {activeTab === 'connections'  && <Connections user={user} showToast={showToast} />}
             {activeTab === 'settings'     && <Settings user={user} profile={profile} showToast={showToast} onUpgrade={() => setShowUpgrade(true)} onReplayOnboarding={() => { try { localStorage.removeItem('te_onboarding_done'); } catch {} setShowOnboarding(true); }} />}
             {activeTab === 'privacy'      && (
