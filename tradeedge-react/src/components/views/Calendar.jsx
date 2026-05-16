@@ -111,7 +111,7 @@ export default function Calendar() {
             Calendar
           </div>
           <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 34, letterSpacing: '-0.03em', color: 'var(--c-text)', lineHeight: 1.1 }}>
-            {monthName}, <em style={{ fontStyle: 'italic', color: 'var(--c-accent)' }}>{y}</em>.
+            {monthName.toLowerCase()}, <em style={{ fontStyle: 'italic', color: 'var(--c-accent)' }}>{y}</em>.
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>

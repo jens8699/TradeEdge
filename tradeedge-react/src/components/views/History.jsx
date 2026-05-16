@@ -342,7 +342,7 @@ Keep it brutally honest but constructive. No fluff, no generic platitudes.`;
           </button>
           <button
             onClick={() => { onDelete(t.id); onClose(); }}
-            style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid rgba(198,90,69,0.25)', background: 'transparent', color: '#C65A45', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid var(--c-border)', background: 'transparent', color: 'var(--c-text-2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
           >
             Delete
           </button>
@@ -661,7 +661,7 @@ export default function History({ showToast }) {
             History
           </div>
           <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 34, letterSpacing: '-0.03em', color: 'var(--c-text)', lineHeight: 1.1 }}>
-            All trades<span style={{ color: 'var(--c-accent)' }}>.</span>
+            every <em style={{ fontStyle: 'italic', color: 'var(--c-accent)' }}>trade</em> you've logged.
           </div>
         </div>
 
@@ -737,7 +737,7 @@ export default function History({ showToast }) {
           {activeFilterCount > 0 && (
             <button
               onClick={() => { setSymbolFilter(''); setSetupFilter(''); setOutcomeFilter(''); setSourceFilter(''); setSessionFilter(''); setRatingFilter(''); }}
-              style={{ ...inputStyle, flex: 'none', color: '#C65A45', borderColor: 'rgba(198,90,69,0.3)', cursor: 'pointer', background: 'transparent' }}
+              style={{ ...inputStyle, flex: 'none', color: 'var(--c-text-2)', borderColor: 'var(--c-border)', cursor: 'pointer', background: 'transparent' }}
             >
               Clear all
             </button>
@@ -798,7 +798,7 @@ export default function History({ showToast }) {
                 onClick={() => setDeleteAllOpen(true)}
                 style={{
                   background: 'transparent',
-                  border: '1px solid rgba(198,90,69,0.3)', color: '#C65A45',
+                  border: '1px solid var(--c-border)', color: 'var(--c-text-2)',
                   padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600,
                   cursor: 'pointer', fontFamily: "'Inter', sans-serif",
                 }}
@@ -889,7 +889,7 @@ export default function History({ showToast }) {
               </button>
               <button
                 onClick={() => handleDelete(confirmDel)}
-                style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid rgba(198,90,69,0.35)', background: 'rgba(198,90,69,0.08)', color: '#C65A45', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid var(--c-border)', background: 'var(--c-overlay-subtle)', color: 'var(--c-text)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 Delete
               </button>
@@ -972,9 +972,9 @@ export default function History({ showToast }) {
                 }}
                 disabled={deleteAllRunning}
                 style={{
-                  padding: '11px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600,
-                  background: 'transparent', color: '#C65A45',
-                  border: '1px solid rgba(198,90,69,0.4)',
+                  padding: '11px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                  background: 'var(--c-overlay-subtle)', color: 'var(--c-text)',
+                  border: '1px solid var(--c-border)',
                   cursor: deleteAllRunning ? 'wait' : 'pointer', fontFamily: 'inherit',
                   opacity: deleteAllRunning ? 0.7 : 1,
                 }}
@@ -1099,7 +1099,7 @@ export default function History({ showToast }) {
                   showToast?.(`${ids.length} trade${ids.length === 1 ? '' : 's'} deleted`, 'success', 3000);
                 }}
                 disabled={bulkDeleting}
-                style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid rgba(198,90,69,0.35)', background: 'rgba(198,90,69,0.12)', color: '#C65A45', fontSize: 13, fontWeight: 600, cursor: bulkDeleting ? 'default' : 'pointer', fontFamily: 'inherit', opacity: bulkDeleting ? 0.6 : 1 }}
+                style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid var(--c-border)', background: 'var(--c-overlay-subtle)', color: 'var(--c-text)', fontSize: 13, fontWeight: 700, cursor: bulkDeleting ? 'default' : 'pointer', fontFamily: 'inherit', opacity: bulkDeleting ? 0.6 : 1 }}
               >
                 {bulkDeleting ? 'Deleting…' : `Delete ${selectedIds.size}`}
               </button>
