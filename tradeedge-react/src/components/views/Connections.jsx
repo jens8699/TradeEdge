@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { tradovateAuth, tradovateAuthMFA, tradovateGetAccounts, tradovateSyncTrades } from '../../lib/tradovate';
+import { tradovateAuth, tradovateAuthMFA, tradovateGetAccounts, tradovateSyncTrades, syncTradovateAccountToDb } from '../../lib/tradovate';
 import { sb } from '../../lib/supabase';
 import {
   parseDAS, parseTOS, parseRithmic, parseNinjaTrader,
@@ -93,6 +93,20 @@ const PLATFORMS = [
     tags: ['Stocks', 'Day Trading'],
   },
 ];
+
+// ── Relative time helper ──────────────────────────────────────────────────────
+// Used by the connected-accounts list to show "Last: 3m ago" instead of a
+// raw timestamp. Keeps the UI scannable when auto-sync ticks every 5 min.
+function relativeTimeShort(iso) {
+  if (!iso) return '';
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 30)     return 'just now';
+  if (diff < 60)     return `${Math.floor(diff)}s ago`;
+  if (diff < 3600)   return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400)  return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
 
 // ── Tradovate OAuth launcher ──────────────────────────────────────────────────
 // TRADOVATE_CLIENT_ID must be set as a Cloudflare Pages env var
@@ -236,39 +250,33 @@ function TradovateModal({ onClose, onConnected, existingAccount }) {
     setSyncing(true);
     setSyncResult(null);
     try {
-      const accId = existingAccount?.account_id
-        ? parseInt(existingAccount.account_id)
-        : selectedAccountId;
-      const since = existingAccount?.last_sync_at || null;
-      const trades = await tradovateSyncTrades({
-        accessToken: auth.accessToken,
-        isDemo: auth.isDemo ?? existingAccount?.is_demo ?? false,
-        accountId: accId,
-        since,
+      const { data: { user } } = await sb.auth.getUser();
+      // Build a "connection-shaped" object from either an existing saved
+      // account OR the just-completed connect flow (where existingAccount
+      // may not exist yet). The helper expects: credentials, account_id,
+      // is_demo, last_sync_at, trade_count.
+      const connection = existingAccount || {
+        credentials: { accessToken: auth.accessToken },
+        account_id: String(selectedAccountId),
+        is_demo: auth.isDemo ?? false,
+        last_sync_at: null,
+        trade_count: 0,
+      };
+
+      const { newCount, error } = await syncTradovateAccountToDb({
+        connection,
+        userId: user.id,
+        sb,
       });
 
-      if (!trades.length) {
-        setSyncResult({ count: 0, message: 'No new trades found.' });
+      if (error) {
+        setSyncResult({ error: true, message: error });
         return;
       }
 
-      const { data: { user } } = await sb.auth.getUser();
-      const toInsert = trades.map(t => ({ ...t, user_id: user.id }));
-
-      // Upsert by external_id to avoid duplicates
-      const { error: insertErr } = await sb.from('trades').upsert(toInsert, {
-        onConflict: 'user_id,external_id',
-        ignoreDuplicates: true,
-      });
-      if (insertErr) throw new Error(insertErr.message);
-
-      // Update last_sync_at
-      await sb.from('connected_accounts').update({
-        last_sync_at: new Date().toISOString(),
-        trade_count: (existingAccount?.trade_count || 0) + trades.length,
-      }).eq('user_id', user.id).eq('platform', 'tradovate').eq('account_id', String(accId));
-
-      setSyncResult({ count: trades.length, message: `${trades.length} trade${trades.length !== 1 ? 's' : ''} synced!` });
+      setSyncResult(newCount === 0
+        ? { count: 0, message: 'No new trades found.' }
+        : { count: newCount, message: `${newCount} trade${newCount !== 1 ? 's' : ''} synced!` });
     } catch (e) {
       setSyncResult({ error: true, message: e.message || 'Sync failed.' });
     } finally {
@@ -1574,9 +1582,31 @@ export default function Connections({ user, showToast }) {
                   <div style={{ fontSize: '11px', color: 'var(--c-text-2)' }}>
                     {connected.trade_count || 0} trades synced
                     {connected.last_sync_at && (
-                      <> · Last: {new Date(connected.last_sync_at).toLocaleDateString()}</>
+                      <> · Last: {relativeTimeShort(connected.last_sync_at)}</>
                     )}
                   </div>
+                  {/* Auto-sync indicator — shows only for Tradovate where
+                      AppContext polls every 5 min while the app is open. */}
+                  {platform.id === 'tradovate' && (
+                    <div style={{
+                      fontSize: '10px',
+                      color: 'var(--c-accent)',
+                      marginTop: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontFamily: "'JetBrains Mono', monospace",
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                    }}>
+                      <span style={{
+                        width: 6, height: 6, borderRadius: '50%',
+                        background: 'var(--c-accent)',
+                        boxShadow: '0 0 6px rgba(224,122,59,0.6)',
+                      }} />
+                      auto-sync · every 5 min
+                    </div>
+                  )}
                 </div>
               )}
 

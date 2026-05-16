@@ -10,6 +10,7 @@ import {
   migrateLocalStorageToSupabase,
 } from '../lib/tradeAccounts';
 import { uid, computeStats, dataUrlToBlob } from '../lib/utils';
+import { syncTradovateAccountToDb } from '../lib/tradovate';
 
 const AppContext = createContext(null);
 
@@ -176,6 +177,92 @@ export function AppProvider({ userId, children }) {
     const synced = await syncOfflineQueue(userId);
     if (synced > 0) await load(userId);
     setSyncPending(oqGet().length > 0);
+  }, [userId, load]);
+
+  // ── Auto-poll Tradovate connections (broker live sync) ─────────────────────
+  // Every 5 min, for each active Tradovate connection, pull new executions
+  // from Tradovate and upsert them into the trades table (dedup'd by
+  // external_id). Triggers a trades refetch if any new trades land so the
+  // dashboard, history, stats etc. show them within the polling window.
+  //
+  // Why 5 min: Tradovate Connect API has rate limits, browsers throttle
+  // setInterval when the tab is hidden, and a trading journal doesn't need
+  // sub-minute freshness. Manual "Sync trades" button still exists for
+  // users who want immediate refresh.
+  //
+  // Token expiration: when accessToken expires, sync returns an error from
+  // upstream Tradovate (401). We log a warning but DON'T disable the
+  // connection — user can re-authenticate via the Connections UI. Polls
+  // continue (and continue to fail) until the user reconnects, which is
+  // a reasonable UX since the failure surfaces "your token expired" rather
+  // than silently going stale.
+  useEffect(() => {
+    if (!userId) return;
+    if (!navigator.onLine) return;
+
+    let cancelled = false;
+    let intervalIds = [];
+
+    async function runOneSync(conn) {
+      if (cancelled) return;
+      try {
+        const { newCount, error } = await syncTradovateAccountToDb({
+          connection: conn,
+          userId,
+          sb,
+        });
+        if (cancelled) return;
+        if (error) {
+          // Don't spam console on every poll if a token is expired — just
+          // log once-per-mount via a Set guard would be cleaner but for
+          // launch traffic this is rare enough.
+          console.warn(`[auto-sync] ${conn.account_name || conn.account_id}: ${error}`);
+          return;
+        }
+        if (newCount > 0) {
+          await load(userId);
+        }
+      } catch (e) {
+        // Network error or thrown helper — non-fatal, just log.
+        console.warn(`[auto-sync] ${conn.account_name || conn.account_id} threw:`, e?.message);
+      }
+    }
+
+    async function start() {
+      const { data: conns, error } = await sb
+        .from('connected_accounts')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('platform', 'tradovate')
+        .eq('active', true);
+      if (cancelled) return;
+      if (error || !Array.isArray(conns) || conns.length === 0) return;
+
+      // Initial sync immediately (don't wait 5 min for first poll).
+      conns.forEach(c => runOneSync(c));
+
+      // Stagger interval starts by 10s per connection so 5 connections
+      // don't all fire at the exact same second.
+      conns.forEach((conn, i) => {
+        const offset = i * 10_000;
+        const startTimer = setTimeout(() => {
+          if (cancelled) return;
+          const id = setInterval(() => runOneSync(conn), 5 * 60 * 1000);
+          intervalIds.push(id);
+        }, offset);
+        intervalIds.push(startTimer); // also clear the setTimeout itself
+      });
+    }
+
+    start();
+
+    return () => {
+      cancelled = true;
+      intervalIds.forEach(id => {
+        clearInterval(id);
+        clearTimeout(id);
+      });
+    };
   }, [userId, load]);
 
   // ── Auto-sync public profile stats whenever trades change ──────────────────

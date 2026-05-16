@@ -169,3 +169,73 @@ export async function tradovateSyncTrades({
     };
   });
 }
+
+// ── Reusable sync-to-DB helper ────────────────────────────────────────────────
+// Wraps tradovateSyncTrades + Supabase upsert + last_sync_at update into one
+// call. Used by BOTH the manual "Sync trades" button in Connections.jsx and
+// the auto-poll loop in AppContext.
+//
+// Dedup is handled by Supabase upsert with onConflict: 'user_id,external_id'
+// so re-running this safely re-pulls the executions list without inserting
+// duplicates. We update last_sync_at on every call (even when zero new
+// trades) so subsequent polls only ask Tradovate for trades after the last
+// check window.
+//
+// Returns { newCount, error? }. The caller decides whether to toast / refresh
+// the UI / mark the connection as expired (on 401).
+export async function syncTradovateAccountToDb({ connection, userId, sb }) {
+  if (!connection || !userId || !sb) {
+    return { newCount: 0, error: 'Missing connection, userId, or sb client.' };
+  }
+  const auth = connection.credentials || {};
+  if (!auth.accessToken) {
+    return { newCount: 0, error: 'No access token on connection.' };
+  }
+
+  const accId  = parseInt(connection.account_id);
+  const isDemo = !!connection.is_demo;
+  const since  = connection.last_sync_at || null;
+
+  try {
+    const trades = await tradovateSyncTrades({
+      accessToken: auth.accessToken,
+      isDemo,
+      accountId: accId,
+      since,
+    });
+
+    const now = new Date().toISOString();
+
+    if (!trades.length) {
+      // No new trades — still bump last_sync_at so the next poll narrows
+      // its query window.
+      await sb.from('connected_accounts').update({ last_sync_at: now })
+        .eq('user_id', userId)
+        .eq('platform', 'tradovate')
+        .eq('account_id', String(accId));
+      return { newCount: 0 };
+    }
+
+    // Upsert with dedup. ignoreDuplicates: true means external_id collisions
+    // (already-imported trades) silently skip without throwing.
+    const toInsert = trades.map(t => ({ ...t, user_id: userId }));
+    const { error: insertErr } = await sb.from('trades').upsert(toInsert, {
+      onConflict: 'user_id,external_id',
+      ignoreDuplicates: true,
+    });
+    if (insertErr) return { newCount: 0, error: insertErr.message };
+
+    // Bump last_sync_at + trade_count counter.
+    await sb.from('connected_accounts').update({
+      last_sync_at: now,
+      trade_count: (connection.trade_count || 0) + trades.length,
+    })
+      .eq('user_id', userId)
+      .eq('platform', 'tradovate')
+      .eq('account_id', String(accId));
+
+    return { newCount: trades.length };
+  } catch (e) {
+    return { newCount: 0, error: e.message || 'Sync failed' };
+  }
+}
