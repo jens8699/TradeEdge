@@ -4,8 +4,14 @@ import { getGreeting, getMilestone, getStreak } from '../../lib/utils';
 import { sb } from '../../lib/supabase';
 import NotificationsPanel, { NotificationsBell } from '../ui/NotificationsPanel';
 
+// Sidebar nav — simplified 2026-05-14 per Jens's "fewer features, sharper"
+// product decision:
+//   - Community / Social view: REMOVED (was never wired)
+//   - Weekly Digest: removed from sidebar, now a button → modal inside Calendar
+//   - Connections: moved under "Accounts" with Prop Firms (both = "where you trade")
 const NAV_TRACKER = [
-  { id: 'tracker', label: 'Prop Firms' },
+  { id: 'tracker',     label: 'Prop Firms'  },
+  { id: 'connections', label: 'Connections' },
 ];
 
 const NAV_MAIN = [
@@ -21,12 +27,6 @@ const NAV_MAIN = [
 const NAV_INTEL = [
   { id: 'insights', label: 'AI Insights'  },
   { id: 'brief',    label: 'Market Brief' },
-  { id: 'digest',   label: 'Weekly Digest' },
-];
-
-const NAV_SOCIAL = [
-  { id: 'social',      label: 'Community'   },
-  { id: 'connections', label: 'Connections' },
 ];
 
 const NAV_ACCOUNT = [
@@ -224,10 +224,6 @@ export default function Sidebar({ user, profile, onUpgrade }) {
         <div>
           <NavLabel>Intelligence</NavLabel>
           <NavSection items={NAV_INTEL} activeTab={activeTab} setActiveTab={setActiveTab} />
-        </div>
-        <div>
-          <NavLabel>Social</NavLabel>
-          <NavSection items={NAV_SOCIAL} activeTab={activeTab} setActiveTab={setActiveTab} />
         </div>
         <div>
           <NavLabel>Account</NavLabel>

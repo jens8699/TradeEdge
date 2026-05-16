@@ -1,6 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import { useApp } from '../../context/AppContext';
 import { fmt } from '../../lib/utils';
+
+// Weekly Digest used to be its own sidebar tab. Removed 2026-05-14 — it now
+// lives as a modal off the Calendar (one button-click). Same component, just
+// a different entry point. Lazy-loaded so the Calendar bundle stays small.
+const WeeklyDigest = lazy(() => import('./WeeklyDigest'));
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const RATING_COLORS = { A: '#E07A3B', B: '#A89687', C: '#EFC97A', D: '#C65A45' };
@@ -11,6 +16,7 @@ export default function Calendar() {
     const n = new Date(); return { y: n.getFullYear(), m: n.getMonth() };
   });
   const [selected, setSelected] = useState(null);
+  const [showDigest, setShowDigest] = useState(false);
   const { y, m } = cursor;
 
   // ── Data ───────────────────────────────────────────────────────────────────
@@ -108,7 +114,24 @@ export default function Calendar() {
             {monthName}, <em style={{ fontStyle: 'italic', color: 'var(--c-accent)' }}>{y}</em>.
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setShowDigest(true)}
+            style={{
+              padding: '8px 14px',
+              fontSize: 12, fontWeight: 600,
+              borderRadius: 8,
+              background: 'rgba(224,122,59,0.1)',
+              border: '1px solid rgba(224,122,59,0.35)',
+              color: 'var(--c-accent)',
+              cursor: 'pointer',
+              fontFamily: "'Inter', sans-serif",
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}
+            title="Open weekly digest"
+          >
+            📊 Weekly digest
+          </button>
           <button style={navBtn} onClick={prev}>‹</button>
           <span style={{ fontSize: 12, color: 'var(--c-text-2)', fontFamily: "'JetBrains Mono', monospace", padding: '0 6px', letterSpacing: '0.04em' }}>
             {monthName.slice(0, 3).toUpperCase()} {y}
@@ -313,6 +336,58 @@ export default function Calendar() {
         <div style={{ textAlign: 'center', padding: '56px 0', color: 'var(--c-text-2)', fontSize: 13, lineHeight: 1.8 }}>
           No trades in {monthName} {y}.<br />
           <span style={{ opacity: 0.6 }}>Navigate to a month where you have trades.</span>
+        </div>
+      )}
+
+      {/* ── Weekly Digest modal ── */}
+      {showDigest && (
+        <div
+          onClick={() => setShowDigest(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            padding: 'clamp(20px, 4vw, 60px)',
+            overflowY: 'auto',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--c-bg)',
+              borderRadius: 16,
+              width: '100%', maxWidth: 1080,
+              maxHeight: 'calc(100vh - 80px)',
+              overflowY: 'auto',
+              position: 'relative',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+            }}
+          >
+            <button
+              onClick={() => setShowDigest(false)}
+              style={{
+                position: 'absolute', top: 14, right: 14, zIndex: 10,
+                width: 36, height: 36, borderRadius: 100,
+                background: 'rgba(0,0,0,0.06)', border: '1px solid var(--c-border)',
+                color: 'var(--c-text)', cursor: 'pointer',
+                fontSize: 18, lineHeight: 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+              aria-label="Close weekly digest"
+            >
+              ✕
+            </button>
+            <Suspense
+              fallback={
+                <div style={{ padding: 60, textAlign: 'center', color: 'var(--c-text-2)' }}>
+                  Loading digest…
+                </div>
+              }
+            >
+              <WeeklyDigest />
+            </Suspense>
+          </div>
         </div>
       )}
 
