@@ -47,7 +47,7 @@ function ActionButton({ onClick, children, variant = 'primary', disabled }) {
   const styles = {
     primary: { background: 'rgba(224,122,59,0.1)', border: '1px solid rgba(224,122,59,0.35)', color: 'var(--c-accent)' },
     ghost:   { background: 'transparent', border: '1px solid var(--c-border)', color: 'var(--c-text-2)' },
-    danger:  { background: 'transparent', border: '1px solid rgba(198,90,69,0.35)', color: '#C65A45' },
+    danger:  { background: 'transparent', border: '1px solid var(--c-border)', color: 'var(--c-text-2)' },
   };
   return (
     <button
@@ -161,7 +161,7 @@ export default function Settings({ user, profile, showToast, onUpgrade, onReplay
           Settings
         </div>
         <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 34, letterSpacing: '-0.03em', color: 'var(--c-text)', lineHeight: 1.1 }}>
-          Your account<span style={{ color: 'var(--c-accent)' }}>.</span>
+          your <em style={{ fontStyle: 'italic', color: 'var(--c-accent)' }}>account</em>.
         </div>
       </div>
 
@@ -480,7 +480,7 @@ function TradingRulesEditor() {
                   style={{
                     width: 26, height: 26, borderRadius: 6,
                     border: '1px solid var(--c-border)', background: 'transparent',
-                    color: '#C65A45', fontSize: 14, cursor: 'pointer', lineHeight: 1,
+                    color: 'var(--c-text-2)', fontSize: 14, cursor: 'pointer', lineHeight: 1,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontFamily: 'inherit', flexShrink: 0,
                   }}

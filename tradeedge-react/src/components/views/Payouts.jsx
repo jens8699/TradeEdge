@@ -130,7 +130,7 @@ export default function Payouts({ showToast }) {
         <div>
           <Eyebrow>Payouts</Eyebrow>
           <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 34, letterSpacing: '-0.03em', color: 'var(--c-text)', lineHeight: 1.1 }}>
-            Prop firm <em style={{ fontStyle: 'italic', color: 'var(--c-accent)' }}>HQ</em>.
+            prop firm <em style={{ fontStyle: 'italic', color: 'var(--c-accent)' }}>HQ</em>.
           </div>
         </div>
       </div>
@@ -466,7 +466,7 @@ function ConfirmModal({ title, body, onCancel, onConfirm, confirmLabel }) {
         <p style={{ fontSize: 13, color: 'var(--c-text-2)', margin: '0 0 22px', lineHeight: 1.6 }}>{body}</p>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={onCancel} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid var(--c-border)', background: 'transparent', color: 'var(--c-text-2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-          <button onClick={onConfirm} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid rgba(198,90,69,0.35)', background: 'rgba(198,90,69,0.08)', color: '#C65A45', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{confirmLabel}</button>
+          <button onClick={onConfirm} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid var(--c-border)', background: 'var(--c-overlay-subtle)', color: 'var(--c-text)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{confirmLabel}</button>
         </div>
       </div>
     </>
