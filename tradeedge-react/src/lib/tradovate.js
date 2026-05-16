@@ -51,34 +51,116 @@ function parseAuthResponse(data, isDemo) {
   };
 }
 
-// Step 1: initial auth — may return { mfaRequired: true, pTicket } if MFA enabled
+// Internal: fetch with a hard 15-second timeout so the connect UI never hangs
+// forever on a stalled network / dropped TCP / browser extension blocking the
+// request. AbortController is the only way to actually cancel an inflight
+// fetch — without it, the promise stays pending until the browser gives up
+// (which can be 60+ seconds).
+async function fetchWithTimeout(url, opts, timeoutMs = 15000) {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+// Step 1: initial auth — may return { mfaRequired: true, pTicket } if MFA enabled.
+// Heavily instrumented with console.log because the connect modal historically
+// stalled on "Connecting…" with no signal to the user — we want every step
+// visible in DevTools console so support / debug is one paste away.
 export async function tradovateAuth({ username, password, isDemo = false }) {
-  const res = await fetch('/api/tradovate/auth', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-    body: JSON.stringify({ ...AUTH_BODY_BASE(username, password), isDemo }),
+  console.log('[tradovateAuth] start', { username, isDemo });
+
+  let headers;
+  try {
+    headers = await authHeaders();
+    console.log('[tradovateAuth] supabase auth header obtained');
+  } catch (e) {
+    console.error('[tradovateAuth] authHeaders failed', e);
+    throw new Error(`Sign-in required: ${e.message}`);
+  }
+
+  let res;
+  try {
+    res = await fetchWithTimeout('/api/tradovate/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify({ ...AUTH_BODY_BASE(username, password), isDemo }),
+    });
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      console.error('[tradovateAuth] request timed out after 15s');
+      throw new Error('Tradovate auth timed out after 15s. Check your network or try again.');
+    }
+    console.error('[tradovateAuth] fetch threw', e);
+    throw new Error(`Network error reaching Tradovate proxy: ${e.message}`);
+  }
+
+  console.log('[tradovateAuth] response', res.status);
+
+  let data;
+  try {
+    data = await res.json();
+  } catch (e) {
+    const text = await res.text().catch(() => '(unreadable)');
+    console.error('[tradovateAuth] non-JSON response', text);
+    throw new Error(`Tradovate proxy returned non-JSON (HTTP ${res.status}). Body: ${text.slice(0, 200)}`);
+  }
+
+  console.log('[tradovateAuth] data', {
+    hasAccessToken: !!data.accessToken,
+    hasMfa: !!data['p-ticket'],
+    errorText: data.errorText,
   });
-  if (!res.ok) throw new Error(`Auth failed: ${res.status}`);
-  const data = await res.json();
+
+  if (!res.ok && !data['p-ticket']) {
+    // Don't drop the upstream errorText — that's how the user sees "incorrect
+    // username or password" instead of "Auth failed: 401".
+    throw new Error(data.errorText || `Auth failed (HTTP ${res.status})`);
+  }
   return parseAuthResponse(data, isDemo);
 }
 
 // Step 2: complete auth after MFA — send the 6-digit code
 export async function tradovateAuthMFA({ username, password, isDemo = false, pTicket, pTime, pCaptcha, mfaCode }) {
-  const res = await fetch('/api/tradovate/auth', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-    body: JSON.stringify({
-      ...AUTH_BODY_BASE(username, password),
-      isDemo,
-      'p-ticket': pTicket,
-      'p-time': pTime,
-      'p-captcha': pCaptcha,
-      'p-response': mfaCode.trim(),
-    }),
-  });
-  if (!res.ok) throw new Error(`MFA auth failed: ${res.status}`);
-  const data = await res.json();
+  console.log('[tradovateAuthMFA] start', { username, isDemo });
+
+  let headers;
+  try {
+    headers = await authHeaders();
+  } catch (e) {
+    throw new Error(`Sign-in required: ${e.message}`);
+  }
+
+  let res;
+  try {
+    res = await fetchWithTimeout('/api/tradovate/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify({
+        ...AUTH_BODY_BASE(username, password),
+        isDemo,
+        'p-ticket': pTicket,
+        'p-time': pTime,
+        'p-captcha': pCaptcha,
+        'p-response': mfaCode.trim(),
+      }),
+    });
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      throw new Error('MFA auth timed out after 15s.');
+    }
+    throw new Error(`Network error: ${e.message}`);
+  }
+
+  const data = await res.json().catch(() => ({}));
+  console.log('[tradovateAuthMFA] response', res.status, { errorText: data.errorText });
+
+  if (!res.ok && !data['p-ticket']) {
+    throw new Error(data.errorText || `MFA auth failed (HTTP ${res.status})`);
+  }
   return parseAuthResponse(data, isDemo);
 }
 
