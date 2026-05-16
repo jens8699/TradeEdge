@@ -273,8 +273,8 @@ export default function Dashboard({ user, profile }) {
       </div>
 
       {/* ── Greeting ── */}
-      <div style={{ fontSize: 30, fontWeight: 600, color: 'var(--c-text)', letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 8 }}>
-        {time}, <span style={{ color: '#E07A3B' }}>{firstName}</span>.
+      <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 36, fontWeight: 500, color: 'var(--c-text)', letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 8 }}>
+        {time}, <em style={{ fontStyle: 'italic', color: '#E07A3B' }}>{firstName}</em>.
       </div>
       <div style={{ fontSize: 13.5, color: 'var(--c-text-2)', lineHeight: 1.55, maxWidth: 540 }}>
         {today.count === 0

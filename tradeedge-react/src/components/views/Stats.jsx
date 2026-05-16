@@ -388,11 +388,11 @@ export default function Stats() {
         <div>
           <Eyebrow>Stats</Eyebrow>
           <div style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: 34, fontWeight: 700,
+            fontFamily: "'Fraunces', Georgia, serif",
+            fontSize: 34, fontWeight: 500,
             color: 'var(--c-text)', letterSpacing: '-0.03em', lineHeight: 1.1,
           }}>
-            The numbers.
+            the <em style={{ fontStyle: 'italic', color: '#E07A3B' }}>numbers</em> behind your edge.
           </div>
           {consistencyInfo && list.length >= 3 && (
             <div style={{ fontSize: 12, color: 'var(--c-text-2)', marginTop: 8 }}>
