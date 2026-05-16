@@ -9,10 +9,64 @@
 
 import { sb } from './supabase';
 
+// Read Supabase access token straight from localStorage. The SDK writes it
+// here on sign-in and updates it on every refresh — so it's the most
+// authoritative source we can read without going through an async API call
+// that can stall mid-refresh.
+function readTokenFromLocalStorage() {
+  try {
+    const keys = Object.keys(localStorage).filter(
+      k => k.startsWith('sb-') && k.endsWith('-auth-token')
+    );
+    for (const key of keys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+      if (parsed?.access_token) return parsed.access_token;
+      // Some Supabase versions wrap the token in { currentSession: { access_token } }
+      if (parsed?.currentSession?.access_token) return parsed.currentSession.access_token;
+    }
+  } catch (e) {
+    console.warn('[authHeaders] localStorage read failed:', e.message);
+  }
+  return '';
+}
+
 async function authHeaders() {
-  const { data: { session } } = await sb.auth.getSession();
-  const token = session?.access_token || '';
-  if (!token) throw new Error('You need to be signed in to use broker connections.');
+  console.log('[authHeaders] start');
+
+  // Race sb.auth.getSession() against a 3-second timeout. The SDK can hang
+  // indefinitely if a token-refresh promise gets stuck (seen live during
+  // PR #11 prod-test). 3s is plenty for a healthy session — anything longer
+  // means we should fall back rather than make the user wait.
+  let token = '';
+  try {
+    const sessionPromise = sb.auth.getSession();
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('getSession timed out after 3s')), 3000)
+    );
+    const result = await Promise.race([sessionPromise, timeoutPromise]);
+    token = result?.data?.session?.access_token || '';
+    if (token) {
+      console.log('[authHeaders] got token via sb.auth.getSession()');
+    }
+  } catch (e) {
+    console.warn('[authHeaders] getSession failed, trying localStorage fallback:', e.message);
+  }
+
+  // Fallback: read from localStorage directly. This is also what we use
+  // when the SDK call timed out above.
+  if (!token) {
+    token = readTokenFromLocalStorage();
+    if (token) {
+      console.log('[authHeaders] got token via localStorage fallback');
+    }
+  }
+
+  if (!token) {
+    console.error('[authHeaders] no token from any source — user is signed out or storage is corrupt');
+    throw new Error('You need to be signed in to use broker connections. Try signing out and back in.');
+  }
   return { 'X-Supabase-Auth': token };
 }
 
